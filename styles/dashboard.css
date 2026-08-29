@@ -1,0 +1,91 @@
+/* =========================
+   DASHBOARD
+   ========================= */
+
+.welcome-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 27px;
+}
+
+.eyebrow {
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--green);
+  margin: 0 0 7px;
+}
+
+.welcome-row h1 {
+  font:
+    700 clamp(23px, 2.2vw, 30px) / 1.2
+    "Plus Jakarta Sans";
+  margin: 0 0 8px;
+}
+
+.welcome-row p:last-child {
+  color: var(--muted);
+  margin: 0;
+}
+
+/* =========================
+   STAT CARDS
+   ========================= */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 17px;
+  margin-bottom: 19px;
+}
+
+.stat-card,
+.panel {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 15px rgba(30, 52, 43, 0.025);
+}
+
+.stat-card {
+  padding: 19px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stat-icon {
+  display: grid;
+  place-items: center;
+
+  width: 37px;
+  height: 37px;
+
+  border-radius: 10px;
+}
+
+.green .stat-icon {
+  background: #e5f5ef;
+  color: var(--green);
+}
+
+.blue .stat-icon {
+  background: #eaf2fb;
+  color: var(--blue);
+}
+
+.orange .stat-icon {
+  background: #fff2e4;
+  color: var(--orange);
+}
+
+.purple .stat-icon {
+  background: #f0edfb;
+  color: var(--purple);
+}

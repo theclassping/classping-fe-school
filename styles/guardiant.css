@@ -1,0 +1,49 @@
+/* =========================
+   PARENT VIEW
+   ========================= */
+
+.parent-nav {
+  display: none;
+}
+
+body.parent-view .admin-nav,
+body.parent-view .help-card,
+body.parent-view #adminView {
+  display: none;
+}
+
+body.parent-view .parent-nav {
+  display: flex;
+}
+
+.parent-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  background: linear-gradient(120deg, #f2faf7, #fff);
+
+  margin-bottom: 15px;
+}
+
+.parent-hero h1 {
+  font:
+    700 25px
+    "Plus Jakarta Sans";
+
+  margin: 0 0 7px;
+}
+
+.child-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  padding: 13px 15px;
+
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+
+  min-width: 330px;
+}

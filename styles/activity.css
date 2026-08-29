@@ -1,0 +1,56 @@
+/* =========================
+   ACTIVITIES
+   ========================= */
+
+.activity-section {
+  padding: 28px 0 19px;
+  scroll-margin-top: 70px;
+}
+
+.activity-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  padding: 14px 18px;
+  margin-bottom: 15px;
+}
+
+.activity-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.activity-card {
+  padding: 0;
+  overflow: visible;
+}
+
+.activity-cover {
+  height: 145px;
+
+  display: grid;
+  place-items: center;
+
+  position: relative;
+  overflow: hidden;
+}
+
+.activity-body {
+  padding: 17px;
+}
+
+.activity-body h3 {
+  font:
+    700 15px
+    "Plus Jakarta Sans";
+
+  margin: 9px 0 6px;
+}
+
+.activity-body > p {
+  font-size: 10px;
+  line-height: 1.55;
+  color: var(--muted);
+}
