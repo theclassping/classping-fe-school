@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { LogOut } from "lucide-react";
 
 export default function LogoutButton() {
   const router = useRouter();
@@ -32,8 +33,9 @@ export default function LogoutButton() {
       type="button"
       onClick={handleLogout}
       disabled={loading}
-      className="secondary-button"
+      className="logout"
     >
+      <LogOut aria-hidden="true" />
       {loading ? "Logging out..." : "Logout"}
     </button>
   );

@@ -56,7 +56,7 @@ try {
           </span>
 
           <span>
-            className<span>ping</span>
+            class<span>ping</span>
           </span>
         </div>
 
@@ -133,7 +133,7 @@ try {
               disabled={loading}
             >
               Masuk
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? "..." : ""}
             </button>
           </form>
         </div>
