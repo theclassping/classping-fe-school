@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { Filter, Search } from "lucide-react";
+import { Filter, Plus, Search, WalletCards, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-// import { payments, type Payment } from "./paymentData";
+import { addSchoolNotification } from "../components/school-store";
 export type Payment = {
     student_name: string;
     class_name: string;
@@ -24,6 +23,7 @@ export default function PaymentsPage() {
     const [search, setSearch] = useState("");
     const [classFilter, setClassFilter] = useState("ALL");
     const [reminder, setReminder] = useState<Payment | null>(null);
+    const [recording, setRecording] = useState(false);
     const [toast, setToast] = useState("");
 
     async function loadPayments() {
@@ -63,22 +63,18 @@ export default function PaymentsPage() {
     }
 
     useEffect(() => {
-        void loadPayments();
+        const timer = window.setTimeout(() => void loadPayments(), 0);
+        return () => window.clearTimeout(timer);
     }, []);
 
     const classes = Array.from(
         new Set(payments.map((payment) => payment.class_name).filter(Boolean))
     );
 
-    // const filteredPayments = payments.filter((payment) => {
-    //     const name = payment.name.toLowerCase();
-    //     const searchTerm = search.toLowerCase();
-
-    //     return (
-    //         name.includes(searchTerm) &&
-    //         (classFilter === "ALL" || payment.className === classFilter)
-    //     );
-    // });
+    const filteredPayments = useMemo(() => payments.filter((payment) =>
+        payment.student_name.toLowerCase().includes(search.toLowerCase()) &&
+        (classFilter === "ALL" || payment.class_name === classFilter)
+    ), [classFilter, payments, search]);
 
     function updateSearch(value: string) {
         setSearch(value);
@@ -93,15 +89,36 @@ export default function PaymentsPage() {
         window.setTimeout(() => setToast(""), 3000);
     }
 
+    function recordPayment(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        const data = new FormData(event.currentTarget);
+        const payment: Payment = {
+            student_name: String(data.get("studentName")),
+            class_name: String(data.get("className")),
+            fee_type_name: String(data.get("month")),
+            invoice_date: new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric" }).format(new Date()),
+            total_amount: `Rp ${Number(data.get("amount")).toLocaleString("id-ID")}`,
+            status: "paid",
+        };
+        setPayments((current) => [payment, ...current]);
+        setRecording(false);
+        showToast("Pembayaran berhasil dicatat.");
+        addSchoolNotification({ id: `payment-${Date.now()}`, type: "payment", title: "Pembayaran SPP diterima", message: `Pembayaran ${payment.student_name} untuk ${payment.fee_type_name} telah tercatat lunas.`, href: "/dashboard/payments" });
+    }
+
     return (
-        <main>
+        <main id="main">
+            <section className="page-heading">
+                <div><p className="eyebrow">ADMINISTRASI SEKOLAH</p><h1>Pembayaran</h1><p>Kelola transaksi SPP dan pengingat pembayaran siswa.</p></div>
+                <button className="primary-button" type="button" onClick={() => setRecording(true)}><Plus aria-hidden="true" /> Catat Pembayaran</button>
+            </section>
             <section className="panel transactions" id="pembayaran">
                 <div className="panel-heading transaction-heading">
                     <div>
                         <h2>Pembayaran Terbaru</h2>
                         <p>Transaksi SPP yang baru saja tercatat</p>
                     </div>
-                    <span className="text-button">{payments.length} transaksi</span>
+                    <span className="text-button">{filteredPayments.length} transaksi</span>
                 </div>
 
                 <div className="table-tools">
@@ -130,8 +147,8 @@ export default function PaymentsPage() {
                     <table>
                         <thead><tr><th>Nama Siswa</th><th>Kelas</th><th>Jenis Pembayaran</th><th>Tanggal Bayar</th><th>Jumlah</th><th>Status</th><th aria-label="Aksi" /></tr></thead>
                         <tbody>
-                            {payments.map((payment) => (
-                                <tr>
+                            {filteredPayments.map((payment) => (
+                                <tr key={`${payment.student_name}-${payment.invoice_date}-${payment.fee_type_name}`}>
                                     <td><div className="student-cell"><strong>{payment.student_name}</strong></div></td>
                                     <td>{payment.class_name}</td><td>{payment.fee_type_name}</td><td>{payment.invoice_date}</td><td><strong>{payment.total_amount}</strong></td>
                                     <td><span className={payment.status === "paid" ? "status-pill" : "status-pending"}>{payment.status}</span></td>
@@ -142,7 +159,7 @@ export default function PaymentsPage() {
                     </table>
                 </div>
                 )}
-                {!loading && !error && payments.length === 0 && <p className="empty-state">Tidak ada siswa yang cocok dengan pencarian.</p>}
+                {!loading && !error && filteredPayments.length === 0 && <p className="empty-state">Tidak ada siswa yang cocok dengan pencarian.</p>}
                 {toast && <p className="settings-save-message" role="status">{toast}</p>}
             </section>
 
@@ -159,6 +176,18 @@ export default function PaymentsPage() {
                             <button type="button" className="button-primary" onClick={() => { setReminder(null); showToast("Reminder dikirim melalui WhatsApp."); }}>WhatsApp</button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {recording && (
+                <div className="modal-overlay" role="presentation">
+                    <section className="modal" role="dialog" aria-modal="true" aria-labelledby="recordPaymentTitle">
+                        <form onSubmit={recordPayment}>
+                            <div className="dialog-heading"><div><span className="dialog-icon"><WalletCards aria-hidden="true" /></span><div><h2 id="recordPaymentTitle">Catat Pembayaran</h2><p>Tambahkan pembayaran SPP siswa.</p></div></div><button className="close-button" type="button" aria-label="Tutup" onClick={() => setRecording(false)}><X aria-hidden="true" /></button></div>
+                            <div className="prototype-dialog-fields"><label className="full">Nama siswa<input name="studentName" required placeholder="Contoh: Alya Putri Ramadhani" /></label><label>Kelas<select name="className"><option>A1</option><option>A2</option><option>B1</option><option>B2</option></select></label><label>Bulan SPP<select name="month"><option>September 2026</option><option>Agustus 2026</option><option>Juli 2026</option></select></label><label>Jumlah<input name="amount" type="number" min="1" defaultValue="250000" required /></label><label>Metode<select name="method"><option>Transfer Bank</option><option>QRIS</option><option>Tunai</option></select></label></div>
+                            <div className="dialog-actions"><button className="secondary-button" type="button" onClick={() => setRecording(false)}>Batal</button><button className="primary-button" type="submit">Simpan Pembayaran</button></div>
+                        </form>
+                    </section>
                 </div>
             )}
         </main>

@@ -9,7 +9,10 @@ export default function PaymentEditPage() {
     const [saved, setSaved] = useState(false);
 
     useEffect(() => {
-        setPayment(getPayment(new URLSearchParams(window.location.search).get("payment")));
+        const timer = window.setTimeout(() => {
+            setPayment(getPayment(new URLSearchParams(window.location.search).get("payment")));
+        }, 0);
+        return () => window.clearTimeout(timer);
     }, []);
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {

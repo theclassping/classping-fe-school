@@ -62,7 +62,8 @@ export default function StudentsPage() {
     }
 
     useEffect(() => {
-        void loadStudents();
+        const timer = window.setTimeout(() => void loadStudents(), 0);
+        return () => window.clearTimeout(timer);
     }, []);
 
     const classes = Array.from(

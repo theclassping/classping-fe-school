@@ -207,9 +207,12 @@ export default function SettingsPage() {
     }
 
     useEffect(() => {
-        loadUsers();
-        loadStaffs();
-        loadClasses();
+        const timer = window.setTimeout(() => {
+            void loadUsers();
+            void loadStaffs();
+            void loadClasses();
+        }, 0);
+        return () => window.clearTimeout(timer);
     }, []);
 
     const section = sections.find((item) => item.id === activeSection) ?? sections[0];
