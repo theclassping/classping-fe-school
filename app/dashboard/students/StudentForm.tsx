@@ -4,20 +4,20 @@ import { FormEvent, useState } from "react";
 
 type Student = {
     id: number;
-    first_name: string;
-    middle_name: string;
-    last_name: string;
-    nickname: string;
-    student_number: string;
-    class_name: string;
-    date_of_birth: string;
-    gender: string;
-    address: string;
-    status: string;
-    guardian_name: string;
-    guardian_relation: string;
-    guardian_phone: string;
-    guardian_email: string;
+    first_name?: string;
+    middle_name?: string;
+    last_name?: string;
+    nickname?: string;
+    student_number?: string;
+    class_name?: string;
+    date_of_birth?: string;
+    gender?: string;
+    address?: string;
+    status?: string;
+    guardian_name?: string;
+    guardian_relation?: string;
+    guardian_phone?: string;
+    guardian_email?: string;
 };
 
 type StudentFormProps = {
@@ -37,12 +37,15 @@ export default function StudentForm({
         first_name: student?.first_name ?? "",
         middle_name: student?.middle_name ?? "",
         last_name: student?.last_name ?? "",
+        nickname: student?.nickname ?? "",
         student_number: student?.student_number ?? "",
         class_name: student?.class_name ?? "",
+        location_id: "1",
         date_of_birth: student?.date_of_birth ?? "",
         gender: student?.gender ?? "",
         address: student?.address ?? "",
-        status: student?.status ?? "ACTIVE",
+        status: student?.status?.toLowerCase() ?? "active",
+        enroll_date: new Date().toISOString().slice(0, 10),
         guardian_name: student?.guardian_name ?? "",
         guardian_relation: student?.guardian_relation ?? "",
         guardian_phone: student?.guardian_phone ?? "",
@@ -78,11 +81,42 @@ export default function StudentForm({
 
             const method = student ? "PATCH" : "POST";
 
+            const [guardianFirstName, ...guardianLastNameParts] = form.guardian_name.trim().split(/\s+/);
+            const guardianLastName = guardianLastNameParts.join(" ") || guardianFirstName;
             const body = student
-                ? {
-                    ...form,
-                }
-                : form;
+                ? { ...form }
+                : {
+                    first_name: form.first_name,
+                    middle_name: form.middle_name,
+                    last_name: form.last_name,
+                    nickname: form.nickname,
+                    date_of_birth: form.date_of_birth,
+                    image_data: null,
+                    gender: form.gender.toLowerCase(),
+                    address: form.address,
+                    location_id: Number(form.location_id),
+                    status: form.status.toLowerCase(),
+                    enroll_date: form.enroll_date,
+                    student_guardians: [
+                        {
+                            relationship: form.guardian_relation.toLowerCase(),
+                            is_primary: true,
+                            user: {
+                                email: form.guardian_email,
+                                first_name: guardianFirstName,
+                                last_name: guardianLastName,
+                                phone_number: form.guardian_phone,
+                                image_data: null,
+                            },
+                        },
+                    ],
+                    class_students: [
+                        {
+                            class_id: Number(form.class_name),
+                            is_current: true,
+                        },
+                    ],
+                };
 
             console.log(
                 isEdit
@@ -206,6 +240,11 @@ export default function StudentForm({
                         </div>
 
                         <div className="form-field">
+                            <label htmlFor="nickname">Nickname</label>
+                            <input id="nickname" name="nickname" value={form.nickname} onChange={handleChange} />
+                        </div>
+
+                        <div className="form-field">
                             <label htmlFor="student_number">Student ID (NIS)</label>
                             <input id="student_number" name="student_number" value={form.student_number} onChange={handleChange} placeholder="26009" required />
                         </div>
@@ -214,10 +253,17 @@ export default function StudentForm({
                             <label htmlFor="class_name">Class</label>
                             <select id="class_name" name="class_name" value={form.class_name} onChange={handleChange} required>
                                 <option value="">Select class</option>
-                                <option value="A1">A1</option>
-                                <option value="A2">A2</option>
-                                <option value="B1">B1</option>
-                                <option value="B2">B2</option>
+                                <option value="1">A1</option>
+                                <option value="2">A2</option>
+                                <option value="3">B1</option>
+                                <option value="4">B2</option>
+                            </select>
+                        </div>
+
+                        <div className="form-field">
+                            <label htmlFor="location_id">Location</label>
+                            <select id="location_id" name="location_id" value={form.location_id} onChange={handleChange} required>
+                                <option value="1">Main Location</option>
                             </select>
                         </div>
 
@@ -225,8 +271,8 @@ export default function StudentForm({
                             <label htmlFor="gender">Gender</label>
                             <select id="gender" name="gender" value={form.gender} onChange={handleChange} required>
                                 <option value="">Select gender</option>
-                                <option value="FEMALE">Female</option>
-                                <option value="MALE">Male</option>
+                                <option value="female">Female</option>
+                                <option value="male">Male</option>
                             </select>
                         </div>
 
@@ -238,10 +284,15 @@ export default function StudentForm({
                         <div className="form-field">
                             <label htmlFor="status">Status</label>
                             <select id="status" name="status" value={form.status} onChange={handleChange}>
-                                <option value="ACTIVE">Active</option>
-                                <option value="NEW">New</option>
-                                <option value="LEAVE">Leave</option>
+                                <option value="active">Active</option>
+                                <option value="new">New</option>
+                                <option value="leave">Leave</option>
                             </select>
+                        </div>
+
+                        <div className="form-field">
+                            <label htmlFor="enroll_date">Enrollment date</label>
+                            <input id="enroll_date" name="enroll_date" type="date" value={form.enroll_date} onChange={handleChange} required />
                         </div>
 
                         <div className="form-field full">
@@ -262,9 +313,9 @@ export default function StudentForm({
                             <label htmlFor="guardian_relation">Relationship</label>
                             <select id="guardian_relation" name="guardian_relation" value={form.guardian_relation} onChange={handleChange} required>
                                 <option value="">Select relationship</option>
-                                <option value="MOTHER">Mother</option>
-                                <option value="FATHER">Father</option>
-                                <option value="GUARDIAN">Guardian</option>
+                                <option value="mother">Mother</option>
+                                <option value="father">Father</option>
+                                <option value="guardian">Guardian</option>
                             </select>
                         </div>
 
@@ -275,7 +326,7 @@ export default function StudentForm({
 
                         <div className="form-field">
                             <label htmlFor="guardian_email">Email</label>
-                            <input id="guardian_email" name="guardian_email" type="email" value={form.guardian_email} onChange={handleChange} placeholder="guardian@email.com" />
+                            <input id="guardian_email" name="guardian_email" type="email" value={form.guardian_email} onChange={handleChange} placeholder="guardian@email.com" required={!isEdit} />
                         </div>
                     </div>
 

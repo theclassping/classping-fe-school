@@ -15,6 +15,11 @@ type Student = {
     status?: string;
     guardian_name?: string;
     guardian_phone?: string;
+    nickname?: string;
+    date_of_birth?: string;
+    address?: string;
+    guardian_relation?: string;
+    guardian_email?: string;
 };
 
 export default function StudentsPage() {
@@ -24,6 +29,10 @@ export default function StudentsPage() {
     const [search, setSearch] = useState("");
     const [classFilter, setClassFilter] = useState("ALL");
     const [showStudentForm, setShowStudentForm] = useState(false);
+    const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+    const [viewingStudent, setViewingStudent] = useState<Student | null>(null);
+    const [deactivatingStudent, setDeactivatingStudent] = useState<Student | null>(null);
+    const [actionError, setActionError] = useState("");
 
     async function loadStudents() {
         try {
@@ -64,6 +73,35 @@ export default function StudentsPage() {
     useEffect(() => {
         void loadStudents();
     }, []);
+
+    async function deactivateStudent() {
+        if (!deactivatingStudent) return;
+
+        try {
+            setActionError("");
+            const response = await fetch(`/api/proxy/students/${deactivatingStudent.id}/`, {
+                method: "PATCH",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "inactive" }),
+            });
+
+            if (response.status === 401) {
+                window.location.href = "/login";
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error("Failed to deactivate student");
+            }
+
+            setDeactivatingStudent(null);
+            await loadStudents();
+        } catch (actionLoadError) {
+            console.error(actionLoadError);
+            setActionError("Failed to deactivate student.");
+        }
+    }
 
     const classes = Array.from(
         new Set(students.map((student) => student.class_name).filter(Boolean))
@@ -153,6 +191,7 @@ export default function StudentsPage() {
                                     <th>Parent / Guardian</th>
                                     <th>WhatsApp</th>
                                     <th>Status</th>
+                                    <th aria-label="Actions" />
                                 </tr>
                             </thead>
                             <tbody>
@@ -165,6 +204,20 @@ export default function StudentsPage() {
                                         <td>{student.guardian_name || "-"}</td>
                                         <td>{student.guardian_phone || "-"}</td>
                                         <td><span className="status-badge">{student.status || "ACTIVE"}</span></td>
+                                        <td>
+                                            <div className="student-action-wrap">
+                                                <details className="action-menu-details">
+                                                    <summary className="more-button" aria-label={`Actions for ${student.first_name} ${student.last_name}`}>
+                                                        <span className="vertical-dots" aria-hidden="true"><i /><i /><i /></span>
+                                                    </summary>
+                                                    <div className="action-menu">
+                                                        <button className="action-menu-item" type="button" onClick={() => setViewingStudent(student)}>View</button>
+                                                        <button className="action-menu-item" type="button" onClick={() => setEditingStudent(student)}>Edit</button>
+                                                        <button className="action-menu-item danger" type="button" onClick={() => setDeactivatingStudent(student)}>Deactivate</button>
+                                                    </div>
+                                                </details>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -181,6 +234,62 @@ export default function StudentsPage() {
                         await loadStudents();
                     }}
                 />
+            )}
+
+            {editingStudent && (
+                <StudentForm
+                    student={editingStudent}
+                    onCancel={() => setEditingStudent(null)}
+                    onSuccess={async () => {
+                        setEditingStudent(null);
+                        await loadStudents();
+                    }}
+                />
+            )}
+
+            {viewingStudent && (
+                <div className="modal-overlay">
+                    <div className="modal student-detail-modal">
+                        <div className="modal-header">
+                            <div>
+                                <h2>Student Details</h2>
+                                <p>View student and guardian information.</p>
+                            </div>
+                            <button type="button" className="modal-close" onClick={() => setViewingStudent(null)}>×</button>
+                        </div>
+                        <div className="detail-grid">
+                            <div className="detail-item"><span>Name</span><strong>{[viewingStudent.first_name, viewingStudent.middle_name, viewingStudent.last_name].filter(Boolean).join(" ")}</strong></div>
+                            <div className="detail-item"><span>Student ID</span><strong>{viewingStudent.student_number || "-"}</strong></div>
+                            <div className="detail-item"><span>Class</span><strong>{viewingStudent.class_name || "-"}</strong></div>
+                            <div className="detail-item"><span>Gender</span><strong>{viewingStudent.gender || "-"}</strong></div>
+                            <div className="detail-item"><span>Date of birth</span><strong>{viewingStudent.date_of_birth || "-"}</strong></div>
+                            <div className="detail-item"><span>Status</span><strong>{viewingStudent.status || "ACTIVE"}</strong></div>
+                            <div className="detail-item"><span>Guardian</span><strong>{viewingStudent.guardian_name || "-"}</strong></div>
+                            <div className="detail-item"><span>Guardian phone</span><strong>{viewingStudent.guardian_phone || "-"}</strong></div>
+                            <div className="detail-item"><span>Guardian email</span><strong>{viewingStudent.guardian_email || "-"}</strong></div>
+                            <div className="detail-item"><span>Address</span><strong>{viewingStudent.address || "-"}</strong></div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {deactivatingStudent && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <div className="modal-header">
+                            <div>
+                                <h2>Deactivate student?</h2>
+                                <p>This will deactivate {deactivatingStudent.first_name} {deactivatingStudent.last_name}.</p>
+                            </div>
+                            <button type="button" className="modal-close" onClick={() => setDeactivatingStudent(null)}>×</button>
+                        </div>
+                        {actionError && <div className="form-error">{actionError}</div>}
+                        <div className="modal-actions">
+                            <button type="button" className="button-secondary" onClick={() => setDeactivatingStudent(null)}>Cancel</button>
+                            <button type="button" className="button-primary danger-button" onClick={deactivateStudent}>Deactivate</button>
+                        </div>
+                    </div>
+                </div>
             )}
         </main>
     );

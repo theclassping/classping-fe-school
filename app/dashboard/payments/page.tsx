@@ -13,9 +13,9 @@ export type Payment = {
     status: string;
 };
 
-// function paymentSlug(payment: Payment) {
-//     return payment.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-// }
+function paymentSlug(payment: Payment) {
+    return payment.student_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
 
 export default function PaymentsPage() {
     const [payments, setPayments] = useState<Payment[]>([]);
@@ -131,11 +131,24 @@ export default function PaymentsPage() {
                         <thead><tr><th>Nama Siswa</th><th>Kelas</th><th>Jenis Pembayaran</th><th>Tanggal Bayar</th><th>Jumlah</th><th>Status</th><th aria-label="Aksi" /></tr></thead>
                         <tbody>
                             {payments.map((payment) => (
-                                <tr>
+                                <tr key={`${paymentSlug(payment)}-${payment.invoice_date}`}>
                                     <td><div className="student-cell"><strong>{payment.student_name}</strong></div></td>
                                     <td>{payment.class_name}</td><td>{payment.fee_type_name}</td><td>{payment.invoice_date}</td><td><strong>{payment.total_amount}</strong></td>
                                     <td><span className={payment.status === "paid" ? "status-pill" : "status-pending"}>{payment.status}</span></td>
-                                    {/* <td><div className="student-action-wrap"><details className="action-menu-details"><summary className="more-button" aria-label={`Menu untuk ${payment.name}`}>•••</summary><div className="action-menu open"><Link className="action-menu-item" href={`/dashboard/payments/view?payment=${paymentSlug(payment)}`}>View</Link><Link className="action-menu-item" href={`/dashboard/payments/edit?payment=${paymentSlug(payment)}`}>Update</Link><button className="action-menu-item" type="button" onClick={() => setReminder(payment)}>Send Reminder</button></div></details></div></td> */}
+                                    <td>
+                                        <div className="student-action-wrap">
+                                            <details className="action-menu-details">
+                                                <summary className="more-button" aria-label={`Menu untuk ${payment.student_name}`}>
+                                                    <span className="vertical-dots" aria-hidden="true"><i /><i /><i /></span>
+                                                </summary>
+                                                <div className="action-menu">
+                                                    <Link className="action-menu-item" href={`/dashboard/payments/view?payment=${paymentSlug(payment)}`}>View</Link>
+                                                    <Link className="action-menu-item" href={`/dashboard/payments/edit?payment=${paymentSlug(payment)}`}>Edit</Link>
+                                                    <button className="action-menu-item" type="button" onClick={() => setReminder(payment)}>Send Reminder</button>
+                                                </div>
+                                            </details>
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>

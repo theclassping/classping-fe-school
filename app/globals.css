@@ -1289,6 +1289,39 @@ dialog select:focus {
   cursor: pointer
 }
 
+.action-menu-details {
+  position: relative
+}
+
+.action-menu-details summary {
+  list-style: none;
+}
+
+.action-menu-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.action-menu-details summary:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.vertical-dots {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 100%;
+}
+
+.vertical-dots i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
 .action-menu {
   position: absolute;
   top: calc(100% + 6px);
@@ -1306,6 +1339,10 @@ dialog select:focus {
 
 .action-menu.open {
   display: flex
+}
+
+.action-menu-details[open] .action-menu {
+  display: flex;
 }
 
 .action-menu-item {
@@ -4921,7 +4958,9 @@ body.parent-view .sidebar {
 
 .modal {
   width: 100%;
-  max-width: 680px;
+  max-width: 760px;
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
   background: white;
   border-radius: 16px;
   padding: 28px;
@@ -5004,6 +5043,10 @@ body.parent-view .sidebar {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 28px;
+  position: sticky;
+  bottom: 0;
+  padding-top: 14px;
+  background: white;
 }
 
 .button-primary,
@@ -5019,6 +5062,14 @@ body.parent-view .sidebar {
   border: 0;
   background: var(--green);
   color: white;
+}
+
+.danger-button {
+  background: #b94a4a;
+}
+
+.danger-button:hover {
+  background: #9f3d3d;
 }
 
 .button-secondary {
@@ -5043,7 +5094,16 @@ body.parent-view .sidebar {
   }
 
   .modal {
+    max-height: calc(100dvh - 24px);
     padding: 20px;
+  }
+
+  .modal-actions {
+    flex-wrap: wrap;
+  }
+
+  .modal-actions button {
+    flex: 1 1 120px;
   }
 }
 

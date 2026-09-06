@@ -28,9 +28,9 @@ type Staff = {
 
 type Class = {
     id: number;
-    name: string;
-    academic_year: string;
-    homeroom_teacher: string;
+    class_name: string;
+    academic_year_name: string;
+    teacher_name: string;
 };
 
 type SettingsSection = {
@@ -182,7 +182,7 @@ export default function SettingsPage() {
             setClassesLoading(true);
             setClassesError("");
 
-            const response = await fetch("/api/proxy/classes", {
+            const response = await fetch("/api/proxy/class-teachers", {
                 credentials: "include",
                 cache: "no-store",
             });
@@ -348,9 +348,9 @@ export default function SettingsPage() {
                                             <tbody>
                                                 {classes.map((cls) => (
                                                     <tr key={cls.id}>
-                                                        <td>{cls.name}</td>
-                                                        <td>{cls.academic_year}</td>
-                                                        <td>{cls.homeroom_teacher}</td>
+                                                        <td>{cls.class_name}</td>
+                                                        <td>{cls.academic_year_name}</td>
+                                                        <td>{cls.teacher_name}</td>
                                                         <td><button type="button" className="text-button" onClick={() => {
                                                             setEditingClass(cls);
                                                             setClassFormOpen(true);
