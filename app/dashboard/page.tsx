@@ -1,282 +1,74 @@
-"use client";
-
 import Link from "next/link";
+import ActivitySummaryCard from "./components/ActivitySummaryCard";
+import PriorityCard from "./components/PriorityCard";
+import StudentSummaryCard from "./components/StudentSummaryCard";
+import WorktimeCard from "./components/WorktimeCard";
 
-const stats = [
-  {
-    label: "Total Students",
-    value: "248",
-    change: "+12 this month",
-    icon: "👨‍🎓",
-    href: "/dashboard/students",
-  },
-  {
-    label: "Teachers",
-    value: "24",
-    change: "+2 this month",
-    icon: "👩‍🏫",
-    href: "/dashboard/teachers",
-  },
-  {
-    label: "Parents",
-    value: "186",
-    change: "+8 this month",
-    icon: "👨‍👩‍👧",
-    href: "/dashboard/users",
-  },
-  {
-    label: "Outstanding Payment",
-    value: "$12,450",
-    change: "32 invoices",
-    icon: "💳",
-    href: "/dashboard/payments",
-  },
+const classes = [
+  { code: "A1", name: "Matahari", paid: 1, total: 2, tone: "sun" },
+  { code: "A2", name: "Pelangi", paid: 1, total: 2, tone: "leaf" },
+  { code: "B1", name: "Bintang", paid: 2, total: 2, tone: "sky" },
+  { code: "B2", name: "Bulan", paid: 1, total: 2, tone: "berry" },
 ];
 
-const activities = [
-  {
-    title: "Monthly activity report submitted",
-    description: "Mrs. Sarah Johnson submitted an activity report",
-    time: "10 minutes ago",
-    type: "Activity",
-  },
-  {
-    title: "Assessment completed",
-    description: "Grade 3 Mathematics assessment was completed",
-    time: "35 minutes ago",
-    type: "Assessment",
-  },
-  {
-    title: "New student registered",
-    description: "Emily Anderson was added to Grade 2",
-    time: "1 hour ago",
-    type: "Student",
-  },
-  {
-    title: "Payment received",
-    description: "Tuition payment received from Michael Brown",
-    time: "2 hours ago",
-    type: "Payment",
-  },
-];
-
-const quickActions = [
-  {
-    label: "Add Student",
-    description: "Register a new student",
-    href: "/dashboard/students",
-  },
-  {
-    label: "Add Teacher",
-    description: "Create a teacher account",
-    href: "/dashboard/teachers",
-  },
-  {
-    label: "View Payments",
-    description: "Check outstanding payments",
-    href: "/dashboard/payments",
-  },
-  {
-    label: "View Activities",
-    description: "Review recent activities",
-    href: "/dashboard/activities",
-  },
+const payments = [
+  { initials: "AP", name: "Alya Putri Ramadhani", className: "A1", date: "27 Agu 2026" },
+  { initials: "RA", name: "Raka Aditya Pratama", className: "B1", date: "27 Agu 2026" },
+  { initials: "NZ", name: "Nayla Zahra Aulia", className: "A2", date: "26 Agu 2026" },
+  { initials: "DA", name: "Daffa Alfarizi", className: "B2", date: "26 Agu 2026" },
 ];
 
 export default function DashboardPage() {
+  const today = new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date()).toUpperCase();
+
   return (
-    <main className="dashboard-page">
-      {/* Header */}
-      <div className="page-header">
-        <div>
-          <p className="page-eyebrow">Overview</p>
+    <main id="main">
+      <div id="adminView">
+        <section className="welcome-row">
+          <div><p className="eyebrow">{today}</p><h1>Selamat pagi, Bu Nia! <span aria-hidden="true">👋</span></h1><p>Berikut ringkasan aktivitas dan hal penting sekolah hari ini.</p></div>
+        </section>
 
-          <h1>Good morning 👋</h1>
+        <section className="admin-focus-grid" aria-label="Aktivitas admin dan tugas penting">
+          <WorktimeCard />
+          <PriorityCard />
+        </section>
 
-          <p>
-            Here&apos;s what&apos;s happening at your school today.
-          </p>
-        </div>
+        <section className="dashboard-insight-grid" aria-label="Ringkasan siswa dan aktivitas">
+          <StudentSummaryCard />
+          <ActivitySummaryCard />
+        </section>
 
-        <div className="dashboard-date">
-          <span>Today</span>
-          <strong>August 29, 2026</strong>
-        </div>
+        <section className="panel assessment-admin">
+          <div className="panel-heading"><div><h2>Ringkasan Penilaian</h2><p>Perkembangan siswa semester berjalan</p></div><Link className="text-button" href="/dashboard/assessment">Kelola penilaian →</Link></div>
+          <div className="assessment-summary">
+            <div><span>Nilai tersimpan</span><strong>63%</strong><div className="progress"><i style={{ width: "63%" }} /></div></div>
+            <div><span>Perlu dilengkapi</span><strong>3 siswa</strong><small>4 indikator perkembangan</small></div>
+            <div><span>Terakhir diperbarui</span><strong>25 Agu 2026</strong><small>oleh Bu Ratna</small></div>
+          </div>
+        </section>
+
+        <section className="overview-grid dashboard-class-overview">
+          <article className="panel class-status">
+            <div className="panel-heading"><div><h2>Status Pembayaran SPP per Kelas</h2><p>Pembayaran bulan Agustus</p></div><Link className="text-button" href="/dashboard/payments">Lihat semua →</Link></div>
+            <div className="class-list">
+              {classes.map((item) => {
+                const percentage = Math.round((item.paid / item.total) * 100);
+                return <div className="class-row" key={item.code}><span className={`class-badge ${item.tone}`}>{item.code}</span><div><strong>Kelas {item.code} — {item.name}</strong><span>{item.paid} dari {item.total} siswa</span><div className="progress"><i style={{ width: `${percentage}%` }} /></div></div><b>{percentage}%</b></div>;
+              })}
+            </div>
+          </article>
+        </section>
+
+        <section className="panel transactions">
+          <div className="panel-heading transaction-heading"><div><h2>Pembayaran Terbaru</h2><p>Transaksi SPP yang baru saja tercatat</p></div><Link className="text-button" href="/dashboard/payments">Lihat semua transaksi <span>→</span></Link></div>
+          <div className="table-scroll">
+            <table>
+              <thead><tr><th>Nama Siswa</th><th>Kelas</th><th>Bulan SPP</th><th>Tanggal Bayar</th><th>Jumlah</th><th>Status</th></tr></thead>
+              <tbody>{payments.map((payment) => <tr key={payment.name}><td><div className="student-cell"><span className="student-avatar">{payment.initials}</span><strong>{payment.name}</strong></div></td><td>{payment.className}</td><td>Agustus 2026</td><td>{payment.date}</td><td><strong>Rp 250.000</strong></td><td><span className="status-pill">Lunas</span></td></tr>)}</tbody>
+            </table>
+          </div>
+        </section>
       </div>
-
-      {/* Stats */}
-      <section className="dashboard-stats">
-        {stats.map((stat) => (
-          <Link
-            key={stat.label}
-            href={stat.href}
-            className="stat-card"
-          >
-            <div className="stat-card-top">
-              <span className="stat-icon">{stat.icon}</span>
-
-              <span className="stat-arrow">↗</span>
-            </div>
-
-            <div className="stat-value">{stat.value}</div>
-
-            <div className="stat-label">{stat.label}</div>
-
-            <div className="stat-change">{stat.change}</div>
-          </Link>
-        ))}
-      </section>
-
-      {/* Main grid */}
-      <section className="dashboard-grid">
-        {/* Recent activity */}
-        <div className="panel dashboard-activity">
-          <div className="panel-heading">
-            <div>
-              <h2>Recent Activity</h2>
-              <p>Latest updates from your school</p>
-            </div>
-
-            <Link href="/dashboard/activities">
-              View all
-            </Link>
-          </div>
-
-          <div className="activity-list">
-            {activities.map((activity, index) => (
-              <div
-                className="activity-item"
-                key={`${activity.title}-${index}`}
-              >
-                <div className="activity-dot" />
-
-                <div className="activity-content">
-                  <div className="activity-title">
-                    {activity.title}
-                  </div>
-
-                  <div className="activity-description">
-                    {activity.description}
-                  </div>
-
-                  <div className="activity-meta">
-                    <span>{activity.type}</span>
-                    <span>•</span>
-                    <span>{activity.time}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Payment overview */}
-        <div className="panel">
-          <div className="panel-heading">
-            <div>
-              <h2>Payment Overview</h2>
-              <p>Current tuition status</p>
-            </div>
-
-            <Link href="/dashboard/payments">
-              View all
-            </Link>
-          </div>
-
-          <div className="payment-summary">
-            <div className="payment-total">
-              <span>Total outstanding</span>
-              <strong>$12,450</strong>
-            </div>
-
-            <div className="payment-progress">
-              <div
-                className="payment-progress-bar"
-                style={{ width: "72%" }}
-              />
-            </div>
-
-            <div className="payment-stats">
-              <div>
-                <strong>168</strong>
-                <span>Paid</span>
-              </div>
-
-              <div>
-                <strong>32</strong>
-                <span>Outstanding</span>
-              </div>
-
-              <div>
-                <strong>12</strong>
-                <span>Overdue</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Bottom grid */}
-      <section className="dashboard-grid dashboard-grid-bottom">
-        {/* Quick actions */}
-        <div className="panel">
-          <div className="panel-heading">
-            <div>
-              <h2>Quick Actions</h2>
-              <p>Common tasks</p>
-            </div>
-          </div>
-
-          <div className="quick-actions">
-            {quickActions.map((action) => (
-              <Link
-                key={action.label}
-                href={action.href}
-                className="quick-action"
-              >
-                <div>
-                  <strong>{action.label}</strong>
-                  <span>{action.description}</span>
-                </div>
-
-                <span className="quick-action-arrow">→</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* School snapshot */}
-        <div className="panel">
-          <div className="panel-heading">
-            <div>
-              <h2>School Snapshot</h2>
-              <p>This month</p>
-            </div>
-          </div>
-
-          <div className="snapshot-list">
-            <div className="snapshot-row">
-              <span>Attendance</span>
-              <strong>94.8%</strong>
-            </div>
-
-            <div className="snapshot-row">
-              <span>Activities completed</span>
-              <strong>86</strong>
-            </div>
-
-            <div className="snapshot-row">
-              <span>Assessments completed</span>
-              <strong>124</strong>
-            </div>
-
-            <div className="snapshot-row">
-              <span>New students</span>
-              <strong>12</strong>
-            </div>
-          </div>
-        </div>
-      </section>
     </main>
   );
 }

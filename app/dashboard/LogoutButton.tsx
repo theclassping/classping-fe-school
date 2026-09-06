@@ -36,7 +36,7 @@ export default function LogoutButton() {
       className="logout"
     >
       <LogOut aria-hidden="true" />
-      {loading ? "Logging out..." : "Logout"}
+      {loading ? "Keluar…" : "Keluar"}
     </button>
   );
 }

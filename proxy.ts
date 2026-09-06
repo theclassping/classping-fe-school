@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Local-only visual review for the migrated prototype. Production builds
+  // always require the authentication cookie, regardless of this variable.
+  if (
+    process.env.NODE_ENV === "development" &&
+    process.env.SCHOOL_PROTOTYPE_PREVIEW === "true"
+  ) {
+    return NextResponse.next();
+  }
+
   // Do not protect login.
   if (pathname === "/login") {
     return NextResponse.next();

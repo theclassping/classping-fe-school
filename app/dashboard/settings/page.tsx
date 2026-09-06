@@ -344,10 +344,13 @@ export default function SettingsPage() {
     }
 
     useEffect(() => {
-        loadUsers();
-        loadStaffs();
-        loadClasses();
-        loadFeeTypes();
+        const timer = window.setTimeout(() => {
+            void loadUsers();
+            void loadStaffs();
+            void loadClasses();
+            void loadFeeTypes();
+        }, 0);
+        return () => window.clearTimeout(timer);
     }, []);
 
     const section = sections.find((item) => item.id === activeSection) ?? sections[0];

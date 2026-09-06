@@ -4,17 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Users,
   School,
   GraduationCap,
-  UserRound,
-  BookOpen,
   CreditCard,
   ClipboardList,
-  BarChart3,
+  Award,
   Settings,
 } from "lucide-react";
 import LogoutButton from "./LogoutButton";
+
+type DashboardSidebarProps = {
+  open?: boolean;
+  onNavigate?: () => void;
+};
 
 const menuItems = [
   {
@@ -48,14 +50,14 @@ const menuItems = [
   //   icon: BookOpen,
   // },
   {
-    label: "Laporan Aktifitas",
+    label: "Laporan Aktivitas",
     href: "/dashboard/activities",
     icon: ClipboardList,
   },
   {
     label: "Penilaian",
     href: "/dashboard/assessment",
-    icon: BarChart3,
+    icon: Award,
   },
   {
     label: "Pembayaran",
@@ -64,18 +66,18 @@ const menuItems = [
   },
 ];
 
-export default function DashboardSidebar() {
+export default function DashboardSidebar({ open = false, onNavigate }: DashboardSidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="sidebar">
-      <Link href="/dashboard" className="brand" aria-label="ClassPing home">
+    <aside className={`sidebar ${open ? "open" : ""}`}>
+      <Link href="/dashboard" className="brand" aria-label="ClassPing home" onClick={onNavigate}>
         <span className="brand-mark" aria-hidden="true"><span /><span /><span /></span>
         <span>class<span>ping</span></span>
       </Link>
 
       <nav className="main-nav admin-nav" aria-label="Main navigation">
-        <p className="nav-label">MAIN MENU</p>
+        <p className="nav-label">MENU UTAMA</p>
 
         {menuItems.map((item) => {
           const Icon = item.icon;
@@ -90,6 +92,7 @@ export default function DashboardSidebar() {
               key={item.href}
               href={item.href}
               className={`nav-item ${active ? "active" : ""}`}
+              onClick={onNavigate}
             >
               <Icon aria-hidden="true" />
               <span>{item.label}</span>
@@ -97,28 +100,30 @@ export default function DashboardSidebar() {
           );
         })}
 
-        <p className="nav-label">SETTINGS</p>
+        <p className="nav-label">PENGATURAN</p>
          <Link
           href="/dashboard/profile"
           className={`nav-item ${pathname.startsWith("/dashboard/profile") ? "active" : ""}`}
+          onClick={onNavigate}
         >
           <School aria-hidden="true" />
-          <span>Profile Sekolah</span>
+          <span>Profil Sekolah</span>
         </Link>
         <Link
           href="/dashboard/settings"
           className={`nav-item ${pathname.startsWith("/dashboard/settings") ? "active" : ""}`}
+          onClick={onNavigate}
         >
           <Settings aria-hidden="true" />
-          <span>Settings</span>
+          <span>Pengaturan</span>
         </Link>
       </nav>
 
       <div className="help-card">
         <span className="help-icon">?</span>
-        <strong>Need help?</strong>
-        <p>The ClassPing team is ready to help.</p>
-        <button type="button">Contact us</button>
+        <strong>Butuh bantuan?</strong>
+        <p>Tim ClassPing siap membantu Anda.</p>
+        <button type="button">Hubungi Kami</button>
       </div>
 
       <LogoutButton />

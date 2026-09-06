@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ClassPing School Portal
 
-## Getting Started
+The React/Next.js school portal for ClassPing. Its dashboard UI is migrated from
+the approved prototype in `classping-frontend/classping-school`, while the
+existing API proxy remains the integration point for the Django backend.
 
-First, run the development server:
+## Getting started
+
+Install dependencies, copy the environment template, and run the development
+server:
 
 ```bash
+npm ci
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and sign in with a school
+user account. Auth cookies are set by the server-side login route; authenticated
+browser requests then use `/api/proxy/*` so backend credentials are never
+exposed to client-side code.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+For local UI review without an account, set `SCHOOL_PROTOTYPE_PREVIEW=true`.
+This bypass is accepted only by the development server; production builds still
+require authentication.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Migrated routes
 
-## Learn More
+- `/dashboard` — responsive overview, priorities, weekly worktime, and summaries
+- `/dashboard/students` — backend-connected student management
+- `/dashboard/activities` — prototype activity workflow
+- `/dashboard/assessment` — prototype assessment workflow
+- `/dashboard/payments` — backend-connected payment list plus recording dialog
+- `/dashboard/profile` — editable school profile prototype
+- `/dashboard/settings` — backend-connected staff, class, and user settings
 
-To learn more about Next.js, take a look at the following resources:
+Profile settings, notifications, prototype activities, assessment entries, and
+weekly worktime are currently persisted in browser storage. They are structured
+as React components so each can be replaced with its matching backend endpoint
+without another UI rewrite.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Quality checks
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run lint
+npm run build -- --webpack
+```
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Import `theclassping/classping-fe-school` into Vercel.
+2. Set `DJANGO_API_URL` for each Vercel environment. For development/staging,
+   use `https://classping-backend-development.onrender.com`.
+3. Keep the framework preset as Next.js and deploy.
+4. Verify login, `/dashboard/students`, and `/dashboard/payments` against the
+   selected backend environment.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Do not prefix `DJANGO_API_URL` with `NEXT_PUBLIC_`; it is server-only.

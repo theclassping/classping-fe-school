@@ -8,7 +8,10 @@ export default function PaymentViewPage() {
     const [payment, setPayment] = useState<Payment>(getPayment(null));
 
     useEffect(() => {
-        setPayment(getPayment(new URLSearchParams(window.location.search).get("payment")));
+        const timer = window.setTimeout(() => {
+            setPayment(getPayment(new URLSearchParams(window.location.search).get("payment")));
+        }, 0);
+        return () => window.clearTimeout(timer);
     }, []);
 
     return (
