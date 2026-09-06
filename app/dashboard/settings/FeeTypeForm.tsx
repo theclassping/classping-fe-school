@@ -2,30 +2,36 @@
 
 import { FormEvent, useState } from "react";
 
-type Class = {
+type FeeType = {
     id: number;
-    class_name: string;
-    academic_year_name: string;
-    teacher_name: string;
+    name: string;
+    description: string;
+    amount: number;
+    branch: number;
+    is_recurring: boolean;
+    is_active: boolean;
 };
 
-type ClassFormProps = {
-    classData?: Class;
+type FeeTypeFormProps = {
+    feeType?: FeeType;
     onSuccess: () => void;
     onCancel: () => void;
 };
 
-export default function ClassForm({
-    classData  ,
+export default function FeeTypeForm({
+    feeType,
     onSuccess,
     onCancel,
-}: ClassFormProps) {
-    const isEdit = !!classData;
+}: FeeTypeFormProps) {
+    const isEdit = !!feeType;
 
     const [form, setForm] = useState({
-        class_name: classData?.class_name ?? "",
-        academic_year_name: classData?.academic_year_name ?? "",
-        teacher_name: classData?.teacher_name ?? "",
+        name: feeType?.name ?? "",
+        description: feeType?.description ?? "",
+        amount: feeType?.amount ?? 0,
+        branch: feeType?.branch ?? 0,
+        is_recurring: feeType?.is_recurring ?? false,
+        is_active: feeType?.is_active ?? true,
     });
 
     const [loading, setLoading] = useState(false);
@@ -35,10 +41,15 @@ export default function ClassForm({
         event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) {
         const { name, value } = event.target;
+        const nextValue =
+            event.target instanceof HTMLInputElement &&
+            event.target.type === "checkbox"
+                ? event.target.checked
+                : value;
 
         setForm((previous) => ({
             ...previous,
-            [name]: value,
+            [name]: nextValue,
         }));
     }
 
@@ -49,24 +60,27 @@ export default function ClassForm({
         setError("");
 
         try {
-            const url = classData
-                ? `/api/proxy/classes/${classData.id}/`
-                : "/api/proxy/classes/";
+            const url = feeType
+                ? `/api/proxy/fee-types/${feeType.id}/`
+                : "/api/proxy/fee-types/";
 
-            const method = classData ? "PATCH" : "POST";
+            const method = feeType ? "PATCH" : "POST";
 
-            const body = classData
+            const body = feeType
                 ? {
-                    class_name: form.class_name,
-                    academic_year_name: form.academic_year_name,
-                    teacher_name: form.teacher_name,
+                    name: form.name,
+                    description: form.description,
+                    amount: form.amount,
+                    branch: form.branch,
+                    is_recurring: form.is_recurring,
+                    is_active: form.is_active,
                 }
                 : form;
 
             console.log(
                 isEdit
-                    ? "UPDATE CLASS SUBMIT:"
-                    : "CREATE CLASS SUBMIT:",
+                    ? "UPDATE FEE TYPE SUBMIT:"
+                    : "CREATE FEE TYPE SUBMIT:",
                 body
             );
 
@@ -83,8 +97,8 @@ export default function ClassForm({
 
             console.log(
                 isEdit
-                    ? "UPDATE CLASS RESPONSE:"
-                    : "CREATE CLASS RESPONSE:",
+                    ? "UPDATE FEE TYPE RESPONSE:"
+                    : "CREATE FEE TYPE RESPONSE:",
                 {
                     status: response.status,
                     data,
@@ -113,8 +127,8 @@ export default function ClassForm({
 
                 throw new Error(
                     isEdit
-                        ? "Failed to update class"
-                        : "Failed to create class"
+                        ? "Failed to update fee type"
+                        : "Failed to create fee type"
                 );
             }
 
@@ -126,8 +140,8 @@ export default function ClassForm({
                 err instanceof Error
                     ? err.message
                     : isEdit
-                        ? "Failed to update class"
-                        : "Failed to create class"
+                        ? "Failed to update fee type"
+                        : "Failed to create fee type"
             );
         } finally {
             setLoading(false);
@@ -140,13 +154,13 @@ export default function ClassForm({
                 <div className="modal-header">
                     <div>
                         <h2>
-                            {isEdit ? "Edit Class" : "Create Class"}
+                            {isEdit ? "Edit Fee Type" : "Create Fee Type"}
                         </h2>
 
                         <p>
                             {isEdit
-                                ? "Update class information."
-                                : "Add a new ClassPing class."}
+                                ? "Update fee type information."
+                                : "Add a new fee type."}
                         </p>
                     </div>
 
@@ -169,44 +183,85 @@ export default function ClassForm({
                     <div className="form-grid">
                         <div className="form-field">
                             <label htmlFor="name">
-                                Class name
+                                Name
                             </label>
 
                             <input
-                                id="class_name"
-                                name="class_name"
-                                value={form.class_name}
+                                id="name"
+                                name="name"
+                                value={form.name}
                                 onChange={handleChange}
                                 required
                             />
                         </div>
 
                         <div className="form-field">
-                            <label htmlFor="academic_year_name">
-                                Academic year
+                            <label htmlFor="description">
+                                Description
                             </label>
 
                             <input
-                                id="academic_year_name"
-                                name="academic_year_name"
-                                value={form.academic_year_name}
+                                id="description"
+                                name="description"
+                                value={form.description}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+                        <div className="form-field">
+                            <label htmlFor="branch">
+                                Branch
+                            </label>
+
+                            <input
+                                id="branch"
+                                name="branch"
+                                type="number"
+                                value={form.branch}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>      
+
+                        <div className="form-field full">
+                            <label htmlFor="amount">
+                                Amount
+                            </label>
+
+                            <input
+                                id="amount"
+                                name="amount"
+                                type="number"
+                                value={form.amount}
                                 onChange={handleChange}
                                 required
                             />
                         </div>
 
-                        <div className="form-field full">
-                            <label htmlFor="teacher_name">
-                                Homeroom Teacher
-                            </label>
-
+                        <div className="form-field checkbox-field">
                             <input
-                                id="teacher_name"
-                                name="teacher_name"
-                                value={form.teacher_name}
+                                id="is_recurring"
+                                name="is_recurring"
+                                type="checkbox"
+                                checked={form.is_recurring}
                                 onChange={handleChange}
-                                required
                             />
+                            <label htmlFor="is_recurring">
+                                Is Recurring
+                            </label>
+                        </div>
+
+                        <div className="form-field checkbox-field">
+                            <input
+                                id="is_active"
+                                name="is_active"
+                                type="checkbox"
+                                checked={form.is_active}
+                                onChange={handleChange}
+                            />
+                            <label htmlFor="is_active">
+                                Is Active
+                            </label>
                         </div>
                     </div>
 
@@ -231,7 +286,7 @@ export default function ClassForm({
                                     : "Creating..."
                                 : isEdit
                                     ? "Save Changes"
-                                    : "Create User"}
+                                    : "Create Fee Type"}
                         </button>
                     </div>
                 </form>

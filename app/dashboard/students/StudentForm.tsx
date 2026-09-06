@@ -1,6 +1,13 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+
+type Location = {
+    id: number;
+    name: string;
+    type: string;
+    parent_id?: number | null;
+};
 
 type Student = {
     id: number;
@@ -40,7 +47,7 @@ export default function StudentForm({
         nickname: student?.nickname ?? "",
         student_number: student?.student_number ?? "",
         class_name: student?.class_name ?? "",
-        location_id: "1",
+        location_id: "",
         date_of_birth: student?.date_of_birth ?? "",
         gender: student?.gender ?? "",
         address: student?.address ?? "",
@@ -50,10 +57,69 @@ export default function StudentForm({
         guardian_relation: student?.guardian_relation ?? "",
         guardian_phone: student?.guardian_phone ?? "",
         guardian_email: student?.guardian_email ?? "",
+        guardian_password: "",
     });
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [locations, setLocations] = useState<Record<string, Location[]>>({});
+    const [locationIds, setLocationIds] = useState<Record<string, string>>({});
+    const [locationsLoading, setLocationsLoading] = useState(false);
+
+    async function loadLocations(type: string, parentId?: string) {
+        const params = new URLSearchParams({ type });
+        if (parentId) params.set("parent_id", parentId);
+
+        const response = await fetch(`/api/proxy/locations/?${params.toString()}`, {
+            credentials: "include",
+            cache: "no-store",
+        });
+
+        if (response.status === 401) {
+            window.location.href = "/login";
+            return;
+        }
+
+        if (!response.ok) throw new Error(`Failed to load ${type.toLowerCase()} locations`);
+
+        const data = await response.json();
+        const records = Array.isArray(data)
+            ? data
+            : Array.isArray(data.results)
+                ? data.results
+                : Array.isArray(data.data)
+                    ? data.data
+                    : [];
+
+        setLocations((current) => ({ ...current, [type]: records }));
+    }
+
+    useEffect(() => {
+        setLocationsLoading(true);
+        void loadLocations("COUNTRY").catch((loadError) => {
+            console.error(loadError);
+            setError("Failed to load locations.");
+        }).finally(() => setLocationsLoading(false));
+    }, []);
+
+    function handleLocationChange(type: string, value: string, childType?: string) {
+        setLocationIds((current) => ({ ...current, [type]: value }));
+        setForm((current) => ({ ...current, location_id: value }));
+
+        if (childType) {
+            setLocationIds((current) => {
+                const next = { ...current };
+                const types = ["PROVINCE", "CITY", "DISTRICT", "VILLAGE"];
+                const childIndex = types.indexOf(childType);
+                types.slice(childIndex).forEach((locationType) => delete next[locationType]);
+                return next;
+            });
+            void loadLocations(childType, value).catch((loadError) => {
+                console.error(loadError);
+                setError(`Failed to load ${childType.toLowerCase()} locations.`);
+            });
+        }
+    }
 
     function handleChange(
         event: React.ChangeEvent<
@@ -103,6 +169,7 @@ export default function StudentForm({
                             is_primary: true,
                             user: {
                                 email: form.guardian_email,
+                                password: form.guardian_password,
                                 first_name: guardianFirstName,
                                 last_name: guardianLastName,
                                 phone_number: form.guardian_phone,
@@ -261,13 +328,6 @@ export default function StudentForm({
                         </div>
 
                         <div className="form-field">
-                            <label htmlFor="location_id">Location</label>
-                            <select id="location_id" name="location_id" value={form.location_id} onChange={handleChange} required>
-                                <option value="1">Main Location</option>
-                            </select>
-                        </div>
-
-                        <div className="form-field">
                             <label htmlFor="gender">Gender</label>
                             <select id="gender" name="gender" value={form.gender} onChange={handleChange} required>
                                 <option value="">Select gender</option>
@@ -294,6 +354,42 @@ export default function StudentForm({
                             <label htmlFor="enroll_date">Enrollment date</label>
                             <input id="enroll_date" name="enroll_date" type="date" value={form.enroll_date} onChange={handleChange} required />
                         </div>
+
+                        {[
+                            { type: "COUNTRY", label: "Country", child: "PROVINCE" },
+                            { type: "PROVINCE", label: "Province", child: "CITY" },
+                            { type: "CITY", label: "City", child: "DISTRICT" },
+                            { type: "DISTRICT", label: "District", child: "VILLAGE" },
+                            { type: "VILLAGE", label: "Village" },
+                        ].map((location) => {
+                            const parentType = {
+                                PROVINCE: "COUNTRY",
+                                CITY: "PROVINCE",
+                                DISTRICT: "CITY",
+                                VILLAGE: "DISTRICT",
+                            }[location.type];
+                            const parentId = parentType ? locationIds[parentType] : undefined;
+                            const isEnabled = !parentType || Boolean(parentId);
+                            const options = locations[location.type] ?? [];
+
+                            return (
+                                <div className="form-field" key={location.type}>
+                                    <label htmlFor={`location-${location.type}`}>{location.label}</label>
+                                    <select
+                                        id={`location-${location.type}`}
+                                        value={locationIds[location.type] ?? ""}
+                                        disabled={!isEnabled || locationsLoading}
+                                        required={location.type === "VILLAGE"}
+                                        onChange={(event) => handleLocationChange(location.type, event.target.value, location.child)}
+                                    >
+                                        <option value="">Select {location.label.toLowerCase()}</option>
+                                        {options.map((option) => (
+                                            <option key={option.id} value={option.id}>{option.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            );
+                        })}
 
                         <div className="form-field full">
                             <label htmlFor="address">Home address</label>
@@ -328,6 +424,13 @@ export default function StudentForm({
                             <label htmlFor="guardian_email">Email</label>
                             <input id="guardian_email" name="guardian_email" type="email" value={form.guardian_email} onChange={handleChange} placeholder="guardian@email.com" required={!isEdit} />
                         </div>
+
+                        {!isEdit && (
+                            <div className="form-field">
+                                <label htmlFor="guardian_password">Parent password</label>
+                                <input id="guardian_password" name="guardian_password" type="password" value={form.guardian_password} onChange={handleChange} minLength={8} required />
+                            </div>
+                        )}
                     </div>
 
                     <div className="modal-actions">
