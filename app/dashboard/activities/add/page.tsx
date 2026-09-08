@@ -21,7 +21,21 @@ export default function AddActivityPage() {
   const [teacherId, setTeacherId] = useState("");
   const [teachersLoading, setTeachersLoading] = useState(false);
   const [teachersError, setTeachersError] = useState("");
+  const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<
+    Array<{ file: File; url: string }>
+  >([]);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const previews = selectedPhotos.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+    }));
+    setPhotoPreviews(previews);
+
+    return () => previews.forEach(({ url }) => URL.revokeObjectURL(url));
+  }, [selectedPhotos]);
 
   useEffect(() => {
     loadActivityClasses()
@@ -60,6 +74,58 @@ export default function AddActivityPage() {
       .finally(() => setTeachersLoading(false));
   }, [classId]);
 
+  async function uploadActivityImages(files: File[]) {
+    const fileKeys: string[] = [];
+
+    for (const file of files) {
+      const presignResponse = await fetch("/api/proxy/media/presign", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          content_type: file.type,
+          expires_in: 3600,
+        }),
+      });
+
+      if (presignResponse.status === 401) {
+        window.location.href = "/login";
+        return [];
+      }
+
+      if (!presignResponse.ok) {
+        throw new Error("Failed to prepare image upload.");
+      }
+
+      const { file_key: fileKey, presigned_url: presignedUrl } =
+        (await presignResponse.json()) as {
+          file_key?: string;
+          presigned_url?: string;
+        };
+
+      if (!fileKey || !presignedUrl) {
+        throw new Error("Image upload did not return a usable upload URL.");
+      }
+
+      const uploadResponse = await fetch(presignedUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+        },
+        body: file,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload ${file.name}.`);
+      }
+
+      fileKeys.push(fileKey);
+    }
+
+    return fileKeys;
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
@@ -72,19 +138,30 @@ export default function AddActivityPage() {
         .getAll("student_ids")
         .map((studentId) => Number(studentId))
         .filter((studentId) => Number.isInteger(studentId));
-
-      formData.delete("student_ids");
-      selectedStudentIds.forEach((studentId) => {
-        formData.append("student_ids", String(studentId));
-      });
-      formData.set("class_teacher_id", teacherId);
-      formData.set("status", "publish");
-      formData.set("class_id", classId);
+      const imageFiles = formData
+        .getAll("photos")
+        .filter(
+          (value): value is File => value instanceof File && value.size > 0,
+        );
+      const imageKeys = await uploadActivityImages(imageFiles);
+      const activityPayload = {
+        class_teacher_id: Number(teacherId),
+        class_id: Number(classId),
+        name: String(formData.get("name") ?? ""),
+        description: String(formData.get("caption") ?? ""),
+        activity_date: String(formData.get("activity_date") ?? ""),
+        is_publish: true,
+        activity_images: imageKeys.map((fileKey) => ({
+          image_data: fileKey,
+        })),
+        student_ids: selectedStudentIds,
+      };
 
       const response = await fetch("/api/proxy/activities/", {
         method: "POST",
         credentials: "include",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(activityPayload),
       });
 
       if (response.status === 401) {
@@ -215,8 +292,24 @@ export default function AddActivityPage() {
               type="file"
               accept="image/*"
               multiple
+              onChange={(event) =>
+                setSelectedPhotos(Array.from(event.target.files ?? []))
+              }
             />
           </label>
+          {photoPreviews.length > 0 && (
+            <div className="upload-preview" aria-label="Preview foto aktivitas">
+              {photoPreviews.map(({ file, url }) => (
+                <div
+                  className="upload-preview-item"
+                  key={`${file.name}-${file.lastModified}`}
+                >
+                  <img src={url} alt={`Preview ${file.name}`} />
+                  <small title={file.name}>{file.name}</small>
+                </div>
+              ))}
+            </div>
+          )}
           <h3>Peserta</h3>
           <fieldset className="student-tags">
             <legend>Pilih siswa yang hadir / terlihat</legend>

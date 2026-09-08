@@ -1635,6 +1635,15 @@ dialog select:focus {
   background: #87938d;
 }
 
+.status-badge.inactive {
+  background: #fde8e7;
+  color: #b42318;
+}
+
+.status-badge.inactive::before {
+  background: #d92d20;
+}
+
 .side-note {
   display: flex;
   flex-direction: column;
@@ -2377,6 +2386,22 @@ dialog select:focus {
   gap: 8px;
   margin-top: 9px;
   min-height: 24px;
+  flex-wrap: wrap;
+}
+
+.upload-preview-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 78px;
+}
+
+.upload-preview-item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 10px;
 }
 
 .upload-preview p {
