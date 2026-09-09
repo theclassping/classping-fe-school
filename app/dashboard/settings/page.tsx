@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Ban, FilePlus2, Pencil } from "lucide-react";
+import styles from "../components/TableActions.module.css";
 import UserForm from "../users/UserForm";
 import SettingsFormDialog, { type Field } from "./SettingsFormDialog";
 import StaffForm from "./StaffForm";
@@ -433,7 +435,7 @@ export default function SettingsPage() {
                         {section.headings.map((heading) => (
                           <th key={heading}>{heading}</th>
                         ))}
-                        <th>Action</th>
+                        <th className={styles.actionHeading}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -445,16 +447,18 @@ export default function SettingsPage() {
                           <td>{user.email}</td>
                           <td>{user.role}</td>
                           <td>{user.is_active ? "Active" : "Inactive"}</td>
-                          <td>
+                          <td className={styles.actionCell}>
                             <button
                               type="button"
-                              className="text-button"
+                              className={styles.actionButton}
+                              aria-label={`Edit ${user.first_name + " " + user.last_name}`}
+                              title="Edit"
                               onClick={() => {
                                 setEditingUser(user);
                                 setUserFormOpen(true);
                               }}
                             >
-                              Edit
+                              <Pencil aria-hidden="true" />
                             </button>
                           </td>
                         </tr>
@@ -483,7 +487,7 @@ export default function SettingsPage() {
                         {section.headings.map((heading) => (
                           <th key={heading}>{heading}</th>
                         ))}
-                        <th>Action</th>
+                        <th className={styles.actionHeading}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -498,16 +502,18 @@ export default function SettingsPage() {
                           <td>{staff.hire_date}</td>
                           <td>{staff.qualification}</td>
                           <td>{staff.is_active ? "Active" : "Inactive"}</td>
-                          <td>
+                          <td className={styles.actionCell}>
                             <button
                               type="button"
-                              className="text-button"
+                              className={styles.actionButton}
+                              aria-label={`Edit ${staff.first_name + " " + staff.last_name}`}
+                              title="Edit"
                               onClick={() => {
                                 setEditingStaff(staff);
                                 setStaffFormOpen(true);
                               }}
                             >
-                              Edit
+                              <Pencil aria-hidden="true" />
                             </button>
                           </td>
                         </tr>
@@ -536,7 +542,7 @@ export default function SettingsPage() {
                         {section.headings.map((heading) => (
                           <th key={heading}>{heading}</th>
                         ))}
-                        <th>Action</th>
+                        <th className={styles.actionHeading}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -545,17 +551,18 @@ export default function SettingsPage() {
                           <td>{cls.class_name}</td>
                           <td>{cls.academic_year_name}</td>
                           <td>{cls.teacher_name}</td>
-                          <td>
+                          <td className={styles.actionCell}>
                             <button
                               type="button"
-                              className="text-button"
+                              className={styles.actionButton}
+                              aria-label={`Edit ${cls.class_name}`}
+                              title="Edit"
                               onClick={() => {
                                 setEditingClass(cls);
                                 setClassFormOpen(true);
                               }}
                             >
-                              {" "}
-                              Edit
+                              <Pencil aria-hidden="true" />
                             </button>
                           </td>
                         </tr>
@@ -584,7 +591,7 @@ export default function SettingsPage() {
                         {section.headings.map((heading) => (
                           <th key={heading}>{heading}</th>
                         ))}
-                        <th>Action</th>
+                        <th className={styles.actionHeading}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -596,55 +603,38 @@ export default function SettingsPage() {
                           <td>{feeType.is_recurring ? "Yes" : "No"}</td>
                           <td>{feeType.is_active ? "Active" : "Inactive"}</td>
                           <td>
-                            <div className="student-action-wrap">
-                              <details className="action-menu-details">
-                                <summary
-                                  className="more-button"
-                                  aria-label={`Actions for ${feeType.name}`}
-                                >
-                                  <span
-                                    className="vertical-dots"
-                                    aria-hidden="true"
-                                  >
-                                    <i />
-                                    <i />
-                                    <i />
-                                  </span>
-                                </summary>
-                                <div className="action-menu">
-                                  <button
-                                    className="action-menu-item"
-                                    type="button"
-                                    onClick={() => {
-                                      setEditingFeeType(feeType);
-                                      setFeeTypeFormOpen(true);
-                                    }}
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    className="action-menu-item"
-                                    type="button"
-                                    onClick={() => {
-                                      setFeeTypeActionError("");
-                                      setDeactivatingFeeType(feeType);
-                                    }}
-                                  >
-                                    Deactivate
-                                  </button>
-                                  <button
-                                    className="action-menu-item"
-                                    type="button"
-                                    onClick={() => {
-                                      setFeeTypeActionError("");
-                                      setFeeTypeActionMessage("");
-                                      setGeneratingInvoiceFeeType(feeType);
-                                    }}
-                                  >
-                                    Generate Invoice
-                                  </button>
-                                </div>
-                              </details>
+                            <div className={styles.actions} role="group" aria-label={`Actions for ${feeType.name}`}>
+                              <button
+                                className={styles.actionButton}
+                                type="button"
+                                aria-label={`Edit ${feeType.name}`}
+                                title="Edit"
+                                onClick={() => {
+                                  setEditingFeeType(feeType);
+                                  setFeeTypeFormOpen(true);
+                                }}
+                              ><Pencil aria-hidden="true" /></button>
+                              <button
+                                className={`${styles.actionButton} ${styles.dangerButton}`}
+                                type="button"
+                                aria-label={`Deactivate ${feeType.name}`}
+                                title="Deactivate"
+                                onClick={() => {
+                                  setFeeTypeActionError("");
+                                  setDeactivatingFeeType(feeType);
+                                }}
+                              ><Ban aria-hidden="true" /></button>
+                              <button
+                                className={styles.actionButton}
+                                type="button"
+                                aria-label={`Generate invoice for ${feeType.name}`}
+                                title="Generate Invoice"
+                                onClick={() => {
+                                  setFeeTypeActionError("");
+                                  setFeeTypeActionMessage("");
+                                  setGeneratingInvoiceFeeType(feeType);
+                                }}
+                              ><FilePlus2 aria-hidden="true" /></button>
                             </div>
                           </td>
                         </tr>
@@ -659,7 +649,7 @@ export default function SettingsPage() {
                       {section.headings.map((heading) => (
                         <th key={heading}>{heading}</th>
                       ))}
-                      <th>Action</th>
+                      <th className={styles.actionHeading}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -668,9 +658,9 @@ export default function SettingsPage() {
                         {row.map((cell) => (
                           <td key={cell}>{cell}</td>
                         ))}
-                        <td>
-                          <button type="button" className="text-button">
-                            Edit
+                        <td className={styles.actionCell}>
+                          <button type="button" className={styles.actionButton} aria-label={`Edit ${row[0]}`} title="Edit">
+                            <Pencil aria-hidden="true" />
                           </button>
                         </td>
                       </tr>

@@ -1,9 +1,10 @@
 "use client";
 
-import { Filter, Plus, Search, WalletCards, X } from "lucide-react";
+import { BellRing, Eye, Filter, Pencil, Plus, Search, WalletCards, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { addSchoolNotification } from "../components/school-store";
+import styles from "../components/TableActions.module.css";
 export type Payment = {
     student_name: string;
     class_name: string;
@@ -146,7 +147,7 @@ export default function PaymentsPage() {
                 ) : (
                 <div className="table-scroll">
                     <table>
-                        <thead><tr><th>Nama Siswa</th><th>Kelas</th><th>Jenis Pembayaran</th><th>Tanggal Bayar</th><th>Jumlah</th><th>Status</th><th aria-label="Aksi" /></tr></thead>
+                        <thead><tr><th>Nama Siswa</th><th>Kelas</th><th>Jenis Pembayaran</th><th>Tanggal Bayar</th><th>Jumlah</th><th>Status</th><th className={styles.actionHeading}>Aksi</th></tr></thead>
                         <tbody>
                             {filteredPayments.map((payment) => (
                                 <tr key={`${paymentSlug(payment)}-${payment.invoice_date}-${payment.fee_type_name}`}>
@@ -154,17 +155,10 @@ export default function PaymentsPage() {
                                     <td>{payment.class_name}</td><td>{payment.fee_type_name}</td><td>{payment.invoice_date}</td><td><strong>{payment.total_amount}</strong></td>
                                     <td><span className={payment.status === "paid" ? "status-pill" : "status-pending"}>{payment.status}</span></td>
                                     <td>
-                                        <div className="student-action-wrap">
-                                            <details className="action-menu-details">
-                                                <summary className="more-button" aria-label={`Menu untuk ${payment.student_name}`}>
-                                                    <span className="vertical-dots" aria-hidden="true"><i /><i /><i /></span>
-                                                </summary>
-                                                <div className="action-menu">
-                                                    <Link className="action-menu-item" href={`/dashboard/payments/view?payment=${paymentSlug(payment)}`}>View</Link>
-                                                    <Link className="action-menu-item" href={`/dashboard/payments/edit?payment=${paymentSlug(payment)}`}>Edit</Link>
-                                                    <button className="action-menu-item" type="button" onClick={() => setReminder(payment)}>Send Reminder</button>
-                                                </div>
-                                            </details>
+                                        <div className={styles.actions} role="group" aria-label={`Aksi pembayaran ${payment.student_name}`}>
+                                            <Link className={styles.actionButton} href={`/dashboard/payments/view?payment=${paymentSlug(payment)}`} aria-label={`Lihat pembayaran ${payment.student_name}`} title="Lihat pembayaran"><Eye aria-hidden="true" /></Link>
+                                            <Link className={styles.actionButton} href={`/dashboard/payments/edit?payment=${paymentSlug(payment)}`} aria-label={`Edit pembayaran ${payment.student_name}`} title="Edit pembayaran"><Pencil aria-hidden="true" /></Link>
+                                            <button className={styles.actionButton} type="button" onClick={() => setReminder(payment)} aria-label={`Ingatkan pembayaran ${payment.student_name}`} title="Ingatkan pembayaran"><BellRing aria-hidden="true" /></button>
                                         </div>
                                     </td>
                                 </tr>
