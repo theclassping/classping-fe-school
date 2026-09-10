@@ -2150,6 +2150,35 @@ dialog select:focus {
   overflow: visible;
 }
 
+.activity-card-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.activity-section > .section-heading > .primary-button {
+  text-decoration: none;
+}
+
+.activity-card-actions > .outline-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  margin-top: 0;
+  text-decoration: none;
+}
+
+.activity-card-actions > .outline-button:hover {
+  border-color: var(--green);
+  background: var(--mint);
+}
+
+.activity-card-actions > .outline-button:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
 .activity-cover,
 .parent-photo {
   height: 145px;
@@ -2311,6 +2340,10 @@ dialog select:focus {
 .assessment-admin {
   margin: 0 0 19px;
   scroll-margin-top: 90px;
+}
+
+.assessment-page-card + .assessment-admin {
+  margin-top: 24px;
 }
 
 .assessment-summary {

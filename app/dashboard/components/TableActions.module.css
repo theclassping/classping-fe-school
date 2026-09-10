@@ -1,0 +1,70 @@
+.actionHeading,
+:global(.setting-list) .actionHeading {
+  text-align: right;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+
+.actionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--canvas);
+  color: var(--green);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.actionButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.actionButton:hover {
+  border-color: var(--green);
+  background: var(--mint);
+  color: var(--green-dark);
+}
+
+.actionButton:active {
+  background: var(--green);
+  color: #fff;
+}
+
+.actionButton:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .actionButton {
+    flex-basis: 44px;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+.actionCell,
+:global(.setting-list) .actionCell {
+  text-align: right;
+}
+
+.dangerButton {
+  color: #b0564a;
+}
+
+.dangerButton:hover {
+  border-color: #b0564a;
+  background: #fff1ef;
+  color: #9f3d3d;
+}
