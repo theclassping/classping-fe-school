@@ -14,10 +14,16 @@ type ActivityRecord = {
   name?: string;
   description?: string;
   activity_date?: string;
-  images?: unknown[];
-  students?: ActivityStudentRecord[];
+  activity_images?: ActivityImageRecord[];
+  activity_students?: ActivityStudentRecord[];
   created_at?: string;
   status?: string;
+  is_publish?: boolean;
+};
+
+type ActivityImageRecord = {
+  image_url?: string;
+  image_data?: string | { id?: string; object_key?: string };
 };
 
 function getRecords(data: unknown): ActivityRecord[] {
@@ -41,8 +47,13 @@ function studentName(student: ActivityStudentRecord) {
   );
 }
 
-function activityStatus(status?: string): Activity["status"] {
-  return status?.toLowerCase() === "draft" ? "Draf" : "Dipublikasi";
+function activityStatus(
+  status?: string,
+  isPublish?: boolean,
+): Activity["status"] {
+  return status?.toLowerCase() === "draft" || isPublish === false
+    ? "Draf"
+    : "Dipublikasi";
 }
 
 function activityTime(createdAt?: string) {
@@ -65,21 +76,24 @@ export function normalizeActivities(data: unknown): Activity[] {
     .filter((record) => record.id !== undefined)
     .map((record) => {
       const className = record.class_name ?? "-";
-      const participants = (record.students ?? [])
+      const participants = (record.activity_students ?? [])
         .map(studentName)
         .filter(Boolean);
+      const firstImage = record.activity_images?.[0];
+      const imageUrl = firstImage?.image_url;
 
       return {
         slug: String(record.id),
         title: record.name ?? "Untitled activity",
         avatar: "📷",
+        imageUrl,
         className,
         classLabel: className,
         time: activityTime(record.created_at),
         date: record.activity_date ?? "",
-        status: activityStatus(record.status),
+        status: activityStatus(record.status, record.is_publish),
         caption: record.description ?? "",
-        photos: Array.isArray(record.images) ? record.images.length : 0,
+        photos: record.activity_images?.length ?? 0,
         participants,
         note: "",
       } satisfies Activity;

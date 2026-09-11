@@ -109,7 +109,15 @@ export default function ActivitiesPage() {
                 <div
                   className={`activity-cover art-${activity.slug === "melukis-dengan-jari" ? "paint" : activity.slug === "menanam-kacang-hijau" ? "garden" : "music"}`}
                 >
-                  <span>{activity.avatar}</span>
+                  {activity.imageUrl ? (
+                    <img
+                      className="activity-cover-image"
+                      src={activity.imageUrl}
+                      alt={activity.title}
+                    />
+                  ) : (
+                    <span>{activity.avatar}</span>
+                  )}
                   <b>{activity.photos} foto</b>
                 </div>
                 <div className="activity-body">

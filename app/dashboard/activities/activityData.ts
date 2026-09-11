@@ -2,6 +2,7 @@ export type Activity = {
   slug: string;
   title: string;
   avatar: string;
+  imageUrl?: string;
   className: string;
   classLabel: string;
   time: string;

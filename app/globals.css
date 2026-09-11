@@ -2178,6 +2178,14 @@ dialog select:focus {
   z-index: 1;
 }
 
+.activity-cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: relative;
+  z-index: 1;
+}
+
 .art-paint {
   background: linear-gradient(135deg, #ffd98d, #f2a69d);
 }
