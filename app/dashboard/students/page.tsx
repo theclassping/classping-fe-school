@@ -1,8 +1,9 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Ban, CircleCheck, Eye, Pencil, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import StudentForm from "./StudentForm";
+import styles from "../components/TableActions.module.css";
 
 type Student = {
   id: number;
@@ -253,7 +254,7 @@ export default function StudentsPage() {
                   <th>Parent / Guardian</th>
                   <th>WhatsApp</th>
                   <th>Status</th>
-                  <th aria-label="Actions" />
+                  <th className={styles.actionHeading}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -281,44 +282,36 @@ export default function StudentsPage() {
                       </span>
                     </td>
                     <td>
-                      <div className="student-action-wrap">
-                        <details className="action-menu-details">
-                          <summary
-                            className="more-button"
-                            aria-label={`Actions for ${student.first_name} ${student.last_name}`}
-                          >
-                            <span className="vertical-dots" aria-hidden="true">
-                              <i />
-                              <i />
-                              <i />
-                            </span>
-                          </summary>
-                          <div className="action-menu">
-                            <button
-                              className="action-menu-item"
-                              type="button"
-                              onClick={() => setViewingStudent(student)}
-                            >
-                              View
-                            </button>
-                            <button
-                              className="action-menu-item"
-                              type="button"
-                              onClick={() => setEditingStudent(student)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className={`action-menu-item ${student.status?.toLowerCase() === "inactive" ? "" : "danger"}`}
-                              type="button"
-                              onClick={() => setDeactivatingStudent(student)}
-                            >
-                              {student.status?.toLowerCase() === "inactive"
-                                ? "Activate"
-                                : "Deactivate"}
-                            </button>
-                          </div>
-                        </details>
+                      <div className={styles.actions} role="group" aria-label={`Actions for ${student.first_name} ${student.last_name}`}>
+                        <button
+                          className={styles.actionButton}
+                          type="button"
+                          aria-label={`View ${student.first_name} ${student.last_name}`}
+                          title="View student"
+                          onClick={() => setViewingStudent(student)}
+                        >
+                          <Eye aria-hidden="true" />
+                        </button>
+                        <button
+                          className={styles.actionButton}
+                          type="button"
+                          aria-label={`Edit ${student.first_name} ${student.last_name}`}
+                          title="Edit student"
+                          onClick={() => setEditingStudent(student)}
+                        >
+                          <Pencil aria-hidden="true" />
+                        </button>
+                        <button
+                          className={`${styles.actionButton} ${student.status?.toLowerCase() === "inactive" ? "" : styles.dangerButton}`}
+                          type="button"
+                          aria-label={`${student.status?.toLowerCase() === "inactive" ? "Activate" : "Deactivate"} ${student.first_name} ${student.last_name}`}
+                          title={student.status?.toLowerCase() === "inactive" ? "Activate student" : "Deactivate student"}
+                          onClick={() => setDeactivatingStudent(student)}
+                        >
+                          {student.status?.toLowerCase() === "inactive"
+                            ? <CircleCheck aria-hidden="true" />
+                            : <Ban aria-hidden="true" />}
+                        </button>
                       </div>
                     </td>
                   </tr>

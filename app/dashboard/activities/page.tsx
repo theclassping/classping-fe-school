@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import styles from "../components/TableActions.module.css";
 import { loadActivities } from "./activityApi";
 import type { Activity } from "./activityData";
 
@@ -159,39 +161,31 @@ export default function ActivitiesPage() {
                     >
                       Kelola foto & tag
                     </Link>
-                    <div className="student-action-wrap">
-                      <details className="action-menu-details">
-                        <summary
-                          className="more-button"
-                          aria-label={`Menu untuk ${activity.title}`}
-                        >
-                          <span className="vertical-dots" aria-hidden="true">
-                            <i />
-                            <i />
-                            <i />
-                          </span>
-                        </summary>
-                        <div className="action-menu">
-                          <Link
-                            className="action-menu-item"
-                            href={`/dashboard/activities/view?activity=${activity.slug}`}
-                          >
-                            View
-                          </Link>
-                          <Link
-                            className="action-menu-item"
-                            href={`/dashboard/activities/update?activity=${activity.slug}`}
-                          >
-                            Update
-                          </Link>
-                          <Link
-                            className="action-menu-item danger"
-                            href={`/dashboard/activities/delete?activity=${activity.slug}`}
-                          >
-                            Delete
-                          </Link>
-                        </div>
-                      </details>
+                    <div className={styles.actions} role="group" aria-label={`Aksi untuk ${activity.title}`}>
+                      <Link
+                        className={styles.actionButton}
+                        href={`/dashboard/activities/view?activity=${activity.slug}`}
+                        aria-label={`Lihat ${activity.title}`}
+                        title="Lihat aktivitas"
+                      >
+                        <Eye aria-hidden="true" />
+                      </Link>
+                      <Link
+                        className={styles.actionButton}
+                        href={`/dashboard/activities/update?activity=${activity.slug}`}
+                        aria-label={`Edit ${activity.title}`}
+                        title="Edit aktivitas"
+                      >
+                        <Pencil aria-hidden="true" />
+                      </Link>
+                      <Link
+                        className={`${styles.actionButton} ${styles.dangerButton}`}
+                        href={`/dashboard/activities/delete?activity=${activity.slug}`}
+                        aria-label={`Hapus ${activity.title}`}
+                        title="Hapus aktivitas"
+                      >
+                        <Trash2 aria-hidden="true" />
+                      </Link>
                     </div>
                   </div>
                 </div>
