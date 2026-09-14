@@ -15,7 +15,9 @@ type ActivityRecord = {
   description?: string;
   activity_date?: string;
   activity_images?: ActivityImageRecord[];
+  images?: ActivityImageRecord[];
   activity_students?: ActivityStudentRecord[];
+  students?: ActivityStudentRecord[];
   created_at?: string;
   status?: string;
   is_publish?: boolean;
@@ -76,7 +78,7 @@ export function normalizeActivities(data: unknown): Activity[] {
     .filter((record) => record.id !== undefined)
     .map((record) => {
       const className = record.class_name ?? "-";
-      const participants = (record.activity_students ?? [])
+      const participants = (record.activity_students ?? record.students ?? [])
         .map(studentName)
         .filter(Boolean);
       const firstImage = record.activity_images?.[0];
@@ -91,9 +93,9 @@ export function normalizeActivities(data: unknown): Activity[] {
         classLabel: className,
         time: activityTime(record.created_at),
         date: record.activity_date ?? "",
-        status: activityStatus(record.status, record.is_publish),
-        caption: record.description ?? "",
-        photos: record.activity_images?.length ?? 0,
+      status: activityStatus(record.status, record.is_publish),
+      caption: record.description ?? "",
+      photos: record.activity_images?.length ?? record.images?.length ?? 0,
         participants,
         note: "",
       } satisfies Activity;

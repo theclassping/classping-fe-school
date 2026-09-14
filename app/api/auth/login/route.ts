@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { setSessionCookies } from "@/lib/session";
+
 const DJANGO_API_URL = process.env.DJANGO_API_URL;
 
 export async function POST(request: NextRequest) {
@@ -42,21 +44,7 @@ export async function POST(request: NextRequest) {
       success: true,
     });
 
-    nextResponse.cookies.set("access_token", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 15,
-    });
-
-    nextResponse.cookies.set("refresh_token", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    });
+    setSessionCookies(nextResponse, { access: accessToken, refresh: refreshToken });
 
     return nextResponse;
   } catch (error) {

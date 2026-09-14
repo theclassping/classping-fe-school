@@ -2993,7 +2993,7 @@ body.parent-view .sidebar {
 
 .admin-focus-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(430px, 1.1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 19px;
   margin-bottom: 19px;
 }
@@ -5311,3 +5311,22 @@ body.parent-view .sidebar {
 .action-menu button.danger:hover {
   background: #fff1ef;
 }
+
+/* Keep the activity count aligned with its circular indicator. */
+.activity-tag-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--green);
+  background: #dff2ea;
+}
+.activity-tag-icon svg { width: 15px; height: 15px; }
+.tag-summary strong { margin: 0; line-height: 1.4; }
+.managed-photo:focus-visible { outline: 3px solid var(--green); outline-offset: 3px; }
+.selected-activity-photo { margin: 18px 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #f7f9f8; }
+.selected-activity-photo img { display: block; width: 100%; max-height: 460px; object-fit: contain; }
+.selected-activity-photo figcaption { margin-top: 10px; font-size: 12px; color: var(--muted); }
+.managed-photo { overflow: hidden; }

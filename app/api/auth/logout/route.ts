@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { REFRESH_COOKIE, clearSessionCookies } from "@/lib/session";
+
 const DJANGO_API_URL = process.env.DJANGO_API_URL;
 
 export async function POST(request: NextRequest) {
   try {
-    const refreshToken = request.cookies.get("refresh_token")?.value;
+    const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
 
     if (refreshToken) {
       await fetch(`${DJANGO_API_URL}/api/auth/logout/`, {
@@ -23,8 +25,7 @@ export async function POST(request: NextRequest) {
       success: true,
     });
 
-    response.cookies.delete("access_token");
-    response.cookies.delete("refresh_token");
+    clearSessionCookies(response);
 
     return response;
   } catch (error) {
@@ -34,8 +35,7 @@ export async function POST(request: NextRequest) {
       success: true,
     });
 
-    response.cookies.delete("access_token");
-    response.cookies.delete("refresh_token");
+    clearSessionCookies(response);
 
     return response;
   }

@@ -1,7 +1,9 @@
 "use client";
 
 import { Pencil, X } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+
+import styles from "./SchoolProfile.module.css";
 
 type SchoolProfile = {
   name: string;
@@ -24,6 +26,24 @@ export default function SchoolProfilePage() {
   const [editing, setEditing] = useState(false);
   const [toast, setToast] = useState("");
 
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const editButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!editing) return;
+    const dialog = dialogRef.current;
+    const editButton = editButtonRef.current;
+    const previousOverflow = document.body.style.overflow;
+    dialog?.showModal();
+    dialog?.querySelector<HTMLInputElement>('[name="name"]')?.focus();
+    document.body.style.overflow = "hidden";
+    return () => {
+      dialog?.close();
+      document.body.style.overflow = previousOverflow;
+      editButton?.focus();
+    };
+  }, [editing]);
+
   function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -38,7 +58,7 @@ export default function SchoolProfilePage() {
       <section className="profile-hero panel">
         <span className="profile-logo">TK</span>
         <div><p className="eyebrow">PROFIL SEKOLAH</p><h1>{profile.name}</h1><p>Satuan pendidikan anak usia dini · Aktif</p></div>
-        <button className="primary-button profile-edit-action" type="button" onClick={() => setEditing(true)}><Pencil aria-hidden="true" /> Edit Profil</button>
+        <button ref={editButtonRef} className="primary-button profile-edit-action" type="button" onClick={() => setEditing(true)}><Pencil aria-hidden="true" /> Edit Profil</button>
       </section>
 
       <section className="profile-page-grid">
@@ -60,7 +80,44 @@ export default function SchoolProfilePage() {
         </article>
       </section>
 
-      {editing && <div className="modal-overlay" role="presentation"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="schoolProfileDialogTitle"><form onSubmit={save}><div className="dialog-heading"><div><span className="dialog-icon"><Pencil aria-hidden="true" /></span><div><h2 id="schoolProfileDialogTitle">Edit Profil Sekolah</h2><p>Perbarui informasi yang ditampilkan di portal.</p></div></div><button className="close-button" type="button" aria-label="Tutup" onClick={() => setEditing(false)}><X aria-hidden="true" /></button></div><div className="prototype-dialog-fields"><label className="full">Nama sekolah<input name="name" defaultValue={profile.name} required /></label><label>NPSN<input name="npsn" defaultValue={profile.npsn} required /></label><label>Telepon<input name="phone" defaultValue={profile.phone} required /></label><label className="full">Alamat<input name="address" defaultValue={profile.address} required /></label><label className="full">Email<input name="email" type="email" defaultValue={profile.email} required /></label></div><div className="dialog-actions"><button className="secondary-button" type="button" onClick={() => setEditing(false)}>Batal</button><button className="primary-button" type="submit">Simpan perubahan</button></div></form></section></div>}
+      {editing && (
+        <dialog ref={dialogRef} className={styles.dialog} aria-labelledby="schoolProfileDialogTitle" aria-describedby="schoolProfileDialogDescription" onCancel={() => setEditing(false)}>
+          <form onSubmit={save}>
+            <header className={styles.header}>
+              <span className={styles.icon}><Pencil aria-hidden="true" /></span>
+              <div>
+                <h2 id="schoolProfileDialogTitle">Edit Profil Sekolah</h2>
+                <p id="schoolProfileDialogDescription">Perbarui identitas dan kontak sekolah Anda.</p>
+              </div>
+              <button className={styles.close} type="button" aria-label="Tutup" onClick={() => setEditing(false)}><X aria-hidden="true" /></button>
+            </header>
+            <div className={styles.body}>
+              <fieldset className={styles.group}>
+                <legend>Identitas sekolah</legend>
+                <div className={styles.fields}>
+                  <label className={styles.full}>Nama sekolah<input name="name" autoComplete="organization" defaultValue={profile.name} required /></label>
+                  <label className={styles.full}>NPSN<input name="npsn" inputMode="numeric" defaultValue={profile.npsn} required aria-describedby="npsnHint" /><small id="npsnHint">Nomor Pokok Sekolah Nasional</small></label>
+                </div>
+              </fieldset>
+              <fieldset className={styles.group}>
+                <legend>Alamat & kontak</legend>
+                <div className={styles.fields}>
+                  <label className={styles.full}>Alamat sekolah<textarea name="address" autoComplete="street-address" defaultValue={profile.address} rows={2} required /></label>
+                  <label>Telepon<input name="phone" type="tel" autoComplete="tel" defaultValue={profile.phone} required /></label>
+                  <label>Email sekolah<input name="email" type="email" autoComplete="email" defaultValue={profile.email} required /></label>
+                </div>
+              </fieldset>
+            </div>
+            <footer className={styles.footer}>
+              <span>Semua kolom wajib diisi.</span>
+              <div className={styles.actions}>
+                <button className="secondary-button" type="button" onClick={() => setEditing(false)}>Batal</button>
+                <button className="primary-button" type="submit">Simpan perubahan</button>
+              </div>
+            </footer>
+          </form>
+        </dialog>
+      )}
       {toast && <div className="prototype-toast" role="status">✓ {toast}</div>}
     </main>
   );
