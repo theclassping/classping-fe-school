@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type FeeType = {
     id: number;
@@ -29,13 +29,53 @@ export default function FeeTypeForm({
         name: feeType?.name ?? "",
         description: feeType?.description ?? "",
         amount: feeType?.amount ?? 0,
-        branch: feeType?.branch ?? 0,
+        branch: feeType ? String(feeType.branch) : "",
         is_recurring: feeType?.is_recurring ?? false,
         is_active: feeType?.is_active ?? true,
     });
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+
+    const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
+    const [branchesLoading, setBranchesLoading] = useState(true);
+    const [branchesError, setBranchesError] = useState("");
+    const [branchRetry, setBranchRetry] = useState(0);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        async function loadBranches() {
+            setBranchesLoading(true);
+            setBranchesError("");
+            try {
+                const options: { id: string; name: string }[] = [];
+                let url = "/api/proxy/branches/";
+                const visited = new Set<string>();
+                while (url && !visited.has(url)) {
+                    visited.add(url);
+                    const response = await fetch(url, { credentials: "include", cache: "no-store", signal: controller.signal });
+                    if (response.status === 401) { window.location.href = "/login"; return; }
+                    if (!response.ok) throw new Error("Cabang sekolah gagal dimuat.");
+                    const data = await response.json();
+                    const records = Array.isArray(data) ? data : data.results ?? data.data ?? [];
+                    for (const branch of records) {
+                        if (branch.id != null && typeof branch.name === "string" &&
+                            (branch.is_active !== false || String(branch.id) === String(feeType?.branch))) {
+                            options.push({ id: String(branch.id), name: branch.name });
+                        }
+                    }
+                    url = data.next ? `/api/proxy/branches/${new URL(data.next, window.location.origin).search}` : "";
+                }
+                if (!controller.signal.aborted) setBranches(options);
+            } catch {
+                if (!controller.signal.aborted) setBranchesError("Cabang sekolah gagal dimuat. Silakan coba lagi.");
+            } finally {
+                if (!controller.signal.aborted) setBranchesLoading(false);
+            }
+        }
+        void loadBranches();
+        return () => controller.abort();
+    }, [feeType?.branch, branchRetry]);
 
     function handleChange(
         event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -66,23 +106,7 @@ export default function FeeTypeForm({
 
             const method = feeType ? "PATCH" : "POST";
 
-            const body = feeType
-                ? {
-                    name: form.name,
-                    description: form.description,
-                    amount: form.amount,
-                    branch: form.branch,
-                    is_recurring: form.is_recurring,
-                    is_active: form.is_active,
-                }
-                : form;
-
-            console.log(
-                isEdit
-                    ? "UPDATE FEE TYPE SUBMIT:"
-                    : "CREATE FEE TYPE SUBMIT:",
-                body
-            );
+            const body = { ...form, branch: Number(form.branch) };
 
             const response = await fetch(url, {
                 method,
@@ -94,16 +118,6 @@ export default function FeeTypeForm({
             });
 
             const data = await response.json();
-
-            console.log(
-                isEdit
-                    ? "UPDATE FEE TYPE RESPONSE:"
-                    : "CREATE FEE TYPE RESPONSE:",
-                {
-                    status: response.status,
-                    data,
-                }
-            );
 
             if (response.status === 401) {
                 window.location.href = "/login";
@@ -213,14 +227,19 @@ export default function FeeTypeForm({
                                 Branch
                             </label>
 
-                            <input
+                            <select
                                 id="branch"
                                 name="branch"
-                                type="number"
                                 value={form.branch}
                                 onChange={handleChange}
+                                disabled={branchesLoading || !!branchesError || branches.length === 0}
                                 required
-                            />
+                            >
+                                <option value="">{branchesLoading ? "Memuat cabang..." : "Pilih cabang sekolah"}</option>
+                                {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                            </select>
+                            {branchesError && <p role="alert">{branchesError} <button type="button" className="button-secondary" onClick={() => setBranchRetry((value) => value + 1)}>Coba lagi</button></p>}
+                            {!branchesLoading && !branchesError && branches.length === 0 && <p role="status">Belum ada cabang sekolah yang tersedia.</p>}
                         </div>      
 
                         <div className="form-field full">
@@ -278,7 +297,7 @@ export default function FeeTypeForm({
                         <button
                             type="submit"
                             className="button-primary"
-                            disabled={loading}
+                            disabled={loading || branchesLoading || !!branchesError || !branches.some((branch) => branch.id === form.branch)}
                         >
                             {loading
                                 ? isEdit

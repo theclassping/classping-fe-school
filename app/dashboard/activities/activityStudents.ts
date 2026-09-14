@@ -5,6 +5,7 @@ export type ActivityStudent = {
 
 type StudentRecord = {
   id?: number | string;
+  student_id?: number | string;
   name?: string;
   student_name?: string;
   first_name?: string;
@@ -42,9 +43,9 @@ function getStudentName(record: StudentRecord) {
 
 export function normalizeActivityStudents(data: unknown): ActivityStudent[] {
   return getRecords(data)
-    .filter((record) => record.id !== undefined)
+    .filter((record) => record.student_id !== undefined || record.id !== undefined)
     .map((record) => ({
-      id: String(record.id),
+      id: String(record.student_id ?? record.id),
       name: getStudentName(record),
     }))
     .filter((student) => student.name);

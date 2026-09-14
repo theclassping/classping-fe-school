@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { ACCESS_COOKIE, REFRESH_COOKIE } from "@/lib/session";
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -25,9 +27,12 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/settings");
 
   if (isProtectedRoute) {
-    const accessToken = request.cookies.get("access_token")?.value;
+    const accessToken = request.cookies.get(ACCESS_COOKIE)?.value;
 
-    if (!accessToken) {
+    // This is an optimistic page-shell check; the API validates and renews
+    // the session before returning protected data.
+    const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
+    if (!accessToken && !refreshToken) {
       return NextResponse.redirect(
         new URL("/login", request.url)
       );
