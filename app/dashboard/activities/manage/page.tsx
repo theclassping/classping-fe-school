@@ -2,16 +2,80 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getActivity, students, type Activity } from "../activityData";
+import { loadActivity, type ActivityDetailRecord } from "../activityApi";
+import {
+  loadActivityStudents,
+  type ActivityStudent,
+} from "../activityStudents";
 
 export default function ManageActivityPage() {
-  const [activity, setActivity] = useState<Activity>(getActivity(null));
+  const [activity, setActivity] = useState<ActivityDetailRecord | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [students, setStudents] = useState<ActivityStudent[]>([]);
+
   useEffect(() => {
-    setActivity(
-      getActivity(new URLSearchParams(window.location.search).get("activity")),
+    const activityId = new URLSearchParams(window.location.search).get(
+      "activity",
     );
+
+    if (!activityId) {
+      setError("Activity ID is missing.");
+      setLoading(false);
+      return;
+    }
+
+    const selectedActivityId = activityId;
+
+    async function loadManageData() {
+      try {
+        const data = await loadActivity(selectedActivityId);
+        if (!data) {
+          setError("Activity not found.");
+          return;
+        }
+        setActivity(data);
+
+        setStudents(await loadActivityStudents(String(data.class_id)));
+      } catch (loadError) {
+        console.error(loadError);
+        setError("Failed to load activity.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadManageData();
   }, []);
+
+  if (loading) {
+    return (
+      <main>
+        <p className="empty-state">Loading activity...</p>
+      </main>
+    );
+  }
+
+  if (error || !activity) {
+    return (
+      <main>
+        <div className="empty-state">
+          <p>{error || "Activity not found."}</p>
+          <Link className="secondary-button" href="/dashboard/activities">
+            Kembali
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const selectedImage = activity.activity_images[selectedImageIndex];
+  const activityStudentIds = new Set(
+    activity.activity_students.map((student) => student.id),
+  );
+
   return (
     <main>
       <section className="panel student-manage">
@@ -45,7 +109,7 @@ export default function ManageActivityPage() {
           <div className="existing-photo-heading">
             <div>
               <strong>Foto aktivitas</strong>
-              <small>{activity.photos} foto tersimpan</small>
+              <small>{activity.activity_images.length} foto tersimpan</small>
             </div>
             <label className="mini-upload" htmlFor="managePhotos">
               Tambah foto
@@ -53,21 +117,27 @@ export default function ManageActivityPage() {
             </label>
           </div>
           <div className="managed-photo-grid">
-            {Array.from({ length: activity.photos }, (_, index) => (
+            {activity.activity_images.map((image, index) => (
               <button
-                className={`managed-photo ${index === 0 ? "active" : ""}`}
+                className={`managed-photo ${index === selectedImageIndex ? "active" : ""}`}
                 type="button"
-                key={index}
+                key={image.id}
+                onClick={() => setSelectedImageIndex(index)}
                 aria-label={`Pilih foto ${index + 1}`}
               >
-                <span>{activity.avatar}</span>
+                {image.image_url ? (
+                  <img src={image.image_url} alt={`Foto ${index + 1}`} />
+                ) : (
+                  <span>📷</span>
+                )}
                 <small className="photo-tag-count">
-                  {index === 0
-                    ? `${activity.participants.length} tag`
-                    : "Belum ditag"}
+                  {image.student_id ? "1 tag" : "Belum ditag"}
                 </small>
               </button>
             ))}
+            {activity.activity_images.length === 0 && (
+              <p className="empty-state">No photos uploaded.</p>
+            )}
           </div>
           <fieldset className="student-tags manage-student-tags">
             <legend>Siswa dalam foto yang dipilih</legend>
@@ -80,12 +150,12 @@ export default function ManageActivityPage() {
             </label>
             <div className="tag-options">
               {students.map((student) => (
-                <label key={student}>
+                <label key={student.id}>
                   <input
                     type="checkbox"
-                    defaultChecked={activity.participants.includes(student)}
+                    defaultChecked={activityStudentIds.has(Number(student.id))}
                   />{" "}
-                  {student}
+                  {student.name}
                 </label>
               ))}
             </div>
