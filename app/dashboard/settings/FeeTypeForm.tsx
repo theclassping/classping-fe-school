@@ -9,6 +9,13 @@ type SchoolClass = {
   label?: string;
 };
 
+type Branch = {
+  id: number;
+  name?: string;
+  branch_name?: string;
+  label?: string;
+};
+
 type FeeType = {
   id: number;
   name: string;
@@ -21,6 +28,11 @@ type FeeType = {
   is_active: boolean;
   classes?: Array<number | string | { id: number | string }>;
   class_ids?: Array<number | string>;
+  fee_type_classes?: Array<{
+    id?: number | string;
+    class_obj?: number | string;
+    class_id?: number | string;
+  }>;
 };
 
 type FeeTypeFormProps = {
@@ -39,10 +51,11 @@ function getClassIds(value: unknown): string[] {
       if (typeof item === "object" && item !== null) {
         const record = item as {
           id?: number | string;
+          class_obj?: number | string;
           class_id?: number | string;
         };
 
-        return record.id ?? record.class_id;
+        return record.class_obj ?? record.class_id ?? record.id;
       }
 
       return item;
@@ -70,6 +83,9 @@ export default function FeeTypeForm({
   });
 
   const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchesLoading, setBranchesLoading] = useState(true);
+  const [branchesError, setBranchesError] = useState("");
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>(() => {
     return getClassIds(feeType?.class_ids ?? feeType?.classes);
   });
@@ -79,6 +95,61 @@ export default function FeeTypeForm({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadBranches() {
+      try {
+        setBranchesLoading(true);
+        setBranchesError("");
+
+        const response = await fetch("/api/proxy/branches/", {
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+
+        if (response.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error("Failed to load branches");
+        }
+
+        const data = await response.json();
+        const records = Array.isArray(data)
+          ? data
+          : Array.isArray(data.results)
+            ? data.results
+            : Array.isArray(data.data)
+              ? data.data
+              : [];
+
+        setBranches(records);
+      } catch (loadError) {
+        if (
+          loadError instanceof DOMException &&
+          loadError.name === "AbortError"
+        ) {
+          return;
+        }
+
+        console.error(loadError);
+        setBranchesError("Failed to load branches.");
+      } finally {
+        if (!controller.signal.aborted) {
+          setBranchesLoading(false);
+        }
+      }
+    }
+
+    void loadBranches();
+
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     if (!form.branch) {
@@ -178,7 +249,8 @@ export default function FeeTypeForm({
 
         const data = await response.json();
         const detail = data.data ?? data;
-        const selectedClasses = detail.class_ids ?? detail.classes ?? [];
+        const selectedClasses =
+          detail.fee_type_classes ?? detail.class_ids ?? detail.classes ?? [];
 
         setSelectedClassIds(getClassIds(selectedClasses));
       } catch (loadError) {
@@ -351,14 +423,30 @@ export default function FeeTypeForm({
             <div className="form-field">
               <label htmlFor="branch">Branch</label>
 
-              <input
+              <select
                 id="branch"
                 name="branch"
-                type="number"
-                value={form.branch}
+                value={form.branch || ""}
                 onChange={handleChange}
+                disabled={branchesLoading}
                 required
-              />
+              >
+                <option value="">
+                  {branchesLoading ? "Loading branches..." : "Select a branch"}
+                </option>
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name ??
+                      branch.branch_name ??
+                      branch.label ??
+                      `Branch ${branch.id}`}
+                  </option>
+                ))}
+              </select>
+
+              {branchesError && (
+                <small className="form-error">{branchesError}</small>
+              )}
             </div>
 
             <div className="form-field full">
@@ -450,8 +538,8 @@ export default function FeeTypeForm({
                 required
               >
                 <option value="monthly">Monthly</option>
-                <option value="weekly">Weekly</option>
-                <option value="yearly">Yearly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="annually">Annually</option>
               </select>
             </div>
 

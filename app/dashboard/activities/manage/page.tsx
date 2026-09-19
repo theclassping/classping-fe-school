@@ -1,80 +1,138 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { loadActivity, type ActivityDetailRecord } from "../activityApi";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  activityPhotos,
+  activityRequest,
+  saveActivityPhoto,
+  type ActivityDetail,
+  type ActivityPhoto,
+} from "../activityPhotos";
 import {
   loadActivityStudents,
   type ActivityStudent,
 } from "../activityStudents";
 
-export default function ManageActivityPage() {
-  const [activity, setActivity] = useState<ActivityDetailRecord | null>(null);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+function PhotoManager({ activityId }: { activityId: string }) {
+  const [activity, setActivity] = useState<ActivityDetail | null>(null);
+  const [photos, setPhotos] = useState<ActivityPhoto[]>([]);
+  const [students, setStudents] = useState<ActivityStudent[]>([]);
+  const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
-  const [students, setStudents] = useState<ActivityStudent[]>([]);
+  const [retry, setRetry] = useState(0);
+  const objectUrls = useRef<string[]>([]);
 
   useEffect(() => {
-    const activityId = new URLSearchParams(window.location.search).get(
-      "activity",
-    );
+    let cancelled = false;
 
-    if (!activityId) {
-      setError("Activity ID is missing.");
-      setLoading(false);
-      return;
-    }
-
-    const selectedActivityId = activityId;
-
-    async function loadManageData() {
+    async function load() {
+      setLoading(true);
+      setError("");
       try {
-        const data = await loadActivity(selectedActivityId);
-        if (!data) {
-          setError("Activity not found.");
-          return;
+        if (!/^\d+$/.test(activityId)) {
+          throw new Error("Pilih aktivitas dari daftar aktivitas.");
         }
-        setActivity(data);
-
-        setStudents(await loadActivityStudents(String(data.class_id)));
+        const detail = await activityRequest<ActivityDetail>(
+          `/api/proxy/activities/${activityId}/`,
+        );
+        const classStudents = await loadActivityStudents(
+          String(detail.class_id),
+        );
+        if (cancelled) return;
+        const loadedPhotos = activityPhotos(detail);
+        setActivity(detail);
+        setPhotos(loadedPhotos);
+        setSelectedId(loadedPhotos[0]?.id ?? "");
+        setStudents(classStudents);
       } catch (loadError) {
-        console.error(loadError);
-        setError("Failed to load activity.");
+        if (!cancelled) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Aktivitas gagal dimuat.",
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
-    void loadManageData();
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [activityId, retry]);
+
+  useEffect(() => {
+    const urls = objectUrls.current;
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, []);
+
+  const selected = photos.find((photo) => photo.id === selectedId);
+  const dirty = photos.some(
+    (photo) => photo.file || photo.studentId !== photo.savedStudentId,
+  );
+
+  async function save(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!activity) return;
+    setSaving(true);
+    setError("");
+    setSaved(false);
+    try {
+      for (const [index, photo] of photos.entries()) {
+        if (!photo.file && photo.studentId === photo.savedStudentId) continue;
+        const updated = await saveActivityPhoto(activity.id, photo, index);
+        setPhotos((current) =>
+          current.map((item) => (item.id === photo.id ? updated : item)),
+        );
+        setSelectedId((current) =>
+          current === photo.id ? updated.id : current,
+        );
+      }
+      setSaved(true);
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Foto dan tag belum tersimpan.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (loading) {
     return (
       <main>
-        <p className="empty-state">Loading activity...</p>
+        <p className="empty-state">Memuat aktivitas...</p>
       </main>
     );
   }
 
-  if (error || !activity) {
+  if (error && !activity) {
     return (
       <main>
         <div className="empty-state">
-          <p>{error || "Activity not found."}</p>
-          <Link className="secondary-button" href="/dashboard/activities">
-            Kembali
-          </Link>
+          <p>{error}</p>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => setRetry((value) => value + 1)}
+          >
+            Coba lagi
+          </button>
         </div>
       </main>
     );
   }
 
-  const selectedImage = activity.activity_images[selectedImageIndex];
-  const activityStudentIds = new Set(
-    activity.activity_students.map((student) => student.id),
-  );
+  if (!activity) return null;
 
   return (
     <main>
@@ -82,92 +140,180 @@ export default function ManageActivityPage() {
         <div className="panel-heading">
           <div>
             <h2>Kelola Foto & Tag</h2>
-            <p>
-              Siapkan foto dan pilih siswa yang terlihat pada dokumentasi
-              aktivitas
-            </p>
+            <p>{activity.name}</p>
           </div>
           <Link className="secondary-button" href="/dashboard/activities">
             Kembali
           </Link>
         </div>
-        <form
-          className="student-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setSaved(true);
-          }}
-        >
+
+        {error && (
+          <div className="form-error" role="alert">
+            {error}
+          </div>
+        )}
+
+        <form className="student-form" onSubmit={save}>
           <div className="privacy-notice">
             <p>
-              <strong>Tag terbatas sesuai kelas</strong>
+              <strong>Tag sesuai kelas</strong>
               <span>
-                Hanya siswa dari kelas aktivitas ini yang dapat dipilih.
+                Pilih satu siswa dari kelas aktivitas untuk setiap foto.
               </span>
             </p>
           </div>
+
           <div className="existing-photo-heading">
             <div>
               <strong>Foto aktivitas</strong>
-              <small>{activity.activity_images.length} foto tersimpan</small>
+              <small>
+                {photos.filter((photo) => !photo.file).length} foto tersimpan
+                {photos.some((photo) => photo.file)
+                  ? ` · ${photos.filter((photo) => photo.file).length} foto baru`
+                  : ""}
+              </small>
             </div>
             <label className="mini-upload" htmlFor="managePhotos">
               Tambah foto
-              <input id="managePhotos" type="file" accept="image/*" multiple />
+              <input
+                id="managePhotos"
+                type="file"
+                accept="image/*"
+                multiple
+                disabled={saving}
+                onChange={(event) => {
+                  const files = Array.from(event.target.files ?? []);
+                  if (files.some((file) => !file.type.startsWith("image/"))) {
+                    setError("Pilih file gambar untuk diunggah.");
+                    return;
+                  }
+                  const added = files.map((file) => {
+                    const url = URL.createObjectURL(file);
+                    objectUrls.current.push(url);
+                    return {
+                      id: crypto.randomUUID(),
+                      url,
+                      caption: file.name,
+                      studentId: "",
+                      savedStudentId: "",
+                      file,
+                    };
+                  });
+                  setPhotos((current) => [...current, ...added]);
+                  if (added[0]) setSelectedId(added[0].id);
+                  setSaved(false);
+                  event.target.value = "";
+                }}
+              />
             </label>
           </div>
+
+          {photos.length === 0 && (
+            <p role="status">
+              Belum ada foto. Tambahkan foto aktivitas untuk mulai menandai
+              siswa.
+            </p>
+          )}
+
           <div className="managed-photo-grid">
-            {activity.activity_images.map((image, index) => (
+            {photos.map((photo, index) => (
               <button
-                className={`managed-photo ${index === selectedImageIndex ? "active" : ""}`}
+                className={`managed-photo ${photo.id === selectedId ? "active" : ""}`}
                 type="button"
-                key={image.id}
-                onClick={() => setSelectedImageIndex(index)}
+                key={photo.id}
                 aria-label={`Pilih foto ${index + 1}`}
+                aria-pressed={photo.id === selectedId}
+                onClick={() => setSelectedId(photo.id)}
               >
-                {image.image_url ? (
-                  <img src={image.image_url} alt={`Foto ${index + 1}`} />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {photo.url ? (
+                  <img
+                    src={photo.url}
+                    alt={photo.caption || `Foto aktivitas ${index + 1}`}
+                  />
                 ) : (
                   <span>📷</span>
                 )}
                 <small className="photo-tag-count">
-                  {image.student_id ? "1 tag" : "Belum ditag"}
+                  {photo.studentId ? "1 tag" : "Belum ditag"}
                 </small>
               </button>
             ))}
-            {activity.activity_images.length === 0 && (
-              <p className="empty-state">No photos uploaded.</p>
-            )}
           </div>
-          <fieldset className="student-tags manage-student-tags">
-            <legend>Siswa dalam foto yang dipilih</legend>
-            <p>
-              Pilih semua siswa yang terlihat. Orang tua hanya menerima foto
-              yang menandai anaknya.
-            </p>
-            <label className="select-all-students">
-              <input type="checkbox" /> Pilih seluruh kelas
-            </label>
-            <div className="tag-options">
-              {students.map((student) => (
-                <label key={student.id}>
-                  <input
-                    type="checkbox"
-                    defaultChecked={activityStudentIds.has(Number(student.id))}
-                  />{" "}
-                  {student.name}
+
+          {selected && (
+            <>
+              <figure className="selected-activity-photo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {selected.url ? (
+                  <img
+                    src={selected.url}
+                    alt={selected.caption || "Foto aktivitas terpilih"}
+                  />
+                ) : (
+                  <p>Pratinjau foto tidak tersedia.</p>
+                )}
+                <figcaption>
+                  Foto {photos.indexOf(selected) + 1} dari {photos.length}
+                  {selected.caption ? ` · ${selected.caption}` : ""}
+                </figcaption>
+              </figure>
+
+              <div className="form-field">
+                <label htmlFor="photo-student">
+                  Siswa dalam foto yang dipilih
                 </label>
-              ))}
-            </div>
-          </fieldset>
+                <select
+                  id="photo-student"
+                  value={selected.studentId}
+                  disabled={saving}
+                  onChange={(event) => {
+                    const studentId = event.target.value;
+                    setPhotos((current) =>
+                      current.map((photo) =>
+                        photo.id === selectedId
+                          ? { ...photo, studentId }
+                          : photo,
+                      ),
+                    );
+                    setSaved(false);
+                  }}
+                >
+                  <option value="">Belum ditag</option>
+                  {selected.studentId &&
+                    !students.some(
+                      (student) => student.id === selected.studentId,
+                    ) && (
+                      <option value={selected.studentId} disabled>
+                        Siswa tidak lagi tersedia di kelas ini
+                      </option>
+                    )}
+                  {students.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.name}
+                    </option>
+                  ))}
+                </select>
+                {students.length === 0 && (
+                  <p>Belum ada siswa yang tersedia di kelas ini.</p>
+                )}
+              </div>
+            </>
+          )}
+
           <div className="student-form-actions">
             <Link className="secondary-button" href="/dashboard/activities">
               Batal
             </Link>
-            <button className="primary-button" type="submit">
-              Simpan Foto & Tag
+            <button
+              className="primary-button"
+              type="submit"
+              disabled={saving || !dirty}
+            >
+              {saving ? "Menyimpan..." : "Simpan Foto & Tag"}
             </button>
           </div>
+
           {saved && (
             <p className="settings-save-message" role="status">
               Foto dan tag berhasil disimpan.
@@ -176,5 +322,19 @@ export default function ManageActivityPage() {
         </form>
       </section>
     </main>
+  );
+}
+
+function ManageActivity() {
+  const searchParams = useSearchParams();
+  const activityId = searchParams.get("activity") ?? "";
+  return <PhotoManager key={activityId} activityId={activityId} />;
+}
+
+export default function ManageActivityPage() {
+  return (
+    <Suspense fallback={<p role="status">Memuat aktivitas...</p>}>
+      <ManageActivity />
+    </Suspense>
   );
 }

@@ -8,17 +8,19 @@ type ActivityStudentRecord = {
 };
 
 type ActivityRecord = {
-    id?: number | string;
-    class_id?: number | string;
-    class_name?: string;
-    name?: string;
-    description?: string;
-    activity_date?: string;
-    activity_images?: ActivityImageRecord[];
-    activity_students?: ActivityStudentRecord[];
-    created_at?: string;
-    status?: string;
-    is_publish?: boolean;
+  id?: number | string;
+  class_id?: number | string;
+  class_name?: string;
+  name?: string;
+  description?: string;
+  activity_date?: string;
+  activity_images?: ActivityImageRecord[];
+  images?: ActivityImageRecord[];
+  activity_students?: ActivityStudentRecord[];
+  students?: ActivityStudentRecord[];
+  created_at?: string;
+  status?: string;
+  is_publish?: boolean;
 };
 
 type ActivityImageRecord = {
@@ -118,32 +120,32 @@ function activityTime(createdAt?: string) {
 }
 
 export function normalizeActivities(data: unknown): Activity[] {
-    return getRecords(data)
-        .filter((record) => record.id !== undefined)
-        .map((record) => {
-            const className = record.class_name ?? "-";
-            const participants = (record.activity_students ?? [])
-                .map(studentName)
-                .filter(Boolean);
-            const firstImage = record.activity_images?.[0];
-            const imageUrl = firstImage?.image_url;
+  return getRecords(data)
+    .filter((record) => record.id !== undefined)
+    .map((record) => {
+      const className = record.class_name ?? "-";
+      const participants = (record.activity_students ?? record.students ?? [])
+        .map(studentName)
+        .filter(Boolean);
+      const firstImage = record.activity_images?.[0];
+      const imageUrl = firstImage?.image_url;
 
-            return {
-                slug: String(record.id),
-                title: record.name ?? "Untitled activity",
-                avatar: "📷",
-                imageUrl,
-                className,
-                classLabel: className,
-                time: activityTime(record.created_at),
-                date: record.activity_date ?? "",
-                status: activityStatus(record.status, record.is_publish),
-                caption: record.description ?? "",
-                photos: record.activity_images?.length ?? 0,
-                participants,
-                note: "",
-            } satisfies Activity;
-        });
+      return {
+        slug: String(record.id),
+        title: record.name ?? "Untitled activity",
+        avatar: "📷",
+        imageUrl,
+        className,
+        classLabel: className,
+        time: activityTime(record.created_at),
+        date: record.activity_date ?? "",
+      status: activityStatus(record.status, record.is_publish),
+      caption: record.description ?? "",
+      photos: record.activity_images?.length ?? record.images?.length ?? 0,
+        participants,
+        note: "",
+      } satisfies Activity;
+    });
 }
 
 export async function loadActivities() {

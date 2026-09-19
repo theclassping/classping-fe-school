@@ -1,6 +1,5 @@
 import Link from "next/link";
 import ActivitySummaryCard from "./components/ActivitySummaryCard";
-import PriorityCard from "./components/PriorityCard";
 import StudentSummaryCard from "./components/StudentSummaryCard";
 import WorktimeCard from "./components/WorktimeCard";
 
@@ -28,9 +27,8 @@ export default function DashboardPage() {
           <div><p className="eyebrow">{today}</p><h1>Selamat pagi, Bu Nia! <span aria-hidden="true">👋</span></h1><p>Berikut ringkasan aktivitas dan hal penting sekolah hari ini.</p></div>
         </section>
 
-        <section className="admin-focus-grid" aria-label="Aktivitas admin dan tugas penting">
+        <section className="admin-focus-grid" aria-label="Aktivitas admin">
           <WorktimeCard />
-          <PriorityCard />
         </section>
 
         <section className="dashboard-insight-grid" aria-label="Ringkasan siswa dan aktivitas">

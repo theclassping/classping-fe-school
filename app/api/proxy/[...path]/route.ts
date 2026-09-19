@@ -1,115 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { ACCESS_COOKIE, REFRESH_COOKIE, clearSessionCookies, refreshSession, SessionError, setSessionCookies, type Tokens } from "@/lib/session";
 
-const DJANGO_API_URL = process.env.DJANGO_API_URL;
+async function proxyRequest(request: NextRequest, path: string[]) {
+  const apiUrl = process.env.DJANGO_API_URL;
+  if (!apiUrl) return NextResponse.json({ detail: "DJANGO_API_URL is not configured" }, { status: 500 });
 
-async function proxyRequest(
-    request: NextRequest,
-    path: string[],
-) {
-    if (!DJANGO_API_URL) {
-        return NextResponse.json(
-            {
-                detail: "DJANGO_API_URL is not configured",
-            },
-            { status: 500 },
-        );
-    }
+  let accessToken = request.cookies.get(ACCESS_COOKIE)?.value;
+  const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
+  let renewed: Tokens | undefined;
 
-    const cookieStore = await cookies();
-
-    const accessToken = cookieStore.get("access_token")?.value;
-
-    console.log(
-        "API PROXY:",
-        request.method,
-        request.nextUrl.pathname,
-        "hasToken:",
-        !!accessToken,
-    );
-
+  try {
     if (!accessToken) {
-        return NextResponse.json(
-            {
-                detail: "Authentication credentials were not provided.",
-            },
-            { status: 401 },
-        );
+      if (!refreshToken) throw new SessionError(401, "Authentication credentials were not provided.");
+      renewed = await refreshSession(refreshToken);
+      accessToken = renewed.access;
     }
 
-    const djangoUrl =
-        `${DJANGO_API_URL}/api/${path.join("/")}/` +
-        request.nextUrl.search;
+    const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
+    const url = `${apiUrl}/api/${path.map(encodeURIComponent).join("/")}/${request.nextUrl.search}`;
+    const forward = (token: string) => {
+      const headers = new Headers({ Authorization: `Bearer ${token}` });
+      const contentType = request.headers.get("content-type");
+      if (contentType) headers.set("Content-Type", contentType);
+      return fetch(url, { method: request.method, headers, body, cache: "no-store", redirect: "manual" });
+    };
 
-    console.log("Forwarding to:", djangoUrl);
-
-    const headers = new Headers();
-
-    headers.set(
-        "Authorization",
-        `Bearer ${accessToken}`,
-    );
-
-    const contentType =
-        request.headers.get("content-type");
-
-    if (contentType) {
-        headers.set("Content-Type", contentType);
+    let upstream = await forward(accessToken);
+    // Retry only a rejected authentication request, and only once. Reuse the
+    // buffered body so POST/PATCH and multipart uploads survive renewal.
+    if (upstream.status === 401 && refreshToken && !renewed) {
+      renewed = await refreshSession(refreshToken);
+      upstream = await forward(renewed.access);
     }
+    if (upstream.status === 401) throw new SessionError(401, "Your session has expired. Please sign in again.");
 
-    const body =
-        request.method === "GET" ||
-            request.method === "HEAD"
-            ? undefined
-            : await request.arrayBuffer();
-
-    try {
-        const response = await fetch(djangoUrl, {
-            method: request.method,
-            headers,
-            body,
-            cache: "no-store",
-        });
-
-        console.log(
-            "Django response:",
-            response.status,
-            request.method,
-            request.nextUrl.pathname,
-        );
-
-        const responseBody =
-            await response.arrayBuffer();
-
-        const responseHeaders = new Headers();
-
-        const responseContentType =
-            response.headers.get("content-type");
-
-        if (responseContentType) {
-            responseHeaders.set(
-                "Content-Type",
-                responseContentType,
-            );
-        }
-
-        return new NextResponse(responseBody, {
-            status: response.status,
-            headers: responseHeaders,
-        });
-    } catch (error) {
-        console.error(
-            "API proxy error:",
-            error,
-        );
-
-        return NextResponse.json(
-            {
-                detail: "Unable to connect to Django API",
-            },
-            { status: 502 },
-        );
-    }
+    const headers = new Headers({ "Cache-Control": "no-store" });
+    const contentType = upstream.headers.get("content-type");
+    if (contentType) headers.set("Content-Type", contentType);
+    const response = new NextResponse(upstream.status === 204 ? null : await upstream.arrayBuffer(), { status: upstream.status, headers });
+    if (renewed) setSessionCookies(response, renewed);
+    return response;
+  } catch (error) {
+    const status = error instanceof SessionError ? error.status : 502;
+    const response = NextResponse.json({ detail: error instanceof SessionError ? error.message : "Unable to connect to Django API. Please try again." }, { status });
+    if (status === 401) clearSessionCookies(response);
+    else if (renewed) setSessionCookies(response, renewed);
+    return response;
+  }
 }
 
 export async function GET(

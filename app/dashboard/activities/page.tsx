@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, Pencil, Trash2, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import styles from "../components/TableActions.module.css";
 import { loadActivities } from "./activityApi";
@@ -139,17 +139,7 @@ export default function ActivitiesPage() {
                   <h3>{activity.title}</h3>
                   <p>{activity.caption}</p>
                   <div className="tag-summary">
-                    <span className="mini-avatars">
-                      {activity.participants
-                        .slice(0, 3)
-                        .map((name) =>
-                          name
-                            .split(" ")
-                            .map((part) => part[0])
-                            .join(""),
-                        )
-                        .join(" ")}
-                    </span>
+                    <span className="activity-tag-icon" aria-hidden="true"><UsersRound /></span>
                     <strong>
                       {activity.participants.length} siswa ditandai
                     </strong>
