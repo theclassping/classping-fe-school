@@ -53,7 +53,7 @@ export function normalizeActivityStudents(data: unknown): ActivityStudent[] {
 
 export async function loadActivityStudents(classId: string) {
   const response = await fetch(
-    `/api/proxy/class-students/?class_id=${encodeURIComponent(classId)}`,
+    `/api/proxy/class-students/?class_id=${encodeURIComponent(classId)}&is_current=true`,
     {
       credentials: "include",
       cache: "no-store",

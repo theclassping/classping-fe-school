@@ -73,10 +73,9 @@ export default function GenerateInvoiceForm({
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [studentsError, setStudentsError] = useState("");
   const [form, setForm] = useState({
+    invoiceDate: new Date().toISOString().slice(0, 10),
     dueDate: "",
-    tax: "0",
-    discount: "0",
-    note: "",
+    remark: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -150,29 +149,23 @@ export default function GenerateInvoiceForm({
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
 
-    if (selectedStudentIds.length === 0) {
-      setError("Select at least one student.");
-      return;
-    }
-
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch("/api/proxy/student-invoices/", {
+      const response = await fetch(
+        `/api/proxy/fee-types/${feeType.id}/generate-invoices/`,
+        {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fee_type_id: feeType.id,
-          class_id: Number(classId),
-          student_ids: selectedStudentIds.map(Number),
+          invoice_date: form.invoiceDate,
           due_date: form.dueDate,
-          tax: Number(form.tax),
-          discount: Number(form.discount),
-          note: form.note,
+          remark: form.remark,
         }),
-      });
+        },
+      );
 
       const data = await response.json().catch(() => null);
 
@@ -230,59 +223,15 @@ export default function GenerateInvoiceForm({
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <div className="form-field">
-              <label htmlFor="invoiceClass">Class</label>
-              <select
-                id="invoiceClass"
-                value={classId}
-                onChange={(event) => setClassId(event.target.value)}
-                required
-              >
-                <option value="">Select class</option>
-                {classes.map((schoolClass) => (
-                  <option key={schoolClass.id} value={schoolClass.id}>
-                    {schoolClass.class_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-field full">
-              <label htmlFor="invoiceStudentSearch">
-                Students ({selectedStudentIds.length} selected)
-              </label>
+              <label htmlFor="invoiceDate">Invoice date</label>
               <input
-                id="invoiceStudentSearch"
-                type="search"
-                placeholder="Search student by name"
-                value={studentSearch}
-                onChange={(event) => setStudentSearch(event.target.value)}
-                disabled={!classId || studentsLoading}
+                id="invoiceDate"
+                name="invoiceDate"
+                type="date"
+                value={form.invoiceDate}
+                onChange={handleChange}
+                required
               />
-              <div className="student-checkbox-list">
-                {studentsLoading ? (
-                  <p>Loading students...</p>
-                ) : visibleStudents.length > 0 ? (
-                  visibleStudents.map((student) => (
-                    <label key={student.id} className="student-checkbox-item">
-                      <input
-                        type="checkbox"
-                        checked={selectedStudentIds.includes(
-                          String(student.id),
-                        )}
-                        onChange={() => toggleStudent(String(student.id))}
-                      />
-                      <span>{student.name}</span>
-                    </label>
-                  ))
-                ) : (
-                  <p>
-                    {classId ? "No students found." : "Select a class first."}
-                  </p>
-                )}
-              </div>
-              {studentsError && (
-                <small className="form-error">{studentsError}</small>
-              )}
             </div>
 
             <div className="form-field">
@@ -297,38 +246,12 @@ export default function GenerateInvoiceForm({
               />
             </div>
 
-            <div className="form-field">
-              <label htmlFor="invoiceTax">Tax</label>
-              <input
-                id="invoiceTax"
-                name="tax"
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.tax}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="invoiceDiscount">Discount</label>
-              <input
-                id="invoiceDiscount"
-                name="discount"
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.discount}
-                onChange={handleChange}
-              />
-            </div>
-
             <div className="form-field full">
-              <label htmlFor="invoiceNote">Note</label>
+              <label htmlFor="invoiceRemark">Remark</label>
               <textarea
-                id="invoiceNote"
-                name="note"
-                value={form.note}
+                id="invoiceRemark"
+                name="remark"
+                value={form.remark}
                 onChange={handleChange}
                 rows={3}
               />
@@ -348,7 +271,7 @@ export default function GenerateInvoiceForm({
               type="submit"
               className="button-primary"
               disabled={
-                loading || studentsLoading || selectedStudentIds.length === 0
+                loading || studentsLoading
               }
             >
               {loading ? "Generating..." : "Generate Invoice"}

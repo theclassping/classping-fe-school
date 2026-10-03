@@ -7,6 +7,17 @@ type Location = {
     name: string;
     type: string;
     parent_id?: number | null;
+    level?: number;
+};
+
+type StudentLocation = {
+    id: number;
+    name: string;
+    code: string;
+    type: string;
+    parent_id: number | null;
+    level: number;
+    path: Location[];
 };
 
 type Student = {
@@ -20,11 +31,19 @@ type Student = {
     date_of_birth?: string;
     gender?: string;
     address?: string;
+    location_id?: number;
+    location?: StudentLocation;
     status?: string;
+    enroll_date?: string;
     guardian_name?: string;
     guardian_relation?: string;
     guardian_phone?: string;
     guardian_email?: string;
+};
+
+type SchoolClass = {
+    id: number;
+    name: string;
 };
 
 type StudentFormProps = {
@@ -65,6 +84,36 @@ export default function StudentForm({
     const [locations, setLocations] = useState<Record<string, Location[]>>({});
     const [locationIds, setLocationIds] = useState<Record<string, string>>({});
     const [locationsLoading, setLocationsLoading] = useState(false);
+    const [classes, setClasses] = useState<SchoolClass[]>([]);
+    const [classesLoading, setClassesLoading] = useState(false);
+
+    async function loadClasses() {
+        const response = await fetch("/api/proxy/classes/", {
+            credentials: "include",
+            cache: "no-store",
+        });
+
+        if (response.status === 401) {
+            window.location.href = "/login";
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error("Failed to load classes");
+        }
+
+        const data = await response.json();
+
+        const records = Array.isArray(data)
+            ? data
+            : Array.isArray(data.results)
+                ? data.results
+                : Array.isArray(data.data)
+                    ? data.data
+                    : [];
+
+        setClasses(records);
+    }
 
     async function loadLocations(type: string, parentId?: string) {
         const params = new URLSearchParams({ type });
@@ -95,12 +144,105 @@ export default function StudentForm({
     }
 
     useEffect(() => {
-        setLocationsLoading(true);
-        void loadLocations("COUNTRY").catch((loadError) => {
-            console.error(loadError);
-            setError("Failed to load locations.");
-        }).finally(() => setLocationsLoading(false));
+        async function initializeLocations() {
+            setLocationsLoading(true);
+
+            try {
+                // Always load countries first
+                await loadLocations("COUNTRY");
+
+                // Nothing else to initialize when adding a student
+                if (!student?.location?.path) {
+                    return;
+                }
+
+                const path = student.location.path;
+
+                const country = path.find(
+                    (location) => location.type === "COUNTRY"
+                );
+
+                const province = path.find(
+                    (location) => location.type === "PROVINCE"
+                );
+
+                const city = path.find(
+                    (location) => location.type === "CITY"
+                );
+
+                const district = path.find(
+                    (location) => location.type === "DISTRICT"
+                );
+
+                const village = path.find(
+                    (location) => location.type === "VILLAGE"
+                );
+
+                // Set selected values
+                setLocationIds({
+                    COUNTRY: country ? String(country.id) : "",
+                    PROVINCE: province ? String(province.id) : "",
+                    CITY: city ? String(city.id) : "",
+                    DISTRICT: district ? String(district.id) : "",
+                    VILLAGE: village ? String(village.id) : "",
+                });
+
+                setForm((current) => ({
+                    ...current,
+                    location_id: String(student.location_id ?? ""),
+                }));
+
+                // Load options for each level
+                if (country && province) {
+                    await loadLocations(
+                        "PROVINCE",
+                        String(country.id)
+                    );
+                }
+
+                if (province && city) {
+                    await loadLocations(
+                        "CITY",
+                        String(province.id)
+                    );
+                }
+
+                if (city && district) {
+                    await loadLocations(
+                        "DISTRICT",
+                        String(city.id)
+                    );
+                }
+
+                if (district && village) {
+                    await loadLocations(
+                        "VILLAGE",
+                        String(district.id)
+                    );
+                }
+            } catch (loadError) {
+                console.error(loadError);
+                setError("Failed to load locations.");
+            } finally {
+                setLocationsLoading(false);
+            }
+        }
+
+        void initializeLocations();
+    }, [student]);
+
+    useEffect(() => {
+        setClassesLoading(true);
+
+        void loadClasses()
+            .catch((loadError) => {
+                console.error(loadError);
+                setError("Failed to load classes.");
+            })
+            .finally(() => setClassesLoading(false));
     }, []);
+
+
 
     function handleLocationChange(type: string, value: string, childType?: string) {
         setLocationIds((current) => ({ ...current, [type]: value }));
@@ -150,7 +292,26 @@ export default function StudentForm({
             const [guardianFirstName, ...guardianLastNameParts] = form.guardian_name.trim().split(/\s+/);
             const guardianLastName = guardianLastNameParts.join(" ") || guardianFirstName;
             const body = student
-                ? { ...form }
+                ? {
+                    first_name: form.first_name,
+                    middle_name: form.middle_name,
+                    last_name: form.last_name,
+                    nickname: form.nickname,
+                    date_of_birth: form.date_of_birth,
+                    gender: form.gender.toLowerCase(),
+                    address: form.address,
+                    location_id: Number(form.location_id),
+                    status: form.status.toLowerCase(),
+                    enroll_date: form.enroll_date,
+
+                    // Keep the current class assignment
+                    class_students: [
+                        {
+                            class_id: Number(form.class_name),
+                            is_current: true,
+                        },
+                    ],
+                }
                 : {
                     first_name: form.first_name,
                     middle_name: form.middle_name,
@@ -163,6 +324,7 @@ export default function StudentForm({
                     location_id: Number(form.location_id),
                     status: form.status.toLowerCase(),
                     enroll_date: form.enroll_date,
+
                     student_guardians: [
                         {
                             relationship: form.guardian_relation.toLowerCase(),
@@ -177,6 +339,7 @@ export default function StudentForm({
                             },
                         },
                     ],
+
                     class_students: [
                         {
                             class_id: Number(form.class_name),
@@ -187,8 +350,8 @@ export default function StudentForm({
 
             console.log(
                 isEdit
-                    ? "UPDATE USER SUBMIT:"
-                    : "CREATE USER SUBMIT:",
+                    ? "UPDATE STUDENT SUBMIT:"
+                    : "CREATE STUDENT SUBMIT:",
                 body
             );
 
@@ -205,8 +368,8 @@ export default function StudentForm({
 
             console.log(
                 isEdit
-                    ? "UPDATE USER RESPONSE:"
-                    : "CREATE USER RESPONSE:",
+                    ? "UPDATE STUDENT RESPONSE:"
+                    : "CREATE STUDENT RESPONSE:",
                 {
                     status: response.status,
                     data,
@@ -318,12 +481,26 @@ export default function StudentForm({
 
                         <div className="form-field">
                             <label htmlFor="class_name">Class</label>
-                            <select id="class_name" name="class_name" value={form.class_name} onChange={handleChange} required>
-                                <option value="">Select class</option>
-                                <option value="1">A1</option>
-                                <option value="2">A2</option>
-                                <option value="3">B1</option>
-                                <option value="4">B2</option>
+                            <select
+                                id="class_name"
+                                name="class_name"
+                                value={form.class_name}
+                                onChange={handleChange}
+                                disabled={classesLoading}
+                                required
+                            >
+                                <option value="">
+                                    {classesLoading ? "Loading classes..." : "Select class"}
+                                </option>
+
+                                {classes.map((schoolClass) => (
+                                    <option
+                                        key={schoolClass.id}
+                                        value={schoolClass.id}
+                                    >
+                                        {schoolClass.name}
+                                    </option>
+                                ))}
                             </select>
                         </div>
 
