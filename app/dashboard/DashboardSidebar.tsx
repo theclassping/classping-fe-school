@@ -54,11 +54,11 @@ const menuItems = [
     href: "/dashboard/activities",
     icon: ClipboardList,
   },
-  {
-    label: "Penilaian",
-    href: "/dashboard/assessment",
-    icon: Award,
-  },
+  // {
+  //   label: "Penilaian",
+  //   href: "/dashboard/assessment",
+  //   icon: Award,
+  // },
   {
     label: "Pembayaran",
     href: "/dashboard/payments",

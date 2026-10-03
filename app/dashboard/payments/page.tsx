@@ -5,14 +5,10 @@ import {
   Eye,
   Filter,
   Pencil,
-  Plus,
   Search,
-  WalletCards,
-  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { addSchoolNotification } from "../components/school-store";
 import styles from "../components/TableActions.module.css";
 export type Payment = {
   id?: number;
@@ -23,6 +19,7 @@ export type Payment = {
   invoice_date: string;
   total_amount: string;
   status: string;
+  invoice_status: string;
 };
 
 type StudentInvoice = {
@@ -52,6 +49,7 @@ function normalizePayment(invoice: StudentInvoice): Payment {
     invoice_date: invoice.invoice_date ?? "-",
     total_amount: invoice.total_amount ?? invoice.payment?.amount ?? "-",
     status: invoice.payment?.status ?? invoice.status ?? "-",
+    invoice_status: invoice.status ?? "-",
   };
 }
 
@@ -69,7 +67,6 @@ export default function PaymentsPage() {
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState("ALL");
   const [reminder, setReminder] = useState<Payment | null>(null);
-  const [recording, setRecording] = useState(false);
   const [toast, setToast] = useState("");
 
   async function loadPayments() {
@@ -139,33 +136,6 @@ export default function PaymentsPage() {
     window.setTimeout(() => setToast(""), 3000);
   }
 
-  function recordPayment(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const payment: Payment = {
-      student_name: String(data.get("studentName")),
-      class_name: String(data.get("className")),
-      fee_type_name: String(data.get("month")),
-      invoice_date: new Intl.DateTimeFormat("id-ID", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }).format(new Date()),
-      total_amount: `Rp ${Number(data.get("amount")).toLocaleString("id-ID")}`,
-      status: "paid",
-    };
-    setPayments((current) => [payment, ...current]);
-    setRecording(false);
-    showToast("Pembayaran berhasil dicatat.");
-    addSchoolNotification({
-      id: `payment-${Date.now()}`,
-      type: "payment",
-      title: "Pembayaran SPP diterima",
-      message: `Pembayaran ${payment.student_name} untuk ${payment.fee_type_name} telah tercatat lunas.`,
-      href: "/dashboard/payments",
-    });
-  }
-
   return (
     <main id="main">
       <section className="page-heading">
@@ -174,13 +144,9 @@ export default function PaymentsPage() {
           <h1>Pembayaran</h1>
           <p>Kelola transaksi SPP dan pengingat pembayaran siswa.</p>
         </div>
-        <button
-          className="primary-button"
-          type="button"
-          onClick={() => setRecording(true)}
-        >
+        {/* <Link className="primary-button" href="/dashboard/payments/add">
           <Plus aria-hidden="true" /> Catat Pembayaran
-        </button>
+        </Link> */}
       </section>
       <section className="panel transactions" id="pembayaran">
         <div className="panel-heading transaction-heading">
@@ -270,7 +236,7 @@ export default function PaymentsPage() {
                     <td>
                       <span
                         className={
-                          payment.status === "paid"
+                          payment.status === "completed"
                             ? "status-pill"
                             : "status-pending"
                         }
@@ -292,14 +258,30 @@ export default function PaymentsPage() {
                         >
                           <Eye aria-hidden="true" />
                         </Link>
-                        <Link
-                          className={styles.actionButton}
-                          href={`/dashboard/payments/edit?payment=${paymentSlug(payment)}`}
-                          aria-label={`Edit pembayaran ${payment.student_name}`}
-                          title="Edit pembayaran"
-                        >
-                          <Pencil aria-hidden="true" />
-                        </Link>
+                        {payment.invoice_status.trim().toLowerCase() === "paid" || payment.status === "completed" ? (
+                          <button
+                            className={styles.actionButton}
+                            type="button"
+                            disabled
+                            aria-label={`Pembayaran ${payment.student_name} sudah lunas dan tidak dapat diedit`}
+                            title="Pembayaran yang sudah lunas tidak dapat diedit"
+                          >
+                            <Pencil aria-hidden="true" />
+                          </button>
+                        ) : (
+                          <Link
+                            className={styles.actionButton}
+                            href={
+                              payment.payment_id
+                                ? `/dashboard/payments/edit?payment=${payment.payment_id}`
+                                : `/dashboard/payments/edit?invoice=${payment.id ?? ""}`
+                            }
+                            aria-label={`Edit pembayaran ${payment.student_name}`}
+                            title="Edit pembayaran"
+                          >
+                            <Pencil aria-hidden="true" />
+                          </Link>
+                        )}
                         <button
                           className={styles.actionButton}
                           type="button"
@@ -380,95 +362,6 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      {recording && (
-        <div className="modal-overlay" role="presentation">
-          <section
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="recordPaymentTitle"
-          >
-            <form onSubmit={recordPayment}>
-              <div className="dialog-heading">
-                <div>
-                  <span className="dialog-icon">
-                    <WalletCards aria-hidden="true" />
-                  </span>
-                  <div>
-                    <h2 id="recordPaymentTitle">Catat Pembayaran</h2>
-                    <p>Tambahkan pembayaran SPP siswa.</p>
-                  </div>
-                </div>
-                <button
-                  className="close-button"
-                  type="button"
-                  aria-label="Tutup"
-                  onClick={() => setRecording(false)}
-                >
-                  <X aria-hidden="true" />
-                </button>
-              </div>
-              <div className="prototype-dialog-fields">
-                <label className="full">
-                  Nama siswa
-                  <input
-                    name="studentName"
-                    required
-                    placeholder="Contoh: Alya Putri Ramadhani"
-                  />
-                </label>
-                <label>
-                  Kelas
-                  <select name="className">
-                    <option>A1</option>
-                    <option>A2</option>
-                    <option>B1</option>
-                    <option>B2</option>
-                  </select>
-                </label>
-                <label>
-                  Bulan SPP
-                  <select name="month">
-                    <option>September 2026</option>
-                    <option>Agustus 2026</option>
-                    <option>Juli 2026</option>
-                  </select>
-                </label>
-                <label>
-                  Jumlah
-                  <input
-                    name="amount"
-                    type="number"
-                    min="1"
-                    defaultValue="250000"
-                    required
-                  />
-                </label>
-                <label>
-                  Metode
-                  <select name="method">
-                    <option>Transfer Bank</option>
-                    <option>QRIS</option>
-                    <option>Tunai</option>
-                  </select>
-                </label>
-              </div>
-              <div className="dialog-actions">
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => setRecording(false)}
-                >
-                  Batal
-                </button>
-                <button className="primary-button" type="submit">
-                  Simpan Pembayaran
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
-      )}
     </main>
   );
 }

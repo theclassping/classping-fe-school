@@ -6,9 +6,32 @@ import { useEffect, useState } from "react";
 type PaymentProof = {
   id: number;
   payment_id: number;
-  image_data: string;
+  image_data: unknown;
+  image_url?: string;
   uploaded_at: string;
 };
+
+function proofImageData(proof: PaymentProof): string {
+  if (typeof proof.image_url === "string") return proof.image_url;
+  const value = proof.image_data;
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") {
+    const data = value as {
+      image_data?: unknown;
+      image_url?: unknown;
+      url?: unknown;
+      file_key?: unknown;
+      object_key?: unknown;
+    };
+    if (typeof data.image_data === "string") return data.image_data;
+    if (typeof data.image_url === "string") return data.image_url;
+    if (typeof data.url === "string") return data.url;
+    if (typeof data.file_key === "string") return data.file_key;
+    if (typeof data.object_key === "string") return data.object_key;
+    return JSON.stringify(value);
+  }
+  return value == null ? "-" : String(value);
+}
 
 type PaymentDetail = {
   id: number;
@@ -186,18 +209,18 @@ export default function PaymentViewPage() {
                 ) : (
                   payment.proofs.map((proof) => (
                     <div className="payment-proof" key={proof.id}>
-                      {proof.image_data.startsWith("http") && (
+                      {proofImageData(proof).startsWith("http") && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={proof.image_data}
+                          src={proofImageData(proof)}
                           alt={`Payment proof ${proof.id}`}
                         />
                       )}
                       <div>
                         <strong>Proof #{proof.id}</strong>
                         <p>Uploaded {formatDate(proof.uploaded_at)}</p>
-                        {!proof.image_data.startsWith("http") && (
-                          <p>{proof.image_data}</p>
+                        {!proofImageData(proof).startsWith("http") && (
+                          <p>{proofImageData(proof)}</p>
                         )}
                       </div>
                     </div>
