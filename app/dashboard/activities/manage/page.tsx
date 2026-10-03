@@ -75,7 +75,9 @@ function PhotoManager({ activityId }: { activityId: string }) {
 
   const selected = photos.find((photo) => photo.id === selectedId);
   const dirty = photos.some(
-    (photo) => photo.file || photo.studentId !== photo.savedStudentId,
+    (photo) =>
+      photo.file ||
+      photo.studentId !== photo.savedStudentId,
   );
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
@@ -86,7 +88,11 @@ function PhotoManager({ activityId }: { activityId: string }) {
     setSaved(false);
     try {
       for (const [index, photo] of photos.entries()) {
-        if (!photo.file && photo.studentId === photo.savedStudentId) continue;
+        if (
+          !photo.file &&
+          photo.studentId === photo.savedStudentId
+        )
+          continue;
         const updated = await saveActivityPhoto(activity.id, photo, index);
         setPhotos((current) =>
           current.map((item) => (item.id === photo.id ? updated : item)),
@@ -259,45 +265,42 @@ function PhotoManager({ activityId }: { activityId: string }) {
                 </figcaption>
               </figure>
 
-              <div className="form-field">
-                <label htmlFor="photo-student">
-                  Siswa dalam foto yang dipilih
-                </label>
-                <select
-                  id="photo-student"
-                  value={selected.studentId}
-                  disabled={saving}
-                  onChange={(event) => {
-                    const studentId = event.target.value;
-                    setPhotos((current) =>
-                      current.map((photo) =>
-                        photo.id === selectedId
-                          ? { ...photo, studentId }
-                          : photo,
-                      ),
-                    );
-                    setSaved(false);
-                  }}
-                >
-                  <option value="">Belum ditag</option>
+              <fieldset className="form-field student-tags">
+                <legend>Siswa dalam foto yang dipilih</legend>
+                <div className="tag-options">
                   {selected.studentId &&
-                    !students.some(
-                      (student) => student.id === selected.studentId,
-                    ) && (
-                      <option value={selected.studentId} disabled>
-                        Siswa tidak lagi tersedia di kelas ini
-                      </option>
+                    !students.some((student) => student.id === selected.studentId) && (
+                      <label>
+                        <input type="checkbox" checked disabled readOnly />
+                        <span>Siswa tidak lagi tersedia di kelas ini</span>
+                      </label>
                     )}
                   {students.map((student) => (
-                    <option key={student.id} value={student.id}>
-                      {student.name}
-                    </option>
+                    <label key={student.id}>
+                      <input
+                        type="checkbox"
+                        checked={selected.studentId === student.id}
+                        disabled={saving}
+                        onChange={(event) => {
+                          const studentId = event.target.checked ? student.id : "";
+                          setPhotos((current) =>
+                            current.map((photo) =>
+                              photo.id === selectedId
+                                ? { ...photo, studentId }
+                                : photo,
+                            ),
+                          );
+                          setSaved(false);
+                        }}
+                      />
+                      <span>{student.name}</span>
+                    </label>
                   ))}
-                </select>
+                </div>
                 {students.length === 0 && (
                   <p>Belum ada siswa yang tersedia di kelas ini.</p>
                 )}
-              </div>
+              </fieldset>
             </>
           )}
 

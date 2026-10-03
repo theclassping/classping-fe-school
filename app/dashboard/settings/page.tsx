@@ -103,25 +103,25 @@ const sections: SettingsSection[] = [
     headings: ["Name", "Description", "Amount", "Recurring", "Status"],
     rows: [],
   },
-  {
-    id: "report-layout",
-    label: "Report Layout",
-    title: "Report Layout",
-    addLabel: "Add Layout",
-    fields: [
-      { key: "layoutName", label: "Layout name" },
-      {
-        key: "theme",
-        label: "Theme",
-        type: "select",
-        options: ["Standard", "Minimal", "Modern"],
-      },
-      { key: "section", label: "Report section" },
-      { key: "passingScore", label: "Minimum score", type: "number" },
-    ],
-    headings: ["Layout", "Theme", "Section", "Minimum score"],
-    rows: [["Semester Report", "Standard", "Attendance", "75"]],
-  },
+//   {
+//     id: "report-layout",
+//     label: "Report Layout",
+//     title: "Report Layout",
+//     addLabel: "Add Layout",
+//     fields: [
+//       { key: "layoutName", label: "Layout name" },
+//       {
+//         key: "theme",
+//         label: "Theme",
+//         type: "select",
+//         options: ["Standard", "Minimal", "Modern"],
+//       },
+//       { key: "section", label: "Report section" },
+//       { key: "passingScore", label: "Minimum score", type: "number" },
+//     ],
+//     headings: ["Layout", "Theme", "Section", "Minimum score"],
+//     rows: [["Semester Report", "Standard", "Attendance", "75"]],
+//   },
 ];
 
 export default function SettingsPage() {

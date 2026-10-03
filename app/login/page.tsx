@@ -35,7 +35,7 @@ try {
     return;
   }
 
-  router.push("/dashboard");
+  router.push("/dashboard/profile");
   router.refresh();
 } catch {
   setError("Unable to connect to server");

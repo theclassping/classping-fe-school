@@ -2501,9 +2501,11 @@ dialog select:focus {
 }
 
 .tag-options label {
+  display: flex;
   margin: 0;
   flex-direction: row;
   align-items: center;
+  gap: 7px;
   font-weight: 500;
 }
 
@@ -2511,6 +2513,14 @@ dialog select:focus {
   width: 16px;
   height: 16px;
   accent-color: var(--green);
+}
+
+.form-field.student-tags .tag-options input[type="checkbox"] {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
 }
 
 body.parent-view .admin-nav,

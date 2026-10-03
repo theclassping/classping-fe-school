@@ -19,11 +19,11 @@ type DashboardSidebarProps = {
 };
 
 const menuItems = [
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
+  // {
+  //   label: "Dashboard",
+  //   href: "/dashboard",
+  //   icon: LayoutDashboard,
+  // },
   // {
   //   label: "Users",
   //   href: "/dashboard/users",
@@ -71,7 +71,7 @@ export default function DashboardSidebar({ open = false, onNavigate }: Dashboard
 
   return (
     <aside className={`sidebar ${open ? "open" : ""}`}>
-      <Link href="/dashboard" className="brand" aria-label="ClassPing home" onClick={onNavigate}>
+      <Link href="/dashboard/profile" className="brand" aria-label="ClassPing home" onClick={onNavigate}>
         <span className="brand-mark" aria-hidden="true"><span /><span /><span /></span>
         <span>class<span>ping</span></span>
       </Link>
@@ -84,7 +84,7 @@ export default function DashboardSidebar({ open = false, onNavigate }: Dashboard
 
           const active =
             pathname === item.href ||
-            (item.href !== "/dashboard" &&
+            (item.href !== "/dashboard/profile" &&
               pathname.startsWith(`${item.href}/`));
 
           return (
