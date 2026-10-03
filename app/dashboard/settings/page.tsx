@@ -294,8 +294,11 @@ export default function SettingsPage() {
     }
   }
 
-  async function deactivateFeeType() {
+  async function updateFeeTypeStatus() {
     if (!deactivatingFeeType) return;
+
+    const shouldActivate = !deactivatingFeeType.is_active;
+    const action = shouldActivate ? "activate" : "deactivate";
 
     try {
       setFeeTypeActionLoading(true);
@@ -307,7 +310,7 @@ export default function SettingsPage() {
           method: "PATCH",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ is_active: false }),
+          body: JSON.stringify({ is_active: shouldActivate }),
         },
       );
 
@@ -317,14 +320,14 @@ export default function SettingsPage() {
       }
 
       if (!response.ok) {
-        throw new Error("Failed to deactivate fee type");
+        throw new Error(`Failed to ${action} fee type`);
       }
 
       setDeactivatingFeeType(null);
       await loadFeeTypes();
     } catch (error) {
       console.error(error);
-      setFeeTypeActionError("Failed to deactivate fee type.");
+      setFeeTypeActionError(`Failed to ${action} fee type.`);
     } finally {
       setFeeTypeActionLoading(false);
     }
@@ -615,10 +618,10 @@ export default function SettingsPage() {
                                 }}
                               ><Pencil aria-hidden="true" /></button>
                               <button
-                                className={`${styles.actionButton} ${styles.dangerButton}`}
+                                className={`${styles.actionButton} ${feeType.is_active ? styles.dangerButton : ""}`}
                                 type="button"
-                                aria-label={`Deactivate ${feeType.name}`}
-                                title="Deactivate"
+                                aria-label={`${feeType.is_active ? "Deactivate" : "Activate"} ${feeType.name}`}
+                                title={feeType.is_active ? "Deactivate" : "Activate"}
                                 onClick={() => {
                                   setFeeTypeActionError("");
                                   setDeactivatingFeeType(feeType);
@@ -628,7 +631,8 @@ export default function SettingsPage() {
                                 className={styles.actionButton}
                                 type="button"
                                 aria-label={`Generate invoice for ${feeType.name}`}
-                                title="Generate Invoice"
+                                title={feeType.is_recurring ? "Unavailable for recurring fee types" : "Generate Invoice"}
+                                disabled={feeType.is_recurring}
                                 onClick={() => {
                                   setFeeTypeActionError("");
                                   setFeeTypeActionMessage("");
@@ -750,8 +754,11 @@ export default function SettingsPage() {
           <div className="modal">
             <div className="modal-header">
               <div>
-                <h2>Deactivate fee type?</h2>
-                <p>This will deactivate {deactivatingFeeType.name}.</p>
+                <h2>{deactivatingFeeType.is_active ? "Deactivate" : "Activate"} fee type?</h2>
+                <p>
+                  This will {deactivatingFeeType.is_active ? "deactivate" : "activate"}{" "}
+                  {deactivatingFeeType.name}.
+                </p>
               </div>
               <button
                 type="button"
@@ -776,11 +783,17 @@ export default function SettingsPage() {
               </button>
               <button
                 type="button"
-                className="button-primary danger-button"
-                onClick={deactivateFeeType}
+                className={`button-primary ${deactivatingFeeType.is_active ? "danger-button" : ""}`}
+                onClick={updateFeeTypeStatus}
                 disabled={feeTypeActionLoading}
               >
-                {feeTypeActionLoading ? "Deactivating..." : "Deactivate"}
+                {feeTypeActionLoading
+                  ? deactivatingFeeType.is_active
+                    ? "Deactivating..."
+                    : "Activating..."
+                  : deactivatingFeeType.is_active
+                    ? "Deactivate"
+                    : "Activate"}
               </button>
             </div>
           </div>
