@@ -117,8 +117,8 @@ export default function UserForm({
 
                 throw new Error(
                     isEdit
-                        ? "Failed to update user"
-                        : "Failed to create user"
+                        ? "Gagal memperbarui pengguna"
+                        : "Gagal membuat pengguna"
                 );
             }
 
@@ -130,8 +130,8 @@ export default function UserForm({
                 err instanceof Error
                     ? err.message
                     : isEdit
-                        ? "Failed to update user"
-                        : "Failed to create user"
+                        ? "Gagal memperbarui pengguna"
+                        : "Gagal membuat pengguna"
             );
         } finally {
             setLoading(false);
@@ -144,13 +144,13 @@ export default function UserForm({
                 <div className="modal-header">
                     <div>
                         <h2>
-                            {isEdit ? "Edit User" : "Create User"}
+                            {isEdit ? "Edit Pengguna" : "Tambah Pengguna"}
                         </h2>
 
                         <p>
                             {isEdit
-                                ? "Update user information."
-                                : "Add a new ClassPing user."}
+                                ? "Perbarui informasi pengguna."
+                                : "Tambahkan pengguna ClassPing baru."}
                         </p>
                     </div>
 
@@ -172,8 +172,8 @@ export default function UserForm({
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
                         <div className="form-field">
-                            <label htmlFor="first_name">
-                                First name
+                                <label htmlFor="first_name">
+                                    Nama depan
                             </label>
 
                             <input
@@ -186,8 +186,8 @@ export default function UserForm({
                         </div>
 
                         <div className="form-field">
-                            <label htmlFor="last_name">
-                                Last name
+                                <label htmlFor="last_name">
+                                    Nama belakang
                             </label>
 
                             <input
@@ -200,8 +200,8 @@ export default function UserForm({
                         </div>
 
                         <div className="form-field full">
-                            <label htmlFor="email">
-                                Email
+                                <label htmlFor="email">
+                                    Email
                             </label>
 
                             <input
@@ -216,8 +216,8 @@ export default function UserForm({
                         </div>
 
                         <div className="form-field">
-                            <label htmlFor="role">
-                                Role
+                                <label htmlFor="role">
+                                    Peran
                             </label>
 
                             <select
@@ -227,17 +227,17 @@ export default function UserForm({
                                 onChange={handleChange}
                             >
                                 <option value="ADMIN">Admin</option>
-                                <option value="STAFF">Staff</option>
-                                <option value="TEACHER">Teacher</option>
-                                <option value="STUDENT">Student</option>
-                                <option value="PARENT">Parent</option>
+                                <option value="STAFF">Staf</option>
+                                <option value="TEACHER">Guru</option>
+                                <option value="STUDENT">Siswa</option>
+                                <option value="PARENT">Wali</option>
                             </select>
                         </div>
 
                         {!isEdit && (
                             <div className="form-field">
                                 <label htmlFor="password">
-                                    Password
+                                    Kata sandi
                                 </label>
 
                                 <input
@@ -260,7 +260,7 @@ export default function UserForm({
                             onClick={onCancel}
                             disabled={loading}
                         >
-                            Cancel
+                            Batal
                         </button>
 
                         <button
@@ -270,11 +270,11 @@ export default function UserForm({
                         >
                             {loading
                                 ? isEdit
-                                    ? "Saving..."
-                                    : "Creating..."
+                                    ? "Menyimpan..."
+                                    : "Membuat..."
                                 : isEdit
-                                    ? "Save Changes"
-                                    : "Create User"}
+                                    ? "Simpan Perubahan"
+                                    : "Simpan Pengguna"}
                         </button>
                     </div>
                 </form>

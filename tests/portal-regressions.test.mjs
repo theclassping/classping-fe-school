@@ -143,27 +143,39 @@ test('activity normalization reads actual API photo, student, and publication fi
   assert.deepEqual(normalizeActivityStudents([{ id: 901, student_id: 31, student_name: 'Contoh' }]), [{ id: '31', name: 'Contoh' }]);
 });
 
-test('photo tags PATCH the selected image with the student ID, including clearing a tag', async () => {
+test('photo tags PATCH the selected image with multiple student IDs', async () => {
   const { saveActivityPhoto } = load('app/dashboard/activities/activityPhotos.ts');
   let captured;
   global.fetch = async (url, init) => {
     captured = { url, ...init };
     return json({ id: 8, image_url: '/photo.jpg', student_id: JSON.parse(init.body).student_id });
   };
-  const photo = { id: '8', url: '/photo.jpg', caption: '', studentId: '31', savedStudentId: '' };
+  const photo = { id: '8', url: '/photo.jpg', caption: '', studentIds: ['31', '32'], savedStudentIds: [], studentId: '31', savedStudentId: '' };
   const saved = await saveActivityPhoto(4, photo, 0);
   assert.equal(captured.url, '/api/proxy/activity-images/8/');
   assert.equal(captured.method, 'PATCH');
-  assert.deepEqual(JSON.parse(captured.body), { student_id: 31 });
-  assert.equal(saved.savedStudentId, '31');
-  await saveActivityPhoto(4, { ...photo, studentId: '' }, 0);
-  assert.deepEqual(JSON.parse(captured.body), { student_id: null });
+  assert.deepEqual(JSON.parse(captured.body), { student_ids: [31, 32], student_id: 31 });
+  assert.deepEqual(saved.studentIds, ['31', '32']);
+  await saveActivityPhoto(4, { ...photo, studentIds: [] }, 0);
+  assert.deepEqual(JSON.parse(captured.body), { student_ids: [], student_id: null });
 });
 
 test('a failed photo save rejects rather than reporting success', async () => {
   const { saveActivityPhoto } = load('app/dashboard/activities/activityPhotos.ts');
   global.fetch = async () => json({ detail: 'Upload unavailable' }, 503);
-  await assert.rejects(saveActivityPhoto(4, { id: '8', studentId: '31', savedStudentId: '' }, 0), /Upload unavailable/);
+  await assert.rejects(saveActivityPhoto(4, { id: '8', studentIds: ['31'], savedStudentIds: [], studentId: '31', savedStudentId: '' }, 0), /Upload unavailable/);
+});
+
+test('saved activity photos can be deleted through the activity image endpoint', async () => {
+  const { deleteActivityPhoto } = load('app/dashboard/activities/activityPhotos.ts');
+  let captured;
+  global.fetch = async (url, init) => {
+    captured = { url, ...init };
+    return new Response(null, { status: 204 });
+  };
+  await deleteActivityPhoto('8');
+  assert.equal(captured.url, '/api/proxy/activity-images/8/');
+  assert.equal(captured.method, 'DELETE');
 });
 
 test('new photos upload before creating the image record with its selected student', async () => {
@@ -176,11 +188,11 @@ test('new photos upload before creating the image record with its selected stude
     return json({ id: 99, student_id: 32, image_url: '/saved-photo.png' });
   };
   const file = new File(['fixture-image'], 'photo.png', { type: 'image/png' });
-  const saved = await saveActivityPhoto(42, { id: 'temporary', url: 'blob:preview', caption: '', studentId: '32', savedStudentId: '', file }, 2);
+  const saved = await saveActivityPhoto(42, { id: 'temporary', url: 'blob:preview', caption: '', studentIds: ['32'], savedStudentIds: [], studentId: '32', savedStudentId: '', file }, 2);
   assert.equal(calls[1].method, 'PUT');
   assert.equal(calls[1].body, file);
   assert.equal(calls[2].url, '/api/proxy/activity-images/');
-  assert.deepEqual(JSON.parse(calls[2].body), { student_id: 32, activity_id: 42, image_data: 'fixture/photo.png', position: 2 });
+  assert.deepEqual(JSON.parse(calls[2].body), { student_ids: [32], student_id: 32, activity_id: 42, image_data: 'fixture/photo.png', position: 2 });
   assert.equal(saved.id, '99');
   assert.equal(saved.file, undefined);
 });

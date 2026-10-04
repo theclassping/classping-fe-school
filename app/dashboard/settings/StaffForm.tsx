@@ -127,8 +127,8 @@ export default function StaffForm({
 
                 throw new Error(
                     isEdit
-                        ? "Failed to update staff"
-                        : "Failed to create staff"
+                        ? "Gagal memperbarui data staf"
+                        : "Gagal membuat data staf"
                 );
             }
 
@@ -140,8 +140,8 @@ export default function StaffForm({
                 err instanceof Error
                     ? err.message
                     : isEdit
-                        ? "Failed to update staff"
-                        : "Failed to create staff"
+                        ? "Gagal memperbarui data staf"
+                        : "Gagal membuat data staf"
             );
         } finally {
             setLoading(false);
@@ -154,13 +154,13 @@ export default function StaffForm({
                 <div className="modal-header">
                     <div>
                         <h2>
-                            {isEdit ? "Edit Staff" : "Create Staff"}
+                            {isEdit ? "Edit Staf" : "Tambah Staf"}
                         </h2>
 
                         <p>
                             {isEdit
-                                ? "Update staff information."
-                                : "Add a new ClassPing staff."}
+                                ? "Perbarui informasi staf."
+                                : "Tambahkan staf ClassPing baru."}
                         </p>
                     </div>
 
@@ -183,7 +183,7 @@ export default function StaffForm({
                     <div className="form-grid">
                         <div className="form-field">
                             <label htmlFor="first_name">
-                                First name
+                                Nama depan
                             </label>
 
                             <input
@@ -197,7 +197,7 @@ export default function StaffForm({
 
                         <div className="form-field">
                             <label htmlFor="last_name">
-                                Last name
+                                Nama belakang
                             </label>
 
                             <input
@@ -227,7 +227,7 @@ export default function StaffForm({
 
                         <div className="form-field">
                             <label htmlFor="staff_type">
-                                Staff Type
+                                Jenis staf
                             </label>
 
                             <select
@@ -236,15 +236,15 @@ export default function StaffForm({
                                 value={form.staff_type}
                                 onChange={handleChange}
                             >
-                                <option value="principal">Principal</option>
-                                <option value="teacher">Teacher</option>
-                                <option value="officer">Staff</option>
+                                <option value="principal">Kepala sekolah</option>
+                                <option value="teacher">Guru</option>
+                                <option value="officer">Staf</option>
                             </select>
                         </div>
 
                         <div className="form-field">
                             <label htmlFor="phone">
-                                Phone
+                                Nomor telepon
                             </label>
 
                             <input
@@ -257,7 +257,7 @@ export default function StaffForm({
 
                         <div className="form-field">
                             <label htmlFor="hire_date">
-                                Hire date
+                                Tanggal masuk
                             </label>
 
                             <input
@@ -271,7 +271,7 @@ export default function StaffForm({
 
                         <div className="form-field full">
                             <label htmlFor="qualification">
-                                Qualification
+                                Kualifikasi
                             </label>
 
                             <input
@@ -290,7 +290,7 @@ export default function StaffForm({
                             onClick={onCancel}
                             disabled={loading}
                         >
-                            Cancel
+                            Batal
                         </button>
 
                         <button
@@ -300,11 +300,11 @@ export default function StaffForm({
                         >
                             {loading
                                 ? isEdit
-                                    ? "Saving..."
-                                    : "Creating..."
+                                    ? "Menyimpan..."
+                                    : "Membuat..."
                                 : isEdit
-                                    ? "Save Changes"
-                                    : "Create User"}
+                                    ? "Simpan Perubahan"
+                                    : "Simpan Staf"}
                         </button>
                     </div>
                 </form>

@@ -113,8 +113,8 @@ export default function ClassForm({
 
                 throw new Error(
                     isEdit
-                        ? "Failed to update class"
-                        : "Failed to create class"
+                        ? "Gagal memperbarui kelas"
+                        : "Gagal membuat kelas"
                 );
             }
 
@@ -126,8 +126,8 @@ export default function ClassForm({
                 err instanceof Error
                     ? err.message
                     : isEdit
-                        ? "Failed to update class"
-                        : "Failed to create class"
+                        ? "Gagal memperbarui kelas"
+                        : "Gagal membuat kelas"
             );
         } finally {
             setLoading(false);
@@ -140,13 +140,13 @@ export default function ClassForm({
                 <div className="modal-header">
                     <div>
                         <h2>
-                            {isEdit ? "Edit Class" : "Create Class"}
+                            {isEdit ? "Edit Kelas" : "Tambah Kelas"}
                         </h2>
 
                         <p>
                             {isEdit
-                                ? "Update class information."
-                                : "Add a new ClassPing class."}
+                                ? "Perbarui informasi kelas."
+                                : "Tambahkan kelas ClassPing baru."}
                         </p>
                     </div>
 
@@ -169,7 +169,7 @@ export default function ClassForm({
                     <div className="form-grid">
                         <div className="form-field">
                             <label htmlFor="name">
-                                Class name
+                                Nama kelas
                             </label>
 
                             <input
@@ -183,7 +183,7 @@ export default function ClassForm({
 
                         <div className="form-field">
                             <label htmlFor="academic_year_name">
-                                Academic year
+                                Tahun ajaran
                             </label>
 
                             <input
@@ -197,7 +197,7 @@ export default function ClassForm({
 
                         <div className="form-field full">
                             <label htmlFor="teacher_name">
-                                Homeroom Teacher
+                                Wali kelas
                             </label>
 
                             <input
@@ -217,7 +217,7 @@ export default function ClassForm({
                             onClick={onCancel}
                             disabled={loading}
                         >
-                            Cancel
+                            Batal
                         </button>
 
                         <button
@@ -227,11 +227,11 @@ export default function ClassForm({
                         >
                             {loading
                                 ? isEdit
-                                    ? "Saving..."
-                                    : "Creating..."
+                                    ? "Menyimpan..."
+                                    : "Membuat..."
                                 : isEdit
-                                    ? "Save Changes"
-                                    : "Create User"}
+                                    ? "Simpan Perubahan"
+                                    : "Simpan Kelas"}
                         </button>
                     </div>
                 </form>

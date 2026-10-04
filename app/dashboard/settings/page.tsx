@@ -61,46 +61,46 @@ type SettingsSection = {
 const sections: SettingsSection[] = [
   {
     id: "user",
-    label: "User",
-    title: "User",
-    addLabel: "+ User",
+    label: "Pengguna",
+    title: "Pengguna",
+    addLabel: "+ Pengguna",
     fields: [],
-    headings: ["Name", "Email", "Role", "Status"],
+    headings: ["Nama", "Email", "Peran", "Status"],
     rows: [],
   },
   {
     id: "teacher-staff",
-    label: "Teacher/Staff",
-    title: "Teacher/Staff",
-    addLabel: "+ Teacher/Staff",
+    label: "Guru/Staf",
+    title: "Guru/Staf",
+    addLabel: "+ Guru/Staf",
     fields: [],
     headings: [
-      "Name",
+      "Nama",
       "Email",
-      "Phone",
-      "Position",
-      "Hire Date",
-      "Qualification",
+      "Telepon",
+      "Jabatan",
+      "Tanggal masuk",
+      "Kualifikasi",
       "Status",
     ],
     rows: [],
   },
   {
     id: "class",
-    label: "Class",
-    title: "Class & Academic Year",
-    addLabel: "+ Class",
+    label: "Kelas",
+    title: "Kelas & Tahun Ajaran",
+    addLabel: "+ Kelas",
     fields: [],
-    headings: ["Class", "Academic year", "Homeroom teacher"],
+    headings: ["Kelas", "Tahun ajaran", "Wali kelas"],
     rows: [],
   },
   {
     id: "fee-type",
-    label: "Fee Type",
-    title: "Fee Type",
-    addLabel: "+ Fee Type",
+    label: "Jenis Biaya",
+    title: "Jenis Biaya",
+    addLabel: "+ Jenis Biaya",
     fields: [],
-    headings: ["Name", "Description", "Amount", "Recurring", "Status"],
+    headings: ["Nama", "Deskripsi", "Jumlah", "Berulang", "Status"],
     rows: [],
   },
 //   {
@@ -123,6 +123,30 @@ const sections: SettingsSection[] = [
 //     rows: [["Semester Report", "Standard", "Attendance", "75"]],
 //   },
 ];
+
+function formatRole(role: string) {
+  const labels: Record<string, string> = {
+    ADMIN: "Admin",
+    STAFF: "Staf",
+    TEACHER: "Guru",
+    STUDENT: "Siswa",
+    PARENT: "Wali",
+  };
+  return labels[role] ?? role;
+}
+
+function formatStaffType(type: string) {
+  const labels: Record<string, string> = {
+    principal: "Kepala sekolah",
+    teacher: "Guru",
+    officer: "Staf",
+  };
+  return labels[type.toLowerCase()] ?? type;
+}
+
+function formatStatus(active: boolean) {
+  return active ? "Aktif" : "Nonaktif";
+}
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState(sections[0].id);
@@ -178,14 +202,14 @@ export default function SettingsPage() {
       }
 
       if (!response.ok) {
-        throw new Error("Failed to load users");
+        throw new Error("Gagal memuat pengguna");
       }
 
       const data = await response.json();
       setUsers(Array.isArray(data) ? data : (data.results ?? []));
     } catch (error) {
       console.error(error);
-      setUsersError("Failed to load users.");
+      setUsersError("Gagal memuat pengguna.");
     } finally {
       setUsersLoading(false);
     }
@@ -207,7 +231,7 @@ export default function SettingsPage() {
       }
 
       if (!response.ok) {
-        throw new Error("Failed to load staffs");
+        throw new Error("Gagal memuat data staf");
       }
 
       const data = await response.json();
@@ -222,7 +246,7 @@ export default function SettingsPage() {
       );
     } catch (error) {
       console.error(error);
-      setStaffsError("Failed to load staffs.");
+      setStaffsError("Gagal memuat data staf.");
     } finally {
       setStaffsLoading(false);
     }
@@ -244,14 +268,14 @@ export default function SettingsPage() {
       }
 
       if (!response.ok) {
-        throw new Error("Failed to load classes");
+        throw new Error("Gagal memuat kelas");
       }
 
       const data = await response.json();
       setClasses(Array.isArray(data) ? data : (data.results ?? []));
     } catch (error) {
       console.error(error);
-      setClassesError("Failed to load classes.");
+      setClassesError("Gagal memuat kelas.");
     } finally {
       setClassesLoading(false);
     }
@@ -273,7 +297,7 @@ export default function SettingsPage() {
       }
 
       if (!response.ok) {
-        throw new Error("Failed to load fee types");
+        throw new Error("Gagal memuat jenis biaya");
       }
 
       const data = await response.json();
@@ -288,7 +312,7 @@ export default function SettingsPage() {
       );
     } catch (error) {
       console.error(error);
-      setFeeTypesError("Failed to load fee types.");
+      setFeeTypesError("Gagal memuat jenis biaya.");
     } finally {
       setFeeTypesLoading(false);
     }
@@ -298,7 +322,7 @@ export default function SettingsPage() {
     if (!deactivatingFeeType) return;
 
     const shouldActivate = !deactivatingFeeType.is_active;
-    const action = shouldActivate ? "activate" : "deactivate";
+    const action = shouldActivate ? "mengaktifkan" : "menonaktifkan";
 
     try {
       setFeeTypeActionLoading(true);
@@ -320,14 +344,14 @@ export default function SettingsPage() {
       }
 
       if (!response.ok) {
-        throw new Error(`Failed to ${action} fee type`);
+        throw new Error(`Gagal ${action} jenis biaya`);
       }
 
       setDeactivatingFeeType(null);
       await loadFeeTypes();
     } catch (error) {
       console.error(error);
-      setFeeTypeActionError(`Failed to ${action} fee type.`);
+      setFeeTypeActionError(`Gagal ${action} jenis biaya.`);
     } finally {
       setFeeTypeActionLoading(false);
     }
@@ -354,15 +378,15 @@ export default function SettingsPage() {
       <section className="settings-page panel">
         <div className="panel-heading settings-header">
           <div>
-            <h2>Settings</h2>
-            <p>Manage school configuration and master data.</p>
+            <h2>Pengaturan</h2>
+            <p>Kelola konfigurasi sekolah dan data utama.</p>
           </div>
         </div>
 
         <div
           className="settings-tabs"
           role="tablist"
-          aria-label="Settings sections"
+          aria-label="Bagian pengaturan"
         >
           {sections.map((item) => (
             <button
@@ -412,14 +436,14 @@ export default function SettingsPage() {
 
             {savedSection === section.id && (
               <p className="settings-save-message" role="status">
-                Settings saved for this session.
+                Pengaturan tersimpan untuk sesi ini.
               </p>
             )}
 
             <div className="setting-list">
               {activeSection === "user" ? (
                 usersLoading ? (
-                  <p>Loading users...</p>
+                            <p>Memuat pengguna...</p>
                 ) : usersError ? (
                   <div className="users-state">
                     <p>{usersError}</p>
@@ -428,7 +452,7 @@ export default function SettingsPage() {
                       className="secondary-button"
                       onClick={loadUsers}
                     >
-                      Try again
+                      Coba lagi
                     </button>
                   </div>
                 ) : (
@@ -438,7 +462,7 @@ export default function SettingsPage() {
                         {section.headings.map((heading) => (
                           <th key={heading}>{heading}</th>
                         ))}
-                        <th className={styles.actionHeading}>Action</th>
+                        <th className={styles.actionHeading}>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -448,8 +472,8 @@ export default function SettingsPage() {
                             {user.first_name} {user.last_name}
                           </td>
                           <td>{user.email}</td>
-                          <td>{user.role}</td>
-                          <td>{user.is_active ? "Active" : "Inactive"}</td>
+                          <td>{formatRole(user.role)}</td>
+                          <td>{formatStatus(user.is_active)}</td>
                           <td className={styles.actionCell}>
                             <button
                               type="button"
@@ -471,7 +495,7 @@ export default function SettingsPage() {
                 )
               ) : activeSection === "teacher-staff" ? (
                 staffsLoading ? (
-                  <p>Loading staff...</p>
+                            <p>Memuat staf...</p>
                 ) : staffsError ? (
                   <div className="staffs-state">
                     <p>{staffsError}</p>
@@ -480,7 +504,7 @@ export default function SettingsPage() {
                       className="secondary-button"
                       onClick={loadStaffs}
                     >
-                      Try again
+                      Coba lagi
                     </button>
                   </div>
                 ) : (
@@ -490,7 +514,7 @@ export default function SettingsPage() {
                         {section.headings.map((heading) => (
                           <th key={heading}>{heading}</th>
                         ))}
-                        <th className={styles.actionHeading}>Action</th>
+                        <th className={styles.actionHeading}>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -501,10 +525,10 @@ export default function SettingsPage() {
                           </td>
                           <td>{staff.email}</td>
                           <td>{staff.phone}</td>
-                          <td>{staff.staff_type}</td>
+                          <td>{formatStaffType(staff.staff_type)}</td>
                           <td>{staff.hire_date}</td>
                           <td>{staff.qualification}</td>
-                          <td>{staff.is_active ? "Active" : "Inactive"}</td>
+                          <td>{formatStatus(staff.is_active)}</td>
                           <td className={styles.actionCell}>
                             <button
                               type="button"
@@ -526,7 +550,7 @@ export default function SettingsPage() {
                 )
               ) : activeSection === "class" ? (
                 classesLoading ? (
-                  <p>Loading classes...</p>
+                            <p>Memuat kelas...</p>
                 ) : classesError ? (
                   <div className="classes-state">
                     <p>{classesError}</p>
@@ -535,7 +559,7 @@ export default function SettingsPage() {
                       className="secondary-button"
                       onClick={loadClasses}
                     >
-                      Try again
+                      Coba lagi
                     </button>
                   </div>
                 ) : (
@@ -545,7 +569,7 @@ export default function SettingsPage() {
                         {section.headings.map((heading) => (
                           <th key={heading}>{heading}</th>
                         ))}
-                        <th className={styles.actionHeading}>Action</th>
+                        <th className={styles.actionHeading}>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -575,7 +599,7 @@ export default function SettingsPage() {
                 )
               ) : activeSection === "fee-type" ? (
                 feeTypesLoading ? (
-                  <p>Loading fee types...</p>
+                            <p>Memuat jenis biaya...</p>
                 ) : feeTypesError ? (
                   <div className="fee-types-state">
                     <p>{feeTypesError}</p>
@@ -584,7 +608,7 @@ export default function SettingsPage() {
                       className="secondary-button"
                       onClick={loadFeeTypes}
                     >
-                      Try again
+                      Coba lagi
                     </button>
                   </div>
                 ) : (
@@ -594,7 +618,7 @@ export default function SettingsPage() {
                         {section.headings.map((heading) => (
                           <th key={heading}>{heading}</th>
                         ))}
-                        <th className={styles.actionHeading}>Action</th>
+                        <th className={styles.actionHeading}>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -603,10 +627,10 @@ export default function SettingsPage() {
                           <td>{feeType.name}</td>
                           <td>{feeType.description}</td>
                           <td>{feeType.amount}</td>
-                          <td>{feeType.is_recurring ? "Yes" : "No"}</td>
-                          <td>{feeType.is_active ? "Active" : "Inactive"}</td>
+                          <td>{feeType.is_recurring ? "Ya" : "Tidak"}</td>
+                          <td>{formatStatus(feeType.is_active)}</td>
                           <td>
-                            <div className={styles.actions} role="group" aria-label={`Actions for ${feeType.name}`}>
+                            <div className={styles.actions} role="group" aria-label={`Aksi untuk ${feeType.name}`}>
                               <button
                                 className={styles.actionButton}
                                 type="button"
@@ -620,8 +644,8 @@ export default function SettingsPage() {
                               <button
                                 className={`${styles.actionButton} ${feeType.is_active ? styles.dangerButton : ""}`}
                                 type="button"
-                                aria-label={`${feeType.is_active ? "Deactivate" : "Activate"} ${feeType.name}`}
-                                title={feeType.is_active ? "Deactivate" : "Activate"}
+                                aria-label={`${feeType.is_active ? "Nonaktifkan" : "Aktifkan"} ${feeType.name}`}
+                                title={feeType.is_active ? "Nonaktifkan" : "Aktifkan"}
                                 onClick={() => {
                                   setFeeTypeActionError("");
                                   setDeactivatingFeeType(feeType);
@@ -630,8 +654,8 @@ export default function SettingsPage() {
                               <button
                                 className={styles.actionButton}
                                 type="button"
-                                aria-label={`Generate invoice for ${feeType.name}`}
-                                title={feeType.is_recurring ? "Unavailable for recurring fee types" : "Generate Invoice"}
+                                aria-label={`Buat tagihan untuk ${feeType.name}`}
+                                title={feeType.is_recurring ? "Tidak tersedia untuk biaya berulang" : "Buat Tagihan"}
                                 disabled={feeType.is_recurring}
                                 onClick={() => {
                                   setFeeTypeActionError("");
@@ -653,7 +677,7 @@ export default function SettingsPage() {
                       {section.headings.map((heading) => (
                         <th key={heading}>{heading}</th>
                       ))}
-                      <th className={styles.actionHeading}>Action</th>
+                      <th className={styles.actionHeading}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -754,9 +778,9 @@ export default function SettingsPage() {
           <div className="modal">
             <div className="modal-header">
               <div>
-                <h2>{deactivatingFeeType.is_active ? "Deactivate" : "Activate"} fee type?</h2>
+                <h2>{deactivatingFeeType.is_active ? "Nonaktifkan" : "Aktifkan"} jenis biaya?</h2>
                 <p>
-                  This will {deactivatingFeeType.is_active ? "deactivate" : "activate"}{" "}
+                  Tindakan ini akan {deactivatingFeeType.is_active ? "menonaktifkan" : "mengaktifkan"}{" "}
                   {deactivatingFeeType.name}.
                 </p>
               </div>
@@ -779,7 +803,7 @@ export default function SettingsPage() {
                 onClick={() => setDeactivatingFeeType(null)}
                 disabled={feeTypeActionLoading}
               >
-                Cancel
+                Batal
               </button>
               <button
                 type="button"
@@ -789,11 +813,11 @@ export default function SettingsPage() {
               >
                 {feeTypeActionLoading
                   ? deactivatingFeeType.is_active
-                    ? "Deactivating..."
-                    : "Activating..."
+                    ? "Menonaktifkan..."
+                    : "Mengaktifkan..."
                   : deactivatingFeeType.is_active
-                    ? "Deactivate"
-                    : "Activate"}
+                    ? "Nonaktifkan"
+                    : "Aktifkan"}
               </button>
             </div>
           </div>
@@ -807,7 +831,7 @@ export default function SettingsPage() {
           onSuccess={() => {
             const feeTypeName = generatingInvoiceFeeType.name;
             setGeneratingInvoiceFeeType(null);
-            setFeeTypeActionMessage(`Invoice generated for ${feeTypeName}.`);
+            setFeeTypeActionMessage(`Tagihan untuk ${feeTypeName} berhasil dibuat.`);
           }}
         />
       )}

@@ -107,7 +107,7 @@ export default function GenerateInvoiceForm({
           return;
         }
 
-        if (!response.ok) throw new Error("Failed to load students");
+        if (!response.ok) throw new Error("Gagal memuat data siswa");
 
         setStudents(normalizeStudents(await response.json()));
       } catch (loadError) {
@@ -117,7 +117,7 @@ export default function GenerateInvoiceForm({
         )
           return;
         console.error(loadError);
-        setStudentsError("Failed to load students for this class.");
+        setStudentsError("Gagal memuat data siswa untuk kelas ini.");
       } finally {
         if (!controller.signal.aborted) setStudentsLoading(false);
       }
@@ -184,7 +184,7 @@ export default function GenerateInvoiceForm({
             .join("\n");
           throw new Error(messages);
         }
-        throw new Error("Failed to generate invoice");
+        throw new Error("Gagal membuat tagihan");
       }
 
       onSuccess();
@@ -193,7 +193,7 @@ export default function GenerateInvoiceForm({
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Failed to generate invoice.",
+          : "Gagal membuat tagihan.",
       );
     } finally {
       setLoading(false);
@@ -205,7 +205,7 @@ export default function GenerateInvoiceForm({
       <div className="modal">
         <div className="modal-header">
           <div>
-            <h2>Generate invoice</h2>
+            <h2>Buat Tagihan</h2>
             <p>{feeType.name}</p>
           </div>
           <button
@@ -223,7 +223,7 @@ export default function GenerateInvoiceForm({
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <div className="form-field">
-              <label htmlFor="invoiceDate">Invoice date</label>
+              <label htmlFor="invoiceDate">Tanggal tagihan</label>
               <input
                 id="invoiceDate"
                 name="invoiceDate"
@@ -235,7 +235,7 @@ export default function GenerateInvoiceForm({
             </div>
 
             <div className="form-field">
-              <label htmlFor="invoiceDueDate">Due date</label>
+              <label htmlFor="invoiceDueDate">Tanggal jatuh tempo</label>
               <input
                 id="invoiceDueDate"
                 name="dueDate"
@@ -247,7 +247,7 @@ export default function GenerateInvoiceForm({
             </div>
 
             <div className="form-field full">
-              <label htmlFor="invoiceRemark">Remark</label>
+              <label htmlFor="invoiceRemark">Catatan</label>
               <textarea
                 id="invoiceRemark"
                 name="remark"
@@ -265,7 +265,7 @@ export default function GenerateInvoiceForm({
               onClick={onCancel}
               disabled={loading}
             >
-              Cancel
+              Batal
             </button>
             <button
               type="submit"
@@ -274,7 +274,7 @@ export default function GenerateInvoiceForm({
                 loading || studentsLoading
               }
             >
-              {loading ? "Generating..." : "Generate Invoice"}
+              {loading ? "Membuat..." : "Buat Tagihan"}
             </button>
           </div>
         </form>

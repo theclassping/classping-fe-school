@@ -95,6 +95,12 @@ export default function UpdateActivityPage() {
       .finally(() => setStudentsLoading(false));
   }, [classId]);
 
+  useEffect(() => {
+    if (!saved) return;
+    const timeout = window.setTimeout(() => setSaved(false), 3200);
+    return () => window.clearTimeout(timeout);
+  }, [saved]);
+
   if (loading) return <main><section className="panel student-manage"><p>Memuat detail aktivitas...</p></section></main>;
   if (activityError) return <main><section className="panel student-manage"><p>{activityError}</p></section></main>;
 
@@ -245,7 +251,7 @@ export default function UpdateActivityPage() {
             </button>
           </div>
           {saved && (
-            <p className="settings-save-message" role="status">
+            <p className="save-toast" role="status" aria-live="polite">
               Aktivitas berhasil diperbarui.
             </p>
           )}

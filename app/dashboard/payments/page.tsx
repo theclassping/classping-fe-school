@@ -60,6 +60,10 @@ function paymentSlug(payment: Payment) {
     .replace(/(^-|-$)/g, "");
 }
 
+function isCompletedPayment(payment: Payment) {
+  return payment.status.trim().toLowerCase() === "completed";
+}
+
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -285,9 +289,18 @@ export default function PaymentsPage() {
                         <button
                           className={styles.actionButton}
                           type="button"
+                          disabled={isCompletedPayment(payment)}
                           onClick={() => setReminder(payment)}
-                          aria-label={`Ingatkan pembayaran ${payment.student_name}`}
-                          title="Ingatkan pembayaran"
+                          aria-label={
+                            isCompletedPayment(payment)
+                              ? `Pembayaran ${payment.student_name} sudah lunas`
+                              : `Ingatkan pembayaran ${payment.student_name}`
+                          }
+                          title={
+                            isCompletedPayment(payment)
+                              ? "Pembayaran sudah lunas"
+                              : "Ingatkan pembayaran"
+                          }
                         >
                           <BellRing aria-hidden="true" />
                         </button>

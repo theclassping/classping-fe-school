@@ -7,6 +7,25 @@ import styles from "../components/TableActions.module.css";
 import { loadActivities } from "./activityApi";
 import type { Activity } from "./activityData";
 
+function ActivityCover({ activity }: { activity: Activity }) {
+  const [index, setIndex] = useState(0);
+  const images = activity.imageUrls?.length ? activity.imageUrls : activity.imageUrl ? [activity.imageUrl] : [];
+  const image = images[index] ?? images[0];
+  return (
+    <div className={`activity-cover art-${activity.slug === "melukis-dengan-jari" ? "paint" : activity.slug === "menanam-kacang-hijau" ? "garden" : "music"}`}>
+      {image ? <img className="activity-cover-image" src={image} alt={activity.title} /> : <span>{activity.avatar}</span>}
+      {images.length > 1 && (
+        <>
+          <button type="button" className="activity-cover-arrow previous" aria-label="Foto sebelumnya" onClick={() => setIndex((index - 1 + images.length) % images.length)}>‹</button>
+          <button type="button" className="activity-cover-arrow next" aria-label="Foto berikutnya" onClick={() => setIndex((index + 1) % images.length)}>›</button>
+          <span className="activity-cover-position">{index + 1}/{images.length}</span>
+        </>
+      )}
+      <b>{activity.photos} foto</b>
+    </div>
+  );
+}
+
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,20 +127,7 @@ export default function ActivitiesPage() {
           ) : (
             filtered.map((activity) => (
               <article className="activity-card panel" key={activity.slug}>
-                <div
-                  className={`activity-cover art-${activity.slug === "melukis-dengan-jari" ? "paint" : activity.slug === "menanam-kacang-hijau" ? "garden" : "music"}`}
-                >
-                  {activity.imageUrl ? (
-                    <img
-                      className="activity-cover-image"
-                      src={activity.imageUrl}
-                      alt={activity.title}
-                    />
-                  ) : (
-                    <span>{activity.avatar}</span>
-                  )}
-                  <b>{activity.photos} foto</b>
-                </div>
+                <ActivityCover activity={activity} />
                 <div className="activity-body">
                   <div className="activity-meta">
                     <span>{activity.time}</span>
@@ -141,7 +147,7 @@ export default function ActivitiesPage() {
                   <div className="tag-summary">
                     <span className="activity-tag-icon" aria-hidden="true"><UsersRound /></span>
                     <strong>
-                      {activity.participants.length} siswa ditandai
+                      {activity.taggedStudentCount ?? activity.participants.length} siswa ditandai
                     </strong>
                   </div>
                   <div className="activity-card-actions">

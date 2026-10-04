@@ -77,6 +77,27 @@ function normalizeStudents(data: unknown): Student[] {
   });
 }
 
+function formatClassName(className?: string) {
+  if (!className) return "-";
+  return className.replace(/^class\b/i, "Kelas");
+}
+
+function formatGender(gender?: string) {
+  const normalized = gender?.toLowerCase();
+  if (normalized === "male") return "Laki-laki";
+  if (normalized === "female") return "Perempuan";
+  return gender || "-";
+}
+
+function formatStatus(status?: string) {
+  const normalized = status?.toLowerCase();
+  if (normalized === "inactive") return "Nonaktif";
+  if (normalized === "new") return "Baru";
+  if (normalized === "leave") return "Cuti";
+  if (normalized === "active" || !status) return "Aktif";
+  return status;
+}
+
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,7 +127,7 @@ export default function StudentsPage() {
       }
 
       if (!response.ok) {
-        throw new Error("Failed to load students");
+        throw new Error("Gagal memuat data siswa");
       }
 
       const data = await response.json();
@@ -114,7 +135,7 @@ export default function StudentsPage() {
       setStudents(normalizeStudents(data));
     } catch (loadError) {
       console.error(loadError);
-      setError("Failed to load students.");
+      setError("Gagal memuat data siswa.");
     } finally {
       setLoading(false);
     }
@@ -130,7 +151,7 @@ export default function StudentsPage() {
 
     const isInactive = deactivatingStudent.status?.toLowerCase() === "inactive";
     const nextStatus = isInactive ? "active" : "inactive";
-    const actionLabel = isInactive ? "activate" : "deactivate";
+    const actionLabel = isInactive ? "mengaktifkan" : "menonaktifkan";
 
     try {
       setActionError("");
@@ -150,14 +171,14 @@ export default function StudentsPage() {
       }
 
       if (!response.ok) {
-        throw new Error(`Failed to ${actionLabel} student`);
+        throw new Error(`Gagal ${actionLabel} siswa`);
       }
 
       setDeactivatingStudent(null);
       await loadStudents();
     } catch (actionLoadError) {
       console.error(actionLoadError);
-      setActionError(`Failed to ${actionLabel} student.`);
+      setActionError(`Gagal ${actionLabel} siswa.`);
     }
   }
 
@@ -184,8 +205,8 @@ export default function StudentsPage() {
       <section className="panel student-data">
         <div className="panel-heading student-heading">
           <div>
-            <h2>Students</h2>
-            <p>Active students for the current school year.</p>
+            <h2>Siswa</h2>
+            <p>Siswa aktif pada tahun ajaran ini.</p>
           </div>
 
           <button
@@ -193,7 +214,7 @@ export default function StudentsPage() {
             className="button-primary compact-button"
             onClick={() => setShowStudentForm(true)}
           >
-            + Add Student
+            + Tambah Siswa
           </button>
         </div>
 
@@ -202,33 +223,32 @@ export default function StudentsPage() {
             <Search aria-hidden="true" />
             <input
               type="search"
-              placeholder="Search students or guardians..."
+              placeholder="Cari siswa atau wali..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
           </label>
 
           <select
-            aria-label="Filter students by class"
+            aria-label="Filter siswa berdasarkan kelas"
             value={classFilter}
             onChange={(event) => setClassFilter(event.target.value)}
           >
-            <option value="ALL">All classes</option>
+            <option value="ALL">Semua kelas</option>
             {classes.map((className) => (
               <option key={className} value={className}>
-                {className}
+                {formatClassName(className)}
               </option>
             ))}
           </select>
 
           <span className="student-count">
-            {filteredStudents.length} student
-            {filteredStudents.length === 1 ? "" : "s"}
+            {filteredStudents.length} siswa
           </span>
         </div>
 
         {loading ? (
-          <p className="empty-state">Loading students...</p>
+          <p className="empty-state">Memuat data siswa...</p>
         ) : error ? (
           <div className="empty-state">
             <p>{error}</p>
@@ -237,24 +257,24 @@ export default function StudentsPage() {
               className="button-secondary"
               onClick={loadStudents}
             >
-              Try again
+              Coba lagi
             </button>
           </div>
         ) : filteredStudents.length === 0 ? (
-          <p className="empty-state">No matching student records.</p>
+          <p className="empty-state">Tidak ada data siswa yang cocok.</p>
         ) : (
           <div className="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th>Student</th>
+                  <th>Siswa</th>
                   {/* <th>NIS</th> */}
-                  <th>Class</th>
-                  <th>Gender</th>
-                  <th>Parent / Guardian</th>
+                  <th>Kelas</th>
+                  <th>Jenis kelamin</th>
+                  <th>Orang tua / Wali</th>
                   <th>WhatsApp</th>
                   <th>Status</th>
-                  <th className={styles.actionHeading}>Actions</th>
+                  <th className={styles.actionHeading}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -270,24 +290,24 @@ export default function StudentsPage() {
                         .join(" ")}
                     </td>
                     {/* <td>{student.student_number || "-"}</td> */}
-                    <td>{student.class_name || "-"}</td>
-                    <td>{student.gender || "-"}</td>
+                    <td>{formatClassName(student.class_name)}</td>
+                    <td>{formatGender(student.gender)}</td>
                     <td>{student.guardian_name || "-"}</td>
                     <td>{student.guardian_phone || "-"}</td>
                     <td>
                       <span
                         className={`status-badge ${student.status?.toLowerCase() === "inactive" ? "inactive" : ""}`}
                       >
-                        {student.status || "ACTIVE"}
+                        {formatStatus(student.status)}
                       </span>
                     </td>
                     <td>
-                      <div className={styles.actions} role="group" aria-label={`Actions for ${student.first_name} ${student.last_name}`}>
+                      <div className={styles.actions} role="group" aria-label={`Aksi untuk ${student.first_name} ${student.last_name}`}>
                         <button
                           className={styles.actionButton}
                           type="button"
-                          aria-label={`View ${student.first_name} ${student.last_name}`}
-                          title="View student"
+                          aria-label={`Lihat ${student.first_name} ${student.last_name}`}
+                          title="Lihat siswa"
                           onClick={() => setViewingStudent(student)}
                         >
                           <Eye aria-hidden="true" />
@@ -296,7 +316,7 @@ export default function StudentsPage() {
                           className={styles.actionButton}
                           type="button"
                           aria-label={`Edit ${student.first_name} ${student.last_name}`}
-                          title="Edit student"
+                          title="Edit siswa"
                           onClick={() => setEditingStudent(student)}
                         >
                           <Pencil aria-hidden="true" />
@@ -304,8 +324,8 @@ export default function StudentsPage() {
                         <button
                           className={`${styles.actionButton} ${student.status?.toLowerCase() === "inactive" ? "" : styles.dangerButton}`}
                           type="button"
-                          aria-label={`${student.status?.toLowerCase() === "inactive" ? "Activate" : "Deactivate"} ${student.first_name} ${student.last_name}`}
-                          title={student.status?.toLowerCase() === "inactive" ? "Activate student" : "Deactivate student"}
+                          aria-label={`${student.status?.toLowerCase() === "inactive" ? "Aktifkan" : "Nonaktifkan"} ${student.first_name} ${student.last_name}`}
+                          title={student.status?.toLowerCase() === "inactive" ? "Aktifkan siswa" : "Nonaktifkan siswa"}
                           onClick={() => setDeactivatingStudent(student)}
                         >
                           {student.status?.toLowerCase() === "inactive"
@@ -348,8 +368,8 @@ export default function StudentsPage() {
           <div className="modal student-detail-modal">
             <div className="modal-header">
               <div>
-                <h2>Student Details</h2>
-                <p>View student and guardian information.</p>
+                <h2>Detail Siswa</h2>
+                <p>Lihat informasi siswa dan wali.</p>
               </div>
               <button
                 type="button"
@@ -361,7 +381,7 @@ export default function StudentsPage() {
             </div>
             <div className="detail-grid">
               <div className="detail-item">
-                <span>Name</span>
+                <span>Nama</span>
                 <strong>
                   {[
                     viewingStudent.first_name,
@@ -374,35 +394,35 @@ export default function StudentsPage() {
               </div>
               {/* <div className="detail-item"><span>Student ID</span><strong>{viewingStudent.student_number || "-"}</strong></div> */}
               <div className="detail-item">
-                <span>Class</span>
-                <strong>{viewingStudent.class_name || "-"}</strong>
+                <span>Kelas</span>
+                <strong>{formatClassName(viewingStudent.class_name)}</strong>
               </div>
               <div className="detail-item">
-                <span>Gender</span>
-                <strong>{viewingStudent.gender || "-"}</strong>
+                <span>Jenis kelamin</span>
+                <strong>{formatGender(viewingStudent.gender)}</strong>
               </div>
               <div className="detail-item">
-                <span>Date of birth</span>
+                <span>Tanggal lahir</span>
                 <strong>{viewingStudent.date_of_birth || "-"}</strong>
               </div>
               <div className="detail-item">
                 <span>Status</span>
-                <strong>{viewingStudent.status || "ACTIVE"}</strong>
+                <strong>{formatStatus(viewingStudent.status)}</strong>
               </div>
               <div className="detail-item">
-                <span>Guardian</span>
+                <span>Wali</span>
                 <strong>{viewingStudent.guardian_name || "-"}</strong>
               </div>
               <div className="detail-item">
-                <span>Guardian phone</span>
+                <span>Nomor WhatsApp wali</span>
                 <strong>{viewingStudent.guardian_phone || "-"}</strong>
               </div>
               <div className="detail-item">
-                <span>Guardian email</span>
+                <span>Email wali</span>
                 <strong>{viewingStudent.guardian_email || "-"}</strong>
               </div>
               <div className="detail-item">
-                <span>Address</span>
+                <span>Alamat</span>
                 <strong>{viewingStudent.address || "-"}</strong>
               </div>
             </div>
@@ -417,14 +437,14 @@ export default function StudentsPage() {
               <div>
                 <h2>
                   {deactivatingStudent.status?.toLowerCase() === "inactive"
-                    ? "Activate student?"
-                    : "Deactivate student?"}
+                    ? "Aktifkan siswa?"
+                    : "Nonaktifkan siswa?"}
                 </h2>
                 <p>
-                  This will{" "}
+                  Tindakan ini akan{" "}
                   {deactivatingStudent.status?.toLowerCase() === "inactive"
-                    ? "activate"
-                    : "deactivate"}{" "}
+                    ? "mengaktifkan"
+                    : "menonaktifkan"}{" "}
                   {deactivatingStudent.first_name}{" "}
                   {deactivatingStudent.last_name}.
                 </p>
@@ -444,7 +464,7 @@ export default function StudentsPage() {
                 className="button-secondary"
                 onClick={() => setDeactivatingStudent(null)}
               >
-                Cancel
+                Batal
               </button>
               <button
                 type="button"
@@ -452,8 +472,8 @@ export default function StudentsPage() {
                 onClick={updateStudentStatus}
               >
                 {deactivatingStudent.status?.toLowerCase() === "inactive"
-                  ? "Activate"
-                  : "Deactivate"}
+                  ? "Aktifkan"
+                  : "Nonaktifkan"}
               </button>
             </div>
           </div>

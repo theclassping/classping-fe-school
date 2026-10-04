@@ -69,7 +69,7 @@ export default function SettingsFormDialog({
                                         value={values[field.key]}
                                         onChange={(event) => updateValue(field.key, event.target.value)}
                                     >
-                                        <option value="">Select an option</option>
+                                        <option value="">Pilih opsi</option>
                                         {field.options?.map((option) => (
                                             <option key={option} value={option}>
                                                 {option}
@@ -90,10 +90,10 @@ export default function SettingsFormDialog({
 
                     <div className="modal-actions">
                         <button type="button" className="button-secondary" onClick={onCancel}>
-                            Cancel
+                            Batal
                         </button>
                         <button type="submit" className="button-primary">
-                            Save
+                            Simpan
                         </button>
                     </div>
                 </form>

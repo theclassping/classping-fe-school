@@ -3392,6 +3392,11 @@ body.parent-view .sidebar {
   margin-top: 10px;
 }
 
+.managed-photo-wrap {
+  position: relative;
+  min-width: 0;
+}
+
 .managed-photo {
   width: 100%;
   aspect-ratio: 4 / 3;
@@ -3408,15 +3413,88 @@ body.parent-view .sidebar {
   border: 2px solid transparent;
 }
 
-.managed-photo:nth-child(3n + 1) {
+.managed-photo-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  background: rgba(20, 54, 44, 0.86);
+  color: #fff;
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 150ms ease, transform 150ms ease, background 150ms ease;
+}
+
+.managed-photo-wrap:hover .managed-photo-remove,
+.managed-photo-wrap:focus-within .managed-photo-remove,
+.managed-photo-remove:focus-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.save-toast {
+  position: fixed;
+  top: 86px;
+  right: 28px;
+  z-index: 20;
+  margin: 0;
+  padding: 12px 18px;
+  border: 1px solid rgba(20, 125, 100, .3);
+  border-radius: 12px;
+  background: rgba(224, 246, 238, .9);
+  color: var(--green);
+  box-shadow: 0 12px 28px rgba(22, 60, 46, .14);
+  backdrop-filter: blur(8px);
+  font-size: 13px;
+  font-weight: 700;
+  animation: save-toast-in 180ms ease-out;
+}
+
+@keyframes save-toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+  .save-toast { top: 72px; right: 16px; left: 16px; text-align: center; }
+}
+
+.activity-cover-image { object-fit: cover; transform: scale(1.02); }
+.activity-cover-arrow { position: absolute; top: 50%; z-index: 2; width: 30px; height: 30px; transform: translateY(-50%); border: 0; border-radius: 50%; background: rgba(20, 54, 44, .78); color: #fff; font-size: 25px; line-height: 1; cursor: pointer; }
+.activity-cover-arrow.previous { left: 10px; }
+.activity-cover-arrow.next { right: 10px; }
+.activity-cover-arrow:hover, .activity-cover-arrow:focus-visible { background: var(--green); }
+.activity-cover-position { position: absolute; left: 50%; bottom: 10px; z-index: 2; transform: translateX(-50%); padding: 4px 8px; border-radius: 999px; background: rgba(20, 54, 44, .78); color: #fff; font-size: 11px; }
+
+.managed-photo-remove:hover,
+.managed-photo-remove:focus-visible {
+  background: #b42318;
+}
+
+.managed-photo-remove:focus-visible {
+  outline: 3px solid #f4b8b2;
+  outline-offset: 2px;
+}
+
+.managed-photo-wrap:nth-child(3n + 1) .managed-photo {
   background: #ffd6a6;
 }
 
-.managed-photo:nth-child(3n + 2) {
+.managed-photo-wrap:nth-child(3n + 2) .managed-photo {
   background: #bce3cf;
 }
 
-.managed-photo:nth-child(3n) {
+.managed-photo-wrap:nth-child(3n) .managed-photo {
   background: #d9cdf0;
 }
 

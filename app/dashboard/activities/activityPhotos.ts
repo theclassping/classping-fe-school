@@ -2,6 +2,8 @@ export type ActivityPhoto = {
   id: string;
   url: string;
   caption: string;
+  studentIds: string[];
+  savedStudentIds: string[];
   studentId: string;
   savedStudentId: string;
   file?: File;
@@ -16,6 +18,7 @@ export type ActivityDetail = {
     image_url: string;
     caption?: string;
     student_id?: number | null;
+    student_ids?: number[];
     position?: number;
   }[];
 };
@@ -36,6 +39,8 @@ export function activityPhotos(detail: ActivityDetail): ActivityPhoto[] {
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
     .map((photo) => ({
       id: String(photo.id), url: photo.image_url, caption: photo.caption ?? "",
+      studentIds: (photo.student_ids ?? (photo.student_id == null ? [] : [photo.student_id])).map(String),
+      savedStudentIds: (photo.student_ids ?? (photo.student_id == null ? [] : [photo.student_id])).map(String),
       studentId: photo.student_id == null ? "" : String(photo.student_id),
       savedStudentId: photo.student_id == null ? "" : String(photo.student_id),
     }));
@@ -53,14 +58,25 @@ export async function saveActivityPhoto(activityId: number, photo: ActivityPhoto
     if (!response.ok) throw new Error(`Gagal mengunggah ${photo.file.name}.`);
     fileKey = upload.file_key;
   }
-  const result = await activityRequest<ActivityDetail["activity_images"][number]>(
+  const result = await activityRequest<ActivityDetail["activity_images"][number] & { student_ids?: number[] }>(
     photo.file ? "/api/proxy/activity-images/" : `/api/proxy/activity-images/${encodeURIComponent(photo.id)}/`,
     {
       method: photo.file ? "POST" : "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ student_id: photo.studentId ? Number(photo.studentId) : null,
+      body: JSON.stringify({ student_ids: photo.studentIds.map(Number), student_id: photo.studentIds[0] ? Number(photo.studentIds[0]) : null,
         ...(photo.file ? { activity_id: activityId, image_data: fileKey, position } : {}), }),
     },
   );
-  return activityPhotos({ id: activityId, name: "", class_id: 0, activity_images: [result] })[0];
+  // Older API responses only echo `student_id`; retain the full selection
+  // locally when the request accepted the newer `student_ids` payload.
+  const normalizedResult = result.student_ids
+    ? result
+    : { ...result, student_ids: photo.studentIds.map(Number) };
+  return activityPhotos({ id: activityId, name: "", class_id: 0, activity_images: [normalizedResult] })[0];
+}
+
+export async function deleteActivityPhoto(photoId: string) {
+  await activityRequest<void>(`/api/proxy/activity-images/${encodeURIComponent(photoId)}/`, {
+    method: "DELETE",
+  });
 }

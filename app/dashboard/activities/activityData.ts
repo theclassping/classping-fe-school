@@ -3,6 +3,7 @@ export type Activity = {
   title: string;
   avatar: string;
   imageUrl?: string;
+  imageUrls?: string[];
   className: string;
   classLabel: string;
   time: string;
@@ -11,6 +12,7 @@ export type Activity = {
   caption: string;
   photos: number;
   participants: string[];
+  taggedStudentCount?: number;
   note: string;
 };
 

@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import {
   activityPhotos,
   activityRequest,
+  deleteActivityPhoto,
   saveActivityPhoto,
   type ActivityDetail,
   type ActivityPhoto,
@@ -73,11 +74,17 @@ function PhotoManager({ activityId }: { activityId: string }) {
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, []);
 
+  useEffect(() => {
+    if (!saved) return;
+    const timeout = window.setTimeout(() => setSaved(false), 3200);
+    return () => window.clearTimeout(timeout);
+  }, [saved]);
+
   const selected = photos.find((photo) => photo.id === selectedId);
   const dirty = photos.some(
     (photo) =>
       photo.file ||
-      photo.studentId !== photo.savedStudentId,
+      photo.studentIds.join(",") !== photo.savedStudentIds.join(","),
   );
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
@@ -90,7 +97,7 @@ function PhotoManager({ activityId }: { activityId: string }) {
       for (const [index, photo] of photos.entries()) {
         if (
           !photo.file &&
-          photo.studentId === photo.savedStudentId
+          photo.studentIds.join(",") === photo.savedStudentIds.join(",")
         )
           continue;
         const updated = await saveActivityPhoto(activity.id, photo, index);
@@ -110,6 +117,30 @@ function PhotoManager({ activityId }: { activityId: string }) {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function removePhoto(photo: ActivityPhoto) {
+    if (saving) return;
+    setError("");
+    try {
+      if (!photo.file) await deleteActivityPhoto(photo.id);
+      if (photo.url.startsWith("blob:")) {
+        URL.revokeObjectURL(photo.url);
+        objectUrls.current = objectUrls.current.filter((url) => url !== photo.url);
+      }
+      setPhotos((current) => {
+        const remaining = current.filter((item) => item.id !== photo.id);
+        if (photo.id === selectedId) setSelectedId(remaining[0]?.id ?? "");
+        return remaining;
+      });
+      setSaved(false);
+    } catch (removeError) {
+      setError(
+        removeError instanceof Error
+          ? removeError.message
+          : "Foto belum dapat dihapus.",
+      );
     }
   }
 
@@ -200,6 +231,8 @@ function PhotoManager({ activityId }: { activityId: string }) {
                       id: crypto.randomUUID(),
                       url,
                       caption: file.name,
+                      studentIds: [],
+                      savedStudentIds: [],
                       studentId: "",
                       savedStudentId: "",
                       file,
@@ -223,27 +256,38 @@ function PhotoManager({ activityId }: { activityId: string }) {
 
           <div className="managed-photo-grid">
             {photos.map((photo, index) => (
-              <button
-                className={`managed-photo ${photo.id === selectedId ? "active" : ""}`}
-                type="button"
-                key={photo.id}
-                aria-label={`Pilih foto ${index + 1}`}
-                aria-pressed={photo.id === selectedId}
-                onClick={() => setSelectedId(photo.id)}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {photo.url ? (
-                  <img
-                    src={photo.url}
-                    alt={photo.caption || `Foto aktivitas ${index + 1}`}
-                  />
-                ) : (
-                  <span>📷</span>
-                )}
-                <small className="photo-tag-count">
-                  {photo.studentId ? "1 tag" : "Belum ditag"}
-                </small>
-              </button>
+              <div className="managed-photo-wrap" key={photo.id}>
+                <button
+                  className={`managed-photo ${photo.id === selectedId ? "active" : ""}`}
+                  type="button"
+                  aria-label={`Pilih foto ${index + 1}`}
+                  aria-pressed={photo.id === selectedId}
+                  onClick={() => setSelectedId(photo.id)}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {photo.url ? (
+                    <img
+                      src={photo.url}
+                      alt={photo.caption || `Foto aktivitas ${index + 1}`}
+                    />
+                  ) : (
+                    <span>📷</span>
+                  )}
+                  <small className="photo-tag-count">
+                    {photo.studentIds.length ? `${photo.studentIds.length} tag` : "Belum ditag"}
+                  </small>
+                </button>
+                <button
+                  className="managed-photo-remove"
+                  type="button"
+                  aria-label={`Hapus foto ${index + 1}`}
+                  title="Hapus foto"
+                  disabled={saving}
+                  onClick={() => void removePhoto(photo)}
+                >
+                  ×
+                </button>
+              </div>
             ))}
           </div>
 
@@ -268,25 +312,31 @@ function PhotoManager({ activityId }: { activityId: string }) {
               <fieldset className="form-field student-tags">
                 <legend>Siswa dalam foto yang dipilih</legend>
                 <div className="tag-options">
-                  {selected.studentId &&
-                    !students.some((student) => student.id === selected.studentId) && (
+                  {selected.studentIds.some((id) => !students.some((student) => student.id === id)) && (
                       <label>
                         <input type="checkbox" checked disabled readOnly />
-                        <span>Siswa tidak lagi tersedia di kelas ini</span>
+                        <span>Siswa yang dipilih tidak lagi tersedia di kelas ini</span>
                       </label>
                     )}
                   {students.map((student) => (
                     <label key={student.id}>
                       <input
                         type="checkbox"
-                        checked={selected.studentId === student.id}
+                        checked={selected.studentIds.includes(student.id)}
                         disabled={saving}
                         onChange={(event) => {
-                          const studentId = event.target.checked ? student.id : "";
                           setPhotos((current) =>
                             current.map((photo) =>
                               photo.id === selectedId
-                                ? { ...photo, studentId }
+                                ? {
+                                    ...photo,
+                                    studentIds: event.target.checked
+                                      ? [...new Set([...photo.studentIds, student.id])]
+                                      : photo.studentIds.filter((id) => id !== student.id),
+                                    studentId: event.target.checked
+                                      ? student.id
+                                      : photo.studentId === student.id ? "" : photo.studentId,
+                                  }
                                 : photo,
                             ),
                           );
@@ -318,7 +368,7 @@ function PhotoManager({ activityId }: { activityId: string }) {
           </div>
 
           {saved && (
-            <p className="settings-save-message" role="status">
+            <p className="save-toast" role="status" aria-live="polite">
               Foto dan tag berhasil disimpan.
             </p>
           )}

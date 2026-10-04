@@ -116,7 +116,7 @@ export default function FeeTypeForm({
         }
 
         if (!response.ok) {
-          throw new Error("Failed to load branches");
+          throw new Error("Gagal memuat cabang");
         }
 
         const data = await response.json();
@@ -138,7 +138,7 @@ export default function FeeTypeForm({
         }
 
         console.error(loadError);
-        setBranchesError("Failed to load branches.");
+        setBranchesError("Gagal memuat cabang.");
       } finally {
         if (!controller.signal.aborted) {
           setBranchesLoading(false);
@@ -186,7 +186,7 @@ export default function FeeTypeForm({
         }
 
         if (!response.ok) {
-          throw new Error("Failed to load classes");
+          throw new Error("Gagal memuat kelas");
         }
 
         const data = await response.json();
@@ -208,7 +208,7 @@ export default function FeeTypeForm({
         }
 
         console.error(loadError);
-        setClassesError("Failed to load classes.");
+        setClassesError("Gagal memuat kelas.");
       } finally {
         if (!controller.signal.aborted) {
           setClassesLoading(false);
@@ -244,7 +244,7 @@ export default function FeeTypeForm({
         }
 
         if (!response.ok) {
-          throw new Error("Failed to load fee type details");
+          throw new Error("Gagal memuat detail jenis biaya");
         }
 
         const data = await response.json();
@@ -356,7 +356,7 @@ export default function FeeTypeForm({
         }
 
         throw new Error(
-          isEdit ? "Failed to update fee type" : "Failed to create fee type",
+          isEdit ? "Gagal memperbarui jenis biaya" : "Gagal membuat jenis biaya",
         );
       }
 
@@ -368,8 +368,8 @@ export default function FeeTypeForm({
         err instanceof Error
           ? err.message
           : isEdit
-            ? "Failed to update fee type"
-            : "Failed to create fee type",
+            ? "Gagal memperbarui jenis biaya"
+            : "Gagal membuat jenis biaya",
       );
     } finally {
       setLoading(false);
@@ -381,10 +381,10 @@ export default function FeeTypeForm({
       <div className="modal">
         <div className="modal-header">
           <div>
-            <h2>{isEdit ? "Edit Fee Type" : "Create Fee Type"}</h2>
+            <h2>{isEdit ? "Edit Jenis Biaya" : "Tambah Jenis Biaya"}</h2>
 
             <p>
-              {isEdit ? "Update fee type information." : "Add a new fee type."}
+              {isEdit ? "Perbarui informasi jenis biaya." : "Tambahkan jenis biaya baru."}
             </p>
           </div>
 
@@ -398,7 +398,7 @@ export default function FeeTypeForm({
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <div className="form-field">
-              <label htmlFor="name">Name</label>
+              <label htmlFor="name">Nama</label>
 
               <input
                 id="name"
@@ -410,7 +410,7 @@ export default function FeeTypeForm({
             </div>
 
             <div className="form-field">
-              <label htmlFor="description">Description</label>
+              <label htmlFor="description">Deskripsi</label>
 
               <input
                 id="description"
@@ -421,7 +421,7 @@ export default function FeeTypeForm({
               />
             </div>
             <div className="form-field">
-              <label htmlFor="branch">Branch</label>
+              <label htmlFor="branch">Cabang</label>
 
               <select
                 id="branch"
@@ -432,14 +432,14 @@ export default function FeeTypeForm({
                 required
               >
                 <option value="">
-                  {branchesLoading ? "Loading branches..." : "Select a branch"}
+                  {branchesLoading ? "Memuat cabang..." : "Pilih cabang"}
                 </option>
                 {branches.map((branch) => (
                   <option key={branch.id} value={branch.id}>
                     {branch.name ??
                       branch.branch_name ??
                       branch.label ??
-                      `Branch ${branch.id}`}
+                      `Cabang ${branch.id}`}
                   </option>
                 ))}
               </select>
@@ -450,16 +450,16 @@ export default function FeeTypeForm({
             </div>
 
             <div className="form-field full">
-              <label>Classes</label>
+              <label>Kelas</label>
 
               <div className="student-checkbox-list">
                 {classesLoading ? (
-                  <span>Loading classes...</span>
+                  <span>Memuat kelas...</span>
                 ) : classes.length === 0 ? (
                   <span>
                     {form.branch
-                      ? "No classes found for this branch"
-                      : "Enter a branch first"}
+                      ? "Tidak ada kelas untuk cabang ini"
+                      : "Pilih cabang terlebih dahulu"}
                   </span>
                 ) : (
                   classes.map((schoolClass) => {
@@ -488,7 +488,7 @@ export default function FeeTypeForm({
                           {schoolClass.class_name ??
                             schoolClass.name ??
                             schoolClass.label ??
-                            `Class ${schoolClass.id}`}
+                            `Kelas ${schoolClass.id}`}
                         </span>
                       </label>
                     );
@@ -502,7 +502,7 @@ export default function FeeTypeForm({
             </div>
 
             <div className="form-field full">
-              <label htmlFor="amount">Amount</label>
+              <label htmlFor="amount">Jumlah</label>
 
               <input
                 id="amount"
@@ -515,7 +515,7 @@ export default function FeeTypeForm({
             </div>
 
             <div className="form-field">
-              <label htmlFor="currency">Currency</label>
+              <label htmlFor="currency">Mata uang</label>
 
               <input
                 id="currency"
@@ -527,7 +527,7 @@ export default function FeeTypeForm({
             </div>
 
             <div className="form-field">
-              <label htmlFor="recurring_frequency">Recurring Frequency</label>
+              <label htmlFor="recurring_frequency">Frekuensi berulang</label>
 
               <select
                 id="recurring_frequency"
@@ -537,9 +537,9 @@ export default function FeeTypeForm({
                 disabled={!form.is_recurring}
                 required
               >
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="annually">Annually</option>
+                <option value="monthly">Bulanan</option>
+                <option value="quarterly">Triwulanan</option>
+                <option value="annually">Tahunan</option>
               </select>
             </div>
 
@@ -551,7 +551,7 @@ export default function FeeTypeForm({
                 checked={form.is_recurring}
                 onChange={handleChange}
               />
-              <label htmlFor="is_recurring">Is Recurring</label>
+              <label htmlFor="is_recurring">Biaya berulang</label>
             </div>
 
             <div className="form-field checkbox-field">
@@ -562,7 +562,7 @@ export default function FeeTypeForm({
                 checked={form.is_active}
                 onChange={handleChange}
               />
-              <label htmlFor="is_active">Is Active</label>
+              <label htmlFor="is_active">Aktif</label>
             </div>
           </div>
 
@@ -573,17 +573,17 @@ export default function FeeTypeForm({
               onClick={onCancel}
               disabled={loading}
             >
-              Cancel
+              Batal
             </button>
 
             <button type="submit" className="button-primary" disabled={loading}>
               {loading
                 ? isEdit
-                  ? "Saving..."
-                  : "Creating..."
+                  ? "Menyimpan..."
+                  : "Membuat..."
                 : isEdit
-                  ? "Save Changes"
-                  : "Create Fee Type"}
+                  ? "Simpan Perubahan"
+                  : "Simpan Jenis Biaya"}
             </button>
           </div>
         </form>

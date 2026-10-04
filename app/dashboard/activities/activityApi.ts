@@ -25,6 +25,8 @@ type ActivityRecord = {
 
 type ActivityImageRecord = {
     image_url?: string;
+    student_id?: number | null;
+    student_ids?: number[];
     image_data?: string | { id?: string; object_key?: string };
 };
 
@@ -128,13 +130,18 @@ export function normalizeActivities(data: unknown): Activity[] {
         .map(studentName)
         .filter(Boolean);
       const firstImage = record.activity_images?.[0];
-      const imageUrl = firstImage?.image_url;
+      const imageRecords = record.activity_images ?? record.images ?? [];
+      const imageUrls = imageRecords.map((image) => image.image_url).filter((url): url is string => Boolean(url));
+      const taggedStudentIds = new Set(
+        imageRecords.flatMap((image) => image.student_ids ?? (image.student_id == null ? [] : [image.student_id])),
+      );
 
       return {
         slug: String(record.id),
         title: record.name ?? "Untitled activity",
         avatar: "📷",
-        imageUrl,
+        imageUrl: firstImage?.image_url,
+        imageUrls,
         className,
         classLabel: className,
         time: activityTime(record.created_at),
@@ -143,6 +150,7 @@ export function normalizeActivities(data: unknown): Activity[] {
       caption: record.description ?? "",
       photos: record.activity_images?.length ?? record.images?.length ?? 0,
         participants,
+        taggedStudentCount: taggedStudentIds.size,
         note: "",
       } satisfies Activity;
     });

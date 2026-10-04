@@ -99,7 +99,7 @@ export default function StudentForm({
         }
 
         if (!response.ok) {
-            throw new Error("Failed to load classes");
+            throw new Error("Gagal memuat kelas");
         }
 
         const data = await response.json();
@@ -129,7 +129,7 @@ export default function StudentForm({
             return;
         }
 
-        if (!response.ok) throw new Error(`Failed to load ${type.toLowerCase()} locations`);
+        if (!response.ok) throw new Error(`Gagal memuat data ${type.toLowerCase()}`);
 
         const data = await response.json();
         const records = Array.isArray(data)
@@ -222,7 +222,7 @@ export default function StudentForm({
                 }
             } catch (loadError) {
                 console.error(loadError);
-                setError("Failed to load locations.");
+                setError("Gagal memuat data lokasi.");
             } finally {
                 setLocationsLoading(false);
             }
@@ -237,7 +237,7 @@ export default function StudentForm({
         void loadClasses()
             .catch((loadError) => {
                 console.error(loadError);
-                setError("Failed to load classes.");
+                setError("Gagal memuat kelas.");
             })
             .finally(() => setClassesLoading(false));
     }, []);
@@ -258,7 +258,7 @@ export default function StudentForm({
             });
             void loadLocations(childType, value).catch((loadError) => {
                 console.error(loadError);
-                setError(`Failed to load ${childType.toLowerCase()} locations.`);
+                setError(`Gagal memuat data ${childType.toLowerCase()}.`);
             });
         }
     }
@@ -398,8 +398,8 @@ export default function StudentForm({
 
                 throw new Error(
                     isEdit
-                        ? "Failed to update student"
-                        : "Failed to create student"
+                        ? "Gagal memperbarui data siswa"
+                        : "Gagal membuat data siswa"
                 );
             }
 
@@ -411,8 +411,8 @@ export default function StudentForm({
                 err instanceof Error
                     ? err.message
                     : isEdit
-                        ? "Failed to update student"
-                        : "Failed to create student"
+                        ? "Gagal memperbarui data siswa"
+                        : "Gagal membuat data siswa"
             );
         } finally {
             setLoading(false);
@@ -425,13 +425,13 @@ export default function StudentForm({
                 <div className="modal-header">
                     <div>
                         <h2>
-                            {isEdit ? "Edit Student" : "Add Student"}
+                            {isEdit ? "Edit Siswa" : "Tambah Siswa"}
                         </h2>
 
                         <p>
                             {isEdit
-                                ? "Update student and guardian information."
-                                : "Complete the student and guardian details for a new enrollment."}
+                                ? "Perbarui informasi siswa dan wali."
+                                : "Lengkapi data siswa dan wali untuk pendaftaran baru."}
                         </p>
                     </div>
 
@@ -451,36 +451,36 @@ export default function StudentForm({
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    <h3>Student Details</h3>
+                    <h3>Detail Siswa</h3>
 
                     <div className="form-grid">
                         <div className="form-field full">
-                            <label htmlFor="first_name">First name</label>
+                            <label htmlFor="first_name">Nama depan</label>
                             <input id="first_name" name="first_name" value={form.first_name} onChange={handleChange} required />
                         </div>
 
                         <div className="form-field">
-                            <label htmlFor="middle_name">Middle name</label>
+                            <label htmlFor="middle_name">Nama tengah</label>
                             <input id="middle_name" name="middle_name" value={form.middle_name} onChange={handleChange} />
                         </div>
 
                         <div className="form-field">
-                            <label htmlFor="last_name">Last name</label>
+                            <label htmlFor="last_name">Nama belakang</label>
                             <input id="last_name" name="last_name" value={form.last_name} onChange={handleChange} required />
                         </div>
 
                         <div className="form-field">
-                            <label htmlFor="nickname">Nickname</label>
+                            <label htmlFor="nickname">Nama panggilan</label>
                             <input id="nickname" name="nickname" value={form.nickname} onChange={handleChange} />
                         </div>
 
                         <div className="form-field">
-                            <label htmlFor="student_number">Student ID (NIS)</label>
+                            <label htmlFor="student_number">Nomor Induk Siswa (NIS)</label>
                             <input id="student_number" name="student_number" value={form.student_number} onChange={handleChange} placeholder="26009" required />
                         </div>
 
                         <div className="form-field">
-                            <label htmlFor="class_name">Class</label>
+                            <label htmlFor="class_name">Kelas</label>
                             <select
                                 id="class_name"
                                 name="class_name"
@@ -490,7 +490,7 @@ export default function StudentForm({
                                 required
                             >
                                 <option value="">
-                                    {classesLoading ? "Loading classes..." : "Select class"}
+                                    {classesLoading ? "Memuat kelas..." : "Pilih kelas"}
                                 </option>
 
                                 {classes.map((schoolClass) => (
@@ -498,46 +498,46 @@ export default function StudentForm({
                                         key={schoolClass.id}
                                         value={schoolClass.id}
                                     >
-                                        {schoolClass.name}
+                                        {schoolClass.name.replace(/^class\b/i, "Kelas")}
                                     </option>
                                 ))}
                             </select>
                         </div>
 
                         <div className="form-field">
-                            <label htmlFor="gender">Gender</label>
+                            <label htmlFor="gender">Jenis kelamin</label>
                             <select id="gender" name="gender" value={form.gender} onChange={handleChange} required>
-                                <option value="">Select gender</option>
-                                <option value="female">Female</option>
-                                <option value="male">Male</option>
+                                <option value="">Pilih jenis kelamin</option>
+                                <option value="female">Perempuan</option>
+                                <option value="male">Laki-laki</option>
                             </select>
                         </div>
 
                         <div className="form-field">
-                            <label htmlFor="date_of_birth">Date of birth</label>
+                            <label htmlFor="date_of_birth">Tanggal lahir</label>
                             <input id="date_of_birth" name="date_of_birth" type="date" value={form.date_of_birth} onChange={handleChange} required />
                         </div>
 
                         <div className="form-field">
                             <label htmlFor="status">Status</label>
                             <select id="status" name="status" value={form.status} onChange={handleChange}>
-                                <option value="active">Active</option>
-                                <option value="new">New</option>
-                                <option value="leave">Leave</option>
+                                <option value="active">Aktif</option>
+                                <option value="new">Baru</option>
+                                <option value="leave">Cuti</option>
                             </select>
                         </div>
 
                         <div className="form-field">
-                            <label htmlFor="enroll_date">Enrollment date</label>
+                            <label htmlFor="enroll_date">Tanggal pendaftaran</label>
                             <input id="enroll_date" name="enroll_date" type="date" value={form.enroll_date} onChange={handleChange} required />
                         </div>
 
                         {[
-                            { type: "COUNTRY", label: "Country", child: "PROVINCE" },
-                            { type: "PROVINCE", label: "Province", child: "CITY" },
-                            { type: "CITY", label: "City", child: "DISTRICT" },
-                            { type: "DISTRICT", label: "District", child: "VILLAGE" },
-                            { type: "VILLAGE", label: "Village" },
+                            { type: "COUNTRY", label: "Negara", child: "PROVINCE" },
+                            { type: "PROVINCE", label: "Provinsi", child: "CITY" },
+                            { type: "CITY", label: "Kota", child: "DISTRICT" },
+                            { type: "DISTRICT", label: "Kecamatan", child: "VILLAGE" },
+                            { type: "VILLAGE", label: "Kelurahan" },
                         ].map((location) => {
                             const parentType = {
                                 PROVINCE: "COUNTRY",
@@ -559,7 +559,7 @@ export default function StudentForm({
                                         required={location.type === "VILLAGE"}
                                         onChange={(event) => handleLocationChange(location.type, event.target.value, location.child)}
                                     >
-                                        <option value="">Select {location.label.toLowerCase()}</option>
+                                        <option value="">Pilih {location.label.toLowerCase()}</option>
                                         {options.map((option) => (
                                             <option key={option.id} value={option.id}>{option.name}</option>
                                         ))}
@@ -569,31 +569,31 @@ export default function StudentForm({
                         })}
 
                         <div className="form-field full">
-                            <label htmlFor="address">Home address</label>
+                            <label htmlFor="address">Alamat rumah</label>
                             <textarea id="address" name="address" value={form.address} onChange={handleChange} placeholder="Jl. Melati No. 12, Bandung" />
                         </div>
                     </div>
 
-                    <h3>Guardian Details</h3>
+                    <h3>Detail Wali</h3>
 
                     <div className="form-grid">
                         <div className="form-field">
-                            <label htmlFor="guardian_name">Guardian name</label>
+                            <label htmlFor="guardian_name">Nama wali</label>
                             <input id="guardian_name" name="guardian_name" value={form.guardian_name} onChange={handleChange} required />
                         </div>
 
                         <div className="form-field">
-                            <label htmlFor="guardian_relation">Relationship</label>
+                            <label htmlFor="guardian_relation">Hubungan</label>
                             <select id="guardian_relation" name="guardian_relation" value={form.guardian_relation} onChange={handleChange} required>
-                                <option value="">Select relationship</option>
-                                <option value="mother">Mother</option>
-                                <option value="father">Father</option>
-                                <option value="guardian">Guardian</option>
+                                <option value="">Pilih hubungan</option>
+                                <option value="mother">Ibu</option>
+                                <option value="father">Ayah</option>
+                                <option value="guardian">Wali</option>
                             </select>
                         </div>
 
                         <div className="form-field">
-                            <label htmlFor="guardian_phone">WhatsApp number</label>
+                            <label htmlFor="guardian_phone">Nomor WhatsApp</label>
                             <input id="guardian_phone" name="guardian_phone" type="tel" value={form.guardian_phone} onChange={handleChange} placeholder="0812-3456-7890" required />
                         </div>
 
@@ -604,7 +604,7 @@ export default function StudentForm({
 
                         {!isEdit && (
                             <div className="form-field">
-                                <label htmlFor="guardian_password">Parent password</label>
+                                <label htmlFor="guardian_password">Kata sandi wali</label>
                                 <input id="guardian_password" name="guardian_password" type="password" value={form.guardian_password} onChange={handleChange} minLength={8} required />
                             </div>
                         )}
@@ -617,7 +617,7 @@ export default function StudentForm({
                             onClick={onCancel}
                             disabled={loading}
                         >
-                            Cancel
+                            Batal
                         </button>
 
                         <button
@@ -627,11 +627,11 @@ export default function StudentForm({
                         >
                             {loading
                                 ? isEdit
-                                    ? "Saving..."
-                                    : "Adding..."
+                                    ? "Menyimpan..."
+                                    : "Menambahkan..."
                                 : isEdit
-                                    ? "Save Changes"
-                                    : "Save Student"}
+                                    ? "Simpan Perubahan"
+                                    : "Simpan Siswa"}
                         </button>
                     </div>
                 </form>
