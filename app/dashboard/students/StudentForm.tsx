@@ -41,6 +41,13 @@ type Student = {
     guardian_email?: string;
 };
 
+type Guardian = {
+    id: number;
+    name: string;
+    email?: string;
+    phone_number?: string;
+};
+
 type SchoolClass = {
     id: number;
     name: string;
@@ -79,6 +86,12 @@ export default function StudentForm({
         guardian_password: "",
     });
 
+    const [guardianMode, setGuardianMode] = useState("new");
+    const [guardianSearch, setGuardianSearch] = useState("");
+    const [guardianId, setGuardianId] = useState("");
+    const [guardians, setGuardians] = useState<Guardian[]>([]);
+    const [guardiansLoading, setGuardiansLoading] = useState(false);
+    const [guardiansError, setGuardiansError] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [locations, setLocations] = useState<Record<string, Location[]>>({});
@@ -86,6 +99,44 @@ export default function StudentForm({
     const [locationsLoading, setLocationsLoading] = useState(false);
     const [classes, setClasses] = useState<SchoolClass[]>([]);
     const [classesLoading, setClassesLoading] = useState(false);
+
+    useEffect(() => {
+        if (isEdit || guardianMode !== "existing") return;
+
+        const controller = new AbortController();
+        const timer = setTimeout(async () => {
+            setGuardiansLoading(true);
+            setGuardiansError("");
+            try {
+                const params = new URLSearchParams({ search: guardianSearch.trim() });
+                const response = await fetch(`/api/proxy/guardians/?${params}`, {
+                    credentials: "include",
+                    cache: "no-store",
+                    signal: controller.signal,
+                });
+                if (response.status === 401) {
+                    window.location.href = "/login";
+                    return;
+                }
+                if (!response.ok) throw new Error("Gagal memuat data wali. Coba cari kembali.");
+                const data = await response.json();
+                if (controller.signal.aborted) return;
+                setGuardians(Array.isArray(data) ? data : data.results ?? data.data ?? []);
+            } catch (err) {
+                if (!controller.signal.aborted) {
+                    setGuardians([]);
+                    setGuardiansError(err instanceof Error ? err.message : "Gagal memuat data wali.");
+                }
+            } finally {
+                if (!controller.signal.aborted) setGuardiansLoading(false);
+            }
+        }, 300);
+
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [guardianMode, guardianSearch, isEdit]);
 
     async function loadClasses() {
         const response = await fetch("/api/proxy/classes/", {
@@ -279,6 +330,11 @@ export default function StudentForm({
     async function handleSubmit(event: FormEvent) {
         event.preventDefault();
 
+        if (!isEdit && guardianMode === "existing" && !guardianId) {
+            setError("Pilih wali yang sudah ada terlebih dahulu.");
+            return;
+        }
+
         setLoading(true);
         setError("");
 
@@ -329,14 +385,18 @@ export default function StudentForm({
                         {
                             relationship: form.guardian_relation.toLowerCase(),
                             is_primary: true,
-                            user: {
-                                email: form.guardian_email,
-                                password: form.guardian_password,
-                                first_name: guardianFirstName,
-                                last_name: guardianLastName,
-                                phone_number: form.guardian_phone,
-                                image_data: null,
-                            },
+                            ...(guardianMode === "existing" ? {
+                                guardian_id: Number(guardianId),
+                            } : {
+                                user: {
+                                    email: form.guardian_email,
+                                    password: form.guardian_password,
+                                    first_name: guardianFirstName,
+                                    last_name: guardianLastName,
+                                    phone_number: form.guardian_phone,
+                                    image_data: null,
+                                }
+                            }),
                         },
                     ],
 
@@ -347,13 +407,6 @@ export default function StudentForm({
                         },
                     ],
                 };
-
-            console.log(
-                isEdit
-                    ? "UPDATE STUDENT SUBMIT:"
-                    : "CREATE STUDENT SUBMIT:",
-                body
-            );
 
             const response = await fetch(url, {
                 method,
@@ -476,7 +529,7 @@ export default function StudentForm({
 
                         <div className="form-field">
                             <label htmlFor="student_number">Nomor Induk Siswa (NIS)</label>
-                            <input id="student_number" name="student_number" value={form.student_number} onChange={handleChange} placeholder="26009" required />
+                            <input id="student_number" name="student_number" value={form.student_number} onChange={handleChange} placeholder="26009"/>
                         </div>
 
                         <div className="form-field">
@@ -577,10 +630,51 @@ export default function StudentForm({
                     <h3>Detail Wali</h3>
 
                     <div className="form-grid">
-                        <div className="form-field">
+                        {!isEdit && (
+                            <div className="form-field full">
+                                <label htmlFor="guardian_mode">Data wali</label>
+                                <select id="guardian_mode" value={guardianMode} onChange={(event) => {
+                                    setGuardianMode(event.target.value);
+                                    setGuardianId("");
+                                    setGuardianSearch("");
+                                    setGuardians([]);
+                                    setGuardiansError("");
+                                    setGuardiansLoading(event.target.value === "existing");
+                                }}>
+                                    <option value="new">Buat data wali baru</option>
+                                    <option value="existing">Ada data wali yang sudah ada</option>
+                                </select>
+                            </div>
+                        )}
+
+                        {!isEdit && guardianMode === "existing" && (
+                            <div className="form-field full">
+                                <label htmlFor="guardian_search">Cari wali</label>
+                                <input id="guardian_search" type="search" value={guardianSearch} placeholder="Cari nama, email, atau nomor telepon" onChange={(event) => {
+                                    setGuardianSearch(event.target.value);
+                                    setGuardianId("");
+                                    setGuardians([]);
+                                    setGuardiansLoading(true);
+                                }} />
+                                <label htmlFor="guardian_id">Pilih wali</label>
+                                <select id="guardian_id" value={guardianId} onChange={(event) => setGuardianId(event.target.value)} disabled={guardiansLoading || Boolean(guardiansError)} required>
+                                    <option value="">{guardiansLoading ? "Mencari wali..." : "Pilih wali"}</option>
+                                    {guardians.map((guardian) => (
+                                        <option key={guardian.id} value={guardian.id}>
+                                            {[guardian.name, guardian.email, guardian.phone_number].filter(Boolean).join(" — ")}
+                                        </option>
+                                    ))}
+                                </select>
+                                <p role="status">
+                                    {guardiansError || (!guardiansLoading && guardians.length === 0 ? "Tidak ada wali ditemukan. Coba kata pencarian lain atau buat data wali baru." : "")}
+                                </p>
+                            </div>
+                        )}
+
+                        {(isEdit || guardianMode === "new") && <div className="form-field">
                             <label htmlFor="guardian_name">Nama wali</label>
                             <input id="guardian_name" name="guardian_name" value={form.guardian_name} onChange={handleChange} required />
-                        </div>
+                        </div>}
 
                         <div className="form-field">
                             <label htmlFor="guardian_relation">Hubungan</label>
@@ -592,22 +686,17 @@ export default function StudentForm({
                             </select>
                         </div>
 
-                        <div className="form-field">
-                            <label htmlFor="guardian_phone">Nomor WhatsApp</label>
-                            <input id="guardian_phone" name="guardian_phone" type="tel" value={form.guardian_phone} onChange={handleChange} placeholder="0812-3456-7890" required />
-                        </div>
-
-                        <div className="form-field">
-                            <label htmlFor="guardian_email">Email</label>
-                            <input id="guardian_email" name="guardian_email" type="email" value={form.guardian_email} onChange={handleChange} placeholder="guardian@email.com" required={!isEdit} />
-                        </div>
-
-                        {!isEdit && (
+                        {(isEdit || guardianMode === "new") && <>
                             <div className="form-field">
-                                <label htmlFor="guardian_password">Kata sandi wali</label>
-                                <input id="guardian_password" name="guardian_password" type="password" value={form.guardian_password} onChange={handleChange} minLength={8} required />
+                                <label htmlFor="guardian_phone">Nomor WhatsApp</label>
+                                <input id="guardian_phone" name="guardian_phone" type="tel" value={form.guardian_phone} onChange={handleChange} placeholder="0812-3456-7890" required />
                             </div>
-                        )}
+
+                            <div className="form-field">
+                                <label htmlFor="guardian_email">Email</label>
+                                <input id="guardian_email" name="guardian_email" type="email" value={form.guardian_email} onChange={handleChange} placeholder="guardian@email.com" required={!isEdit} />
+                            </div>
+                        </>}
                     </div>
 
                     <div className="modal-actions">
@@ -623,7 +712,7 @@ export default function StudentForm({
                         <button
                             type="submit"
                             className="button-primary"
-                            disabled={loading}
+                            disabled={loading || (!isEdit && guardianMode === "existing" && (guardiansLoading || !guardianId))}
                         >
                             {loading
                                 ? isEdit
