@@ -62,7 +62,7 @@ try {
 
         <div className="showcase-copy">
           <span className="showcase-pill">
-            TK HARAPAN BANGSA
+            Portal Sekolah
           </span>
 
           <h1>

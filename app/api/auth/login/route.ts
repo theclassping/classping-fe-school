@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { setSessionCookies } from "@/lib/session";
+import { isSessionUser, setSessionCookies } from "@/lib/session";
 
 const DJANGO_API_URL = process.env.DJANGO_API_URL;
 
@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
     const accessToken = data.access;
     const refreshToken = data.refresh;
 
-    if (!accessToken || !refreshToken) {
+    if (typeof accessToken !== "string" || !accessToken ||
+        typeof refreshToken !== "string" || !refreshToken || !isSessionUser(data.user)) {
       return NextResponse.json(
         {
           detail: "Invalid authentication response from server",
@@ -42,9 +43,11 @@ export async function POST(request: NextRequest) {
 
     const nextResponse = NextResponse.json({
       success: true,
+      user: data.user,
     });
+    nextResponse.headers.set("Cache-Control", "no-store");
 
-    setSessionCookies(nextResponse, { access: accessToken, refresh: refreshToken });
+    setSessionCookies(nextResponse, { access: accessToken, refresh: refreshToken }, data.user);
 
     return nextResponse;
   } catch (error) {

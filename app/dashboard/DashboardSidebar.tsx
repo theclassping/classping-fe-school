@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -68,6 +69,29 @@ const menuItems = [
 
 export default function DashboardSidebar({ open = false, onNavigate }: DashboardSidebarProps) {
   const pathname = usePathname();
+  const [canManageSettings, setCanManageSettings] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/auth/session", {
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!controller.signal.aborted) {
+          setCanManageSettings(data.user?.role === "STAFF" || data.user?.role === "ADMIN");
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) console.error("Gagal memuat sesi pengguna", error);
+      }
+    }
+    void loadSession();
+    return () => controller.abort();
+  }, []);
 
   return (
     <aside className={`sidebar ${open ? "open" : ""}`}>
@@ -109,14 +133,14 @@ export default function DashboardSidebar({ open = false, onNavigate }: Dashboard
           <School aria-hidden="true" />
           <span>Profil Sekolah</span>
         </Link>
-        <Link
+        {canManageSettings && <Link
           href="/dashboard/settings"
           className={`nav-item ${pathname.startsWith("/dashboard/settings") ? "active" : ""}`}
           onClick={onNavigate}
         >
           <Settings aria-hidden="true" />
           <span>Pengaturan</span>
-        </Link>
+        </Link>}
       </nav>
 
       <div className="help-card">

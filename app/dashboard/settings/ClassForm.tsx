@@ -1,6 +1,16 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+
+type Teacher = {
+    id: number;
+    first_name: string;
+    last_name: string;
+};
+
+function teacherName(teacher: Teacher) {
+    return `${teacher.first_name} ${teacher.last_name}`.trim();
+}
 
 type Class = {
     id: number;
@@ -30,6 +40,53 @@ export default function ClassForm({
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [teachers, setTeachers] = useState<Teacher[]>([]);
+    const [teachersLoading, setTeachersLoading] = useState(true);
+    const [teachersError, setTeachersError] = useState("");
+
+    useEffect(() => {
+        const controller = new AbortController();
+
+        async function loadTeachers() {
+            try {
+                let url = "/api/proxy/staffs/?staff_type=teacher";
+                const visited = new Set<string>();
+                const records: Teacher[] = [];
+
+                while (!visited.has(url)) {
+                    visited.add(url);
+                    const response = await fetch(url, {
+                        credentials: "include",
+                        cache: "no-store",
+                        signal: controller.signal,
+                    });
+                    if (response.status === 401) {
+                        window.location.href = "/login";
+                        return;
+                    }
+                    if (!response.ok) throw new Error("Gagal memuat guru. Buka kembali form untuk mencoba lagi.");
+
+                    const data = await response.json();
+                    records.push(...(Array.isArray(data) ? data : data.results ?? data.data ?? []));
+                    if (!data.next) break;
+                    const params = new URL(data.next, window.location.origin).searchParams;
+                    params.set("staff_type", "teacher");
+                    url = `/api/proxy/staffs/?${params}`;
+                }
+
+                if (!controller.signal.aborted) setTeachers(records);
+            } catch (err) {
+                if (!controller.signal.aborted) {
+                    setTeachersError(err instanceof Error ? err.message : "Gagal memuat guru.");
+                }
+            } finally {
+                if (!controller.signal.aborted) setTeachersLoading(false);
+            }
+        }
+
+        void loadTeachers();
+        return () => controller.abort();
+    }, []);
 
     function handleChange(
         event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -200,13 +257,30 @@ export default function ClassForm({
                                 Wali kelas
                             </label>
 
-                            <input
+                            <select
                                 id="teacher_name"
                                 name="teacher_name"
                                 value={form.teacher_name}
                                 onChange={handleChange}
+                                disabled={teachersLoading || !!teachersError}
                                 required
-                            />
+                            >
+                                <option value="">
+                                    {teachersLoading ? "Memuat guru..." : "Pilih wali kelas"}
+                                </option>
+                                {form.teacher_name && !teachers.some((teacher) => teacherName(teacher) === form.teacher_name) && (
+                                    <option value={form.teacher_name}>{form.teacher_name}</option>
+                                )}
+                                {teachers.map((teacher) => (
+                                    <option key={teacher.id} value={teacherName(teacher)}>
+                                        {teacherName(teacher)}
+                                    </option>
+                                ))}
+                            </select>
+                            {teachersError && <div className="form-error" role="alert">{teachersError}</div>}
+                            {!teachersLoading && !teachersError && teachers.length === 0 && (
+                                <p>Belum ada guru tersedia.</p>
+                            )}
                         </div>
                     </div>
 
@@ -223,7 +297,7 @@ export default function ClassForm({
                         <button
                             type="submit"
                             className="button-primary"
-                            disabled={loading}
+                            disabled={loading || teachersLoading || !!teachersError}
                         >
                             {loading
                                 ? isEdit

@@ -149,7 +149,13 @@ function formatStatus(active: boolean) {
 }
 
 export default function SettingsPage() {
-  const [activeSection, setActiveSection] = useState(sections[0].id);
+  const [requestedSection, setActiveSection] = useState(sections[0].id);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const canManageSettings = userRole === "STAFF" || userRole === "ADMIN";
+  const visibleSections = sections;
+  const section = visibleSections.find((item) => item.id === requestedSection) ?? visibleSections[0];
+  const activeSection = section.id;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [savedSection, setSavedSection] = useState("");
   const [users, setUsers] = useState<User[]>([]);
@@ -358,20 +364,54 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
+    const controller = new AbortController();
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/auth/session", {
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (controller.signal.aborted) return;
+        const role = data.user?.role ?? null;
+        setUserRole(role);
+        if (role === "STAFF" || role === "ADMIN") {
+          void loadUsers();
+          void loadFeeTypes();
+          void loadStaffs();
+          void loadClasses();
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) console.error("Gagal memuat sesi pengguna", error);
+      } finally {
+        if (!controller.signal.aborted) setSessionLoading(false);
+      }
+    }
     const timer = window.setTimeout(() => {
-      void loadUsers();
-      void loadStaffs();
-      void loadClasses();
-      void loadFeeTypes();
+      void loadSession();
     }, 0);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
   }, []);
 
-  const section =
-    sections.find((item) => item.id === activeSection) ?? sections[0];
   const staffUsers = users.filter((user) =>
     ["ADMIN", "STAFF", "TEACHER", "PARENT"].includes(user.role),
   ); //Admin will remove
+
+  if (sessionLoading || !canManageSettings) {
+    return (
+      <main>
+        <section className="settings-page panel">
+          <h2>Pengaturan</h2>
+          <p role="status">{sessionLoading ? "Memuat pengaturan..." : "Pengaturan hanya tersedia untuk Admin dan Staf."}</p>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main>
@@ -388,7 +428,7 @@ export default function SettingsPage() {
           role="tablist"
           aria-label="Bagian pengaturan"
         >
-          {sections.map((item) => (
+          {visibleSections.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -717,7 +757,7 @@ export default function SettingsPage() {
           }}
         />
       )}
-      {userFormOpen && (
+      {canManageSettings && userFormOpen && (
         <UserForm
           user={editingUser ?? undefined}
           onCancel={() => {
@@ -759,7 +799,7 @@ export default function SettingsPage() {
           }}
         />
       )}
-      {feeTypeFormOpen && (
+      {canManageSettings && feeTypeFormOpen && (
         <FeeTypeForm
           feeType={editingFeeType ?? undefined}
           onCancel={() => {
@@ -773,7 +813,7 @@ export default function SettingsPage() {
           }}
         />
       )}
-      {deactivatingFeeType && (
+      {canManageSettings && deactivatingFeeType && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
@@ -823,7 +863,7 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
-      {generatingInvoiceFeeType && (
+      {canManageSettings && generatingInvoiceFeeType && (
         <GenerateInvoiceForm
           feeType={generatingInvoiceFeeType}
           classes={classes}

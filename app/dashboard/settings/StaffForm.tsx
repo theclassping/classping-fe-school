@@ -1,9 +1,10 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type Staff = {
     id: number;
+    branch?: number;
     first_name: string;
     last_name: string;
     email: string;
@@ -28,11 +29,12 @@ export default function StaffForm({
     const isEdit = !!staff;
 
     const [form, setForm] = useState({
+        branch: staff?.branch ? String(staff.branch) : "",
         email: staff?.email ?? "",
         first_name: staff?.first_name ?? "",
         last_name: staff?.last_name ?? "",
         phone: staff?.phone ?? "",
-        staff_type: staff?.staff_type ?? "STAFF",
+        staff_type: staff?.staff_type ?? "officer",
         hire_date: staff?.hire_date ?? "",
         qualification: staff?.qualification ?? "",
         is_active: staff?.is_active ?? true,
@@ -40,6 +42,37 @@ export default function StaffForm({
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [branches, setBranches] = useState<Array<{ id: number; name: string }>>([]);
+    const [branchesLoading, setBranchesLoading] = useState(!isEdit);
+    const [branchesError, setBranchesError] = useState("");
+
+    useEffect(() => {
+        if (isEdit) return;
+        const controller = new AbortController();
+        async function loadBranches() {
+            try {
+                let url = "/api/proxy/branches/";
+                const visited = new Set<string>();
+                const records: Array<{ id: number; name: string }> = [];
+                while (!visited.has(url)) {
+                    visited.add(url);
+                    const response = await fetch(url, { credentials: "include", cache: "no-store", signal: controller.signal });
+                    if (!response.ok) throw new Error("Gagal memuat cabang. Buka kembali form untuk mencoba lagi.");
+                    const data = await response.json();
+                    records.push(...(Array.isArray(data) ? data : data.results ?? data.data ?? []));
+                    if (!data.next) break;
+                    url = `/api/proxy/branches/${new URL(data.next, "https://backend.invalid").search}`;
+                }
+                if (!controller.signal.aborted) setBranches(records);
+            } catch (err) {
+                if (!controller.signal.aborted) setBranchesError(err instanceof Error ? err.message : "Gagal memuat cabang.");
+            } finally {
+                if (!controller.signal.aborted) setBranchesLoading(false);
+            }
+        }
+        void loadBranches();
+        return () => controller.abort();
+    }, [isEdit]);
 
     function handleChange(
         event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -75,7 +108,7 @@ export default function StaffForm({
                     qualification: form.qualification,
                     is_active: form.is_active,
                 }
-                : form;
+                : { ...form, branch: Number(form.branch) };
 
             console.log(
                 isEdit
@@ -181,6 +214,15 @@ export default function StaffForm({
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
+                        {!isEdit && <div className="form-field full">
+                            <label htmlFor="staff_branch">Cabang</label>
+                            <select id="staff_branch" name="branch" value={form.branch} onChange={handleChange} disabled={branchesLoading || Boolean(branchesError)} required>
+                                <option value="">{branchesLoading ? "Memuat cabang..." : "Pilih cabang"}</option>
+                                {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                            </select>
+                            {branchesError && <p role="alert">{branchesError}</p>}
+                            {!branchesLoading && !branchesError && branches.length === 0 && <p role="status">Belum ada cabang tersedia.</p>}
+                        </div>}
                         <div className="form-field">
                             <label htmlFor="first_name">
                                 Nama depan
@@ -264,6 +306,7 @@ export default function StaffForm({
                                 id="hire_date"
                                 name="hire_date"
                                 type="date"
+                                required
                                 value={form.hire_date}
                                 onChange={handleChange}
                             />
@@ -296,7 +339,7 @@ export default function StaffForm({
                         <button
                             type="submit"
                             className="button-primary"
-                            disabled={loading}
+                            disabled={loading || (!isEdit && (branchesLoading || !form.branch || Boolean(branchesError)))}
                         >
                             {loading
                                 ? isEdit
