@@ -4,13 +4,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
   School,
   GraduationCap,
   CreditCard,
   ClipboardList,
-  Award,
   Settings,
+  Mail,
+  X,
 } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 
@@ -70,6 +70,30 @@ const menuItems = [
 export default function DashboardSidebar({ open = false, onNavigate }: DashboardSidebarProps) {
   const pathname = usePathname();
   const [canManageSettings, setCanManageSettings] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [contactSubject, setContactSubject] = useState("Permintaan bantuan ClassPing");
+  const [contactMessage, setContactMessage] = useState("");
+
+  useEffect(() => {
+    if (!contactOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setContactOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [contactOpen]);
+
+  function openEmailDraft(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const subject = encodeURIComponent(contactSubject);
+    const body = encodeURIComponent(contactMessage);
+    window.location.href = `mailto:the.class.ping@gmail.com?subject=${subject}&body=${body}`;
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -94,6 +118,7 @@ export default function DashboardSidebar({ open = false, onNavigate }: Dashboard
   }, []);
 
   return (
+    <>
     <aside className={`sidebar ${open ? "open" : ""}`}>
       <Link href="/dashboard/profile" className="brand" aria-label="ClassPing home" onClick={onNavigate}>
         <span className="brand-mark" aria-hidden="true"><span /><span /><span /></span>
@@ -147,10 +172,58 @@ export default function DashboardSidebar({ open = false, onNavigate }: Dashboard
         <span className="help-icon">?</span>
         <strong>Butuh bantuan?</strong>
         <p>Tim ClassPing siap membantu Anda.</p>
-        <button type="button">Hubungi Kami</button>
+        <button type="button" onClick={() => {
+          setContactSubject("Permintaan bantuan ClassPing");
+          setContactMessage("");
+          setContactOpen(true);
+        }}>Hubungi Kami</button>
       </div>
 
       <LogoutButton />
     </aside>
+    {contactOpen && (
+      <div
+        className="modal-overlay contact-modal-overlay"
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setContactOpen(false);
+        }}
+      >
+        <section className="modal contact-modal" role="dialog" aria-modal="true" aria-labelledby="contact-dialog-title" aria-describedby="contact-dialog-description">
+          <header className="modal-header">
+            <div>
+              <h2 id="contact-dialog-title">Hubungi tim ClassPing</h2>
+              <p id="contact-dialog-description">Tulis pesan bantuan. Draf akan dibuka di aplikasi email Anda.</p>
+            </div>
+            <button className="modal-close" type="button" aria-label="Tutup" onClick={() => setContactOpen(false)}>
+              <X aria-hidden="true" />
+            </button>
+          </header>
+
+          <div className="contact-recipient">
+            <span>Kepada</span>
+            <Mail aria-hidden="true" />
+            <strong>the.class.ping@gmail.com</strong>
+          </div>
+
+          <form onSubmit={openEmailDraft}>
+            <label className="contact-field">
+              <span>Subjek</span>
+              <input autoFocus value={contactSubject} onChange={(event) => setContactSubject(event.target.value)} required />
+            </label>
+            <label className="contact-field">
+              <span>Pesan</span>
+              <textarea value={contactMessage} onChange={(event) => setContactMessage(event.target.value)} placeholder="Jelaskan kendala atau bantuan yang Anda perlukan..." required rows={6} />
+            </label>
+            <p className="contact-email-note">Draf akan dibuka untuk Anda periksa dan kirim. Pesan tidak dikirim otomatis.</p>
+            <div className="modal-actions">
+              <button className="button-secondary" type="button" onClick={() => setContactOpen(false)}>Batal</button>
+              <button className="button-primary" type="submit"><Mail aria-hidden="true" /> Buka aplikasi email</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    )}
+    </>
   );
 }

@@ -22,18 +22,43 @@ export default function SchoolHeader({ onMenuClick }: SchoolHeaderProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [branch, setBranch] = useState<Branch | null>(null);
+  const [schoolName, setSchoolName] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
     let updated = false;
     const onBranchUpdated = (event: Event) => {
       updated = true;
-      setBranch((event as CustomEvent<Branch>).detail);
+      const nextBranch = (event as CustomEvent<Branch>).detail;
+      setBranch(nextBranch);
+      setSchoolName(null);
+      void fetch(`/api/proxy/schools/${nextBranch.school}/`, {
+        credentials: "include",
+        cache: "no-store",
+      }).then(async (response) => {
+        if (!response.ok) return;
+        const school: { name?: string; school_name?: string } = await response.json();
+        setSchoolName(school.name?.trim() || school.school_name?.trim() || null);
+      }).catch((error) => console.error("Gagal memuat nama sekolah", error));
     };
     window.addEventListener(branchUpdatedEvent, onBranchUpdated);
     void loadCurrentBranch(controller.signal)
-      .then((data) => {
-        if (!controller.signal.aborted && !updated) setBranch(data);
+      .then(async (data) => {
+        if (controller.signal.aborted) return;
+        if (!updated) setBranch(data);
+        try {
+          const response = await fetch(`/api/proxy/schools/${data.school}/`, {
+            credentials: "include",
+            cache: "no-store",
+            signal: controller.signal,
+          });
+          if (!response.ok) return;
+          const school: { name?: string; school_name?: string } = await response.json();
+          const name = school.name?.trim() || school.school_name?.trim();
+          if (!controller.signal.aborted && name) setSchoolName(name);
+        } catch (error) {
+          if (!controller.signal.aborted) console.error("Gagal memuat nama sekolah", error);
+        }
       })
       .catch((error) => {
         if (!controller.signal.aborted) console.error("Gagal memuat nama cabang", error);
@@ -120,7 +145,10 @@ export default function SchoolHeader({ onMenuClick }: SchoolHeaderProps) {
         </button>
         <div className="topbar-school">
           <span className="school-avatar">{branch ? getInitials(branch.name) : "CP"}</span>
-          <div><strong>{branch?.name || "Portal Sekolah"}</strong><small>Tahun Ajaran 2026/2027</small></div>
+          <div>
+            <strong>{schoolName || branch?.name || "Portal Sekolah"}</strong>
+            <small>{branch ? `${branch.name} · ` : ""}Tahun Ajaran 2026/2027</small>
+          </div>
         </div>
         <div className="topbar-actions" ref={actionsRef}>
           <button

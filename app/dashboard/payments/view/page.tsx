@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
 
 type PaymentProof = {
   id: number;
@@ -31,6 +32,10 @@ function proofImageData(proof: PaymentProof): string {
     return JSON.stringify(value);
   }
   return value == null ? "-" : String(value);
+}
+
+function isProofImage(value: string) {
+  return value.startsWith("http") || value.startsWith("data:image/") || value.startsWith("blob:");
 }
 
 type PaymentDetail = {
@@ -71,6 +76,22 @@ export default function PaymentViewPage() {
   const [payment, setPayment] = useState<PaymentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedProof, setSelectedProof] = useState<{ src: string; alt: string } | null>(null);
+  const [proofZoom, setProofZoom] = useState(1);
+
+  useEffect(() => {
+    if (!selectedProof) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedProof(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [selectedProof]);
 
   useEffect(() => {
     const paymentId = new URLSearchParams(window.location.search).get(
@@ -123,6 +144,7 @@ export default function PaymentViewPage() {
   }, []);
 
   return (
+    <>
     <main>
       <section className="panel student-manage">
         <div className="panel-heading">
@@ -142,11 +164,8 @@ export default function PaymentViewPage() {
             <p>{error}</p>
           </div>
         ) : payment ? (
-          <div
-            className="student-detail-layout"
-            style={{ padding: "0 22px 20px" }}
-          >
-            <div className="panel detail-panel">
+          <div className="student-detail-layout payment-detail-layout">
+            <div className="panel detail-panel payment-detail-panel">
               <div className="detail-header">
                 <span className="detail-avatar">
                   {payment.student_name
@@ -207,24 +226,34 @@ export default function PaymentViewPage() {
                 {payment.proofs.length === 0 ? (
                   <p>No payment proofs uploaded.</p>
                 ) : (
-                  payment.proofs.map((proof) => (
-                    <div className="payment-proof" key={proof.id}>
-                      {proofImageData(proof).startsWith("http") && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={proofImageData(proof)}
-                          alt={`Payment proof ${proof.id}`}
-                        />
-                      )}
-                      <div>
-                        <strong>Proof #{proof.id}</strong>
-                        <p>Uploaded {formatDate(proof.uploaded_at)}</p>
-                        {!proofImageData(proof).startsWith("http") && (
-                          <p>{proofImageData(proof)}</p>
+                  payment.proofs.map((proof) => {
+                    const image = proofImageData(proof);
+                    const hasImage = isProofImage(image);
+                    return (
+                      <div className="payment-proof" key={proof.id}>
+                        {hasImage && (
+                        <button
+                          className="payment-proof-preview"
+                          type="button"
+                          aria-label={`View payment proof ${proof.id} larger`}
+                          onClick={() => {
+                            setSelectedProof({ src: image, alt: `Payment proof ${proof.id}` });
+                            setProofZoom(1);
+                          }}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={image} alt={`Payment proof ${proof.id}`} />
+                          <span>Click to enlarge</span>
+                        </button>
                         )}
+                        <div className="payment-proof-meta">
+                          <strong>Proof #{proof.id}</strong>
+                          <p>Uploaded {formatDate(proof.uploaded_at)}</p>
+                          {!hasImage && <p>{image}</p>}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -232,5 +261,44 @@ export default function PaymentViewPage() {
         ) : null}
       </section>
     </main>
+    {selectedProof && (
+      <div
+        className="payment-proof-lightbox"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Payment proof image viewer"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) setSelectedProof(null);
+        }}
+      >
+        <div className="payment-proof-lightbox__toolbar">
+          <strong>{selectedProof.alt}</strong>
+          <div className="payment-proof-lightbox__controls">
+            <button type="button" aria-label="Zoom out" onClick={() => setProofZoom((zoom) => Math.max(0.5, zoom - 0.25))} disabled={proofZoom <= 0.5}>
+              <ZoomOut aria-hidden="true" />
+            </button>
+            <span aria-live="polite">{Math.round(proofZoom * 100)}%</span>
+            <button type="button" aria-label="Zoom in" onClick={() => setProofZoom((zoom) => Math.min(3, zoom + 0.25))} disabled={proofZoom >= 3}>
+              <ZoomIn aria-hidden="true" />
+            </button>
+            <button type="button" aria-label="Reset zoom" onClick={() => setProofZoom(1)} disabled={proofZoom === 1}>
+              <RotateCcw aria-hidden="true" />
+            </button>
+            <button type="button" aria-label="Close image viewer" onClick={() => setSelectedProof(null)}>
+              <X aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+        <div className="payment-proof-lightbox__viewport">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={selectedProof.src}
+            alt={selectedProof.alt}
+            style={{ transform: `scale(${proofZoom})` }}
+          />
+        </div>
+      </div>
+    )}
+    </>
   );
 }

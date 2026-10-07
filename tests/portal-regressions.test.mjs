@@ -241,6 +241,29 @@ test('school profile resolves the logged-in user branch across staff pages', asy
   assert.equal(calls[2], '/api/proxy/staffs/?page=2&user=12');
 });
 
+test('admin school profile can load every school across paginated results', async () => {
+  const { loadSchools } = load('app/dashboard/profile/branchApi.ts');
+  const requested = [];
+  global.fetch = async (url) => {
+    requested.push(String(url));
+    if (url === '/api/proxy/schools/') {
+      return json({
+        results: [{ id: 1, name: 'Harapan Bangsa', is_active: true, branches: [{ id: 11, name: 'Main Campus' }] }],
+        next: 'https://backend.test/api/schools/?page=2',
+      });
+    }
+    if (url === '/api/proxy/schools/?page=2') {
+      return json({ results: [{ id: 2, name: 'ClassPing Preschool', is_active: true, branches: [] }], next: null });
+    }
+    throw new Error(`Unexpected request: ${url}`);
+  };
+
+  const schools = await loadSchools();
+  assert.deepEqual(schools.map((school) => school.name), ['Harapan Bangsa', 'ClassPing Preschool']);
+  assert.equal(schools[0].branches[0].name, 'Main Campus');
+  assert.deepEqual(requested, ['/api/proxy/schools/', '/api/proxy/schools/?page=2']);
+});
+
 test('school profile does not use another user branch when staff is missing', async () => {
   const { loadCurrentBranch } = load('app/dashboard/profile/branchApi.ts');
   global.fetch = async (url) => url === '/api/auth/session' ? json({ user: { id: 1 } })

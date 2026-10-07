@@ -2,13 +2,17 @@
 
 import { Pencil, X } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import styles from "./SchoolProfile.module.css";
 
-import { loadCurrentBranch, saveBranch, type Branch } from "./branchApi";
+import { loadCurrentBranch, loadSchools, saveBranch, type Branch, type SchoolRecord } from "./branchApi";
 
 export default function SchoolProfilePage() {
+  const router = useRouter();
   const [profile, setProfile] = useState<Branch | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [schools, setSchools] = useState<SchoolRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reload, setReload] = useState(0);
@@ -22,18 +26,46 @@ export default function SchoolProfilePage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void loadCurrentBranch(controller.signal)
-      .then((branch) => {
-        if (!controller.signal.aborted) setProfile(branch);
-      })
-      .catch((err) => {
+    async function loadProfile() {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await fetch("/api/auth/session", {
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (response.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        if (!response.ok) throw new Error("Gagal memeriksa akun. Silakan coba lagi.");
+        const session: { user?: { role?: string } | null } = await response.json();
+        const admin = session.user?.role?.toUpperCase() === "ADMIN";
+        if (!controller.signal.aborted) {
+          setIsAdmin(admin);
+          setProfile(null);
+        }
+
+        if (admin) {
+          const records = await loadSchools(controller.signal);
+          if (!controller.signal.aborted) setSchools(records);
+        } else {
+          const branch = await loadCurrentBranch(controller.signal);
+          if (!controller.signal.aborted) {
+            setSchools([]);
+            setProfile(branch);
+          }
+        }
+      } catch (err) {
         if (!controller.signal.aborted) setError(err instanceof Error ? err.message : "Gagal memuat profil sekolah.");
-      })
-      .finally(() => {
+      } finally {
         if (!controller.signal.aborted) setLoading(false);
-      });
+      }
+    }
+    void loadProfile();
     return () => controller.abort();
-  }, [reload]);
+  }, [reload, router]);
 
   useEffect(() => {
     if (!editing) return;
@@ -73,7 +105,7 @@ export default function SchoolProfilePage() {
     }
   }
 
-  if (loading || error || !profile) {
+  if (loading || error || (!isAdmin && !profile)) {
     return <main id="main"><section className="panel">
       <h1>Profil Sekolah</h1>
       <p role="status">{loading ? "Memuat profil sekolah..." : error || "Profil sekolah tidak tersedia."}</p>
@@ -81,6 +113,61 @@ export default function SchoolProfilePage() {
         setError(""); setLoading(true); setReload((value) => value + 1);
       }}>Coba lagi</button>}
     </section></main>;
+  }
+
+  if (isAdmin) {
+    return (
+      <main id="main">
+        <section className="profile-hero panel">
+          <span className="profile-logo">CP</span>
+          <div><p className="eyebrow">ADMINISTRASI CLASSPING</p><h1>Profil Sekolah</h1><p>Daftar sekolah dan cabang yang terdaftar.</p></div>
+          <span className={styles.schoolCount}>{schools.length} sekolah</span>
+        </section>
+
+        {schools.length === 0 ? (
+          <section className="panel"><p role="status">Belum ada sekolah yang terdaftar.</p></section>
+        ) : (
+          <section className={styles.schoolList} aria-label="Daftar sekolah terdaftar">
+            {schools.map((school) => (
+              <article className={`panel ${styles.schoolCard}`} key={school.id}>
+                <header className={styles.schoolHeader}>
+                  <span className={styles.schoolMark} aria-hidden="true">
+                    {school.name.split(/\s+/).filter(Boolean).map((word) => word[0]).join("").slice(0, 2).toUpperCase() || "S"}
+                  </span>
+                  <div>
+                    <h2>{school.name}</h2>
+                    <p>{school.register_number ? `No. registrasi · ${school.register_number}` : "Sekolah terdaftar di ClassPing"}</p>
+                  </div>
+                  <span className={`${styles.schoolStatus} ${school.is_active ? styles.active : styles.inactive}`}>
+                    {school.is_active ? "Aktif" : "Nonaktif"}
+                  </span>
+                </header>
+
+                <div className={styles.branchSection}>
+                  <h3>Cabang sekolah <span>{school.branches?.length ?? 0}</span></h3>
+                  {school.branches?.length ? (
+                    <ul>
+                      {school.branches.map((branch) => (
+                        <li key={branch.id}>
+                          <div><strong>{branch.name}</strong><small>{branch.code ? `Kode cabang · ${branch.code}` : "Kode cabang belum tersedia"}</small></div>
+                          <span className={`${styles.branchStatus} ${branch.is_active ? styles.active : styles.inactive}`}>
+                            {branch.is_active ? "Aktif" : "Nonaktif"}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : <p className={styles.noBranches}>Belum ada cabang terdaftar.</p>}
+                </div>
+              </article>
+            ))}
+          </section>
+        )}
+      </main>
+    );
+  }
+
+  if (!profile) {
+    return <main id="main"><section className="panel"><h1>Profil Sekolah</h1><p role="status">Profil sekolah tidak tersedia.</p></section></main>;
   }
 
   return (

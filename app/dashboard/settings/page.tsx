@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Ban, FilePlus2, Pencil } from "lucide-react";
+import { Ban, CircleCheck, FilePlus2, Pencil } from "lucide-react";
 import styles from "../components/TableActions.module.css";
 import UserForm from "../users/UserForm";
 import SettingsFormDialog, { type Field } from "./SettingsFormDialog";
@@ -690,7 +690,7 @@ export default function SettingsPage() {
                                   setFeeTypeActionError("");
                                   setDeactivatingFeeType(feeType);
                                 }}
-                              ><Ban aria-hidden="true" /></button>
+                              >{feeType.is_active ? <Ban aria-hidden="true" /> : <CircleCheck aria-hidden="true" />}</button>
                               <button
                                 className={styles.actionButton}
                                 type="button"
