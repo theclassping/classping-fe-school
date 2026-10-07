@@ -5784,3 +5784,28 @@ html body select:not([multiple]):not([size]) {
     flex: 1 1 150px;
   }
 }
+
+.reset-page { min-height: 100svh; display: grid; place-items: center; padding: 24px; background: #f5f8f6; }
+.reset-card { width: min(460px, 100%); padding: clamp(24px, 5vw, 42px); border: 1px solid #e6ece8; border-radius: 18px; background: #fff; box-shadow: 0 12px 36px rgba(29, 55, 45, .07); }
+.reset-brand { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 38px; color: #17231f; font: 800 23px "Plus Jakarta Sans", sans-serif; text-decoration: none; }
+.reset-brand > span:last-child > span { color: #147d64; }
+.reset-brand-mark { width: 32px; height: 32px; display: grid; grid-template-columns: repeat(3, 1fr); align-items: end; gap: 3px; padding: 5px; border: 2px solid #147d64; border-radius: 9px; }
+.reset-brand-mark span { border-radius: 2px; background: #147d64; }
+.reset-brand-mark span:nth-child(1) { height: 8px; }
+.reset-brand-mark span:nth-child(2) { height: 16px; }
+.reset-brand-mark span:nth-child(3) { height: 11px; }
+.reset-eyebrow { margin: 0 0 9px; color: #147d64; font-size: 11px; font-weight: 800; letter-spacing: 1.3px; }
+.reset-card h1 { margin: 0 0 10px; color: #17231f; font: 800 clamp(25px, 5vw, 31px)/1.2 "Plus Jakarta Sans", sans-serif; letter-spacing: -.7px; }
+.reset-copy { margin: 0 0 25px; color: #718079; line-height: 1.6; }
+.reset-card form > label { display: block; margin: 18px 0 8px; color: #34443c; font-size: 12px; font-weight: 800; }
+.reset-input { height: 50px; display: flex; align-items: center; border: 1px solid #dbe5e0; border-radius: 11px; background: #fff; }
+.reset-input:focus-within { border-color: #147d64; box-shadow: 0 0 0 4px rgba(20, 125, 100, .1); }
+.reset-input > svg { flex: 0 0 auto; width: 18px; margin-left: 14px; color: #8a9891; }
+.reset-input input { width: 100%; min-width: 0; height: 100%; padding: 0 12px; border: 0; outline: 0; background: transparent; color: #17231f; }
+.reset-input button { width: 46px; height: 46px; display: grid; place-items: center; border: 0; background: transparent; color: #85938c; cursor: pointer; }
+.reset-input button svg { width: 18px; }
+.reset-error { margin: 12px 0; color: #bd5039; font-size: 12px; line-height: 1.5; }
+.reset-submit { width: 100%; min-height: 49px; display: inline-flex; align-items: center; justify-content: center; margin-top: 20px; padding: 0 18px; border: 0; border-radius: 11px; color: #fff; background: #147d64; font: inherit; font-weight: 800; text-align: center; text-decoration: none; cursor: pointer; }
+.reset-submit:hover { background: #0f6954; }
+.reset-submit:disabled { opacity: .65; cursor: wait; }
+.reset-help { margin: 22px 0 0; color: #718079; font-size: 12px; line-height: 1.5; }
