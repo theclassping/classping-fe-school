@@ -399,8 +399,9 @@ export default function SettingsPage() {
   }, []);
 
   const staffUsers = users.filter((user) =>
-    ["ADMIN", "STAFF", "TEACHER", "PARENT"].includes(user.role),
-  ); //Admin will remove
+    ["ADMIN", "STAFF", "TEACHER", "PARENT"].includes(user.role) &&
+      (userRole?.toUpperCase() === "ADMIN" || user.role.toUpperCase() !== "ADMIN"),
+  );
 
   if (sessionLoading || !canManageSettings) {
     return (
