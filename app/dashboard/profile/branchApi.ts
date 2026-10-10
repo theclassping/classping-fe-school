@@ -64,6 +64,38 @@ export async function loadCurrentBranch(signal?: AbortSignal): Promise<Branch> {
   throw new Error("Tidak ada cabang sekolah yang terhubung dengan akun Anda.");
 }
 
+export async function loadBranchesForCurrentSchool(signal?: AbortSignal): Promise<Branch[]> {
+  const currentBranch = await loadCurrentBranch(signal);
+  const schoolId = currentBranch.school;
+  let url = `/api/proxy/branches/?school_id=${encodeURIComponent(String(schoolId))}`;
+  const visited = new Set<string>();
+  const branches: Branch[] = [];
+
+  while (!visited.has(url)) {
+    visited.add(url);
+    const data = await requestJson(url, { signal });
+    const records: Branch[] = Array.isArray(data)
+      ? data
+      : Array.isArray(data.results)
+        ? data.results
+        : Array.isArray(data.data?.results)
+          ? data.data.results
+          : Array.isArray(data.data)
+            ? data.data
+            : [];
+
+    // Keep the menu school-scoped even if a response or pagination link is malformed.
+    branches.push(...records.filter((branch) => Number(branch.school) === schoolId));
+
+    if (!data.next) break;
+    const params = new URL(data.next, "https://backend.invalid").searchParams;
+    params.set("school_id", String(schoolId));
+    url = `/api/proxy/branches/?${params.toString()}`;
+  }
+
+  return branches;
+}
+
 export async function loadSchools(signal?: AbortSignal): Promise<SchoolRecord[]> {
   let url = "/api/proxy/schools/";
   const visited = new Set<string>();
