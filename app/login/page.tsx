@@ -1,5 +1,6 @@
 "use client";
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -126,6 +127,8 @@ try {
                 required
               />
             </div>
+
+            <p className="reset-help"><Link href="/forgot-password">Lupa kata sandi?</Link></p>
 
             <button
               className="primary-button login-submit"

@@ -5809,3 +5809,4 @@ html body select:not([multiple]):not([size]) {
 .reset-submit:hover { background: #0f6954; }
 .reset-submit:disabled { opacity: .65; cursor: wait; }
 .reset-help { margin: 22px 0 0; color: #718079; font-size: 12px; line-height: 1.5; }
+.reset-help a { color: #147d64; font-weight: 700; text-underline-offset: 3px; }

@@ -30,6 +30,8 @@ process.env.DJANGO_API_URL = 'https://backend.test';
 const api = load('app/api/proxy/[...path]/route.ts');
 const login = load('app/api/auth/login/route.ts');
 const logout = load('app/api/auth/logout/route.ts');
+const forgotPassword = load('app/api/auth/forgot-password/route.ts');
+const resetPassword = load('app/api/auth/reset-password/route.ts');
 const session = load('app/api/auth/session/route.ts');
 const gate = load('proxy.ts');
 const originalFetch = global.fetch;
@@ -157,6 +159,95 @@ test('logout clears School cookies without overwriting Guardian cookies', async 
   assert.equal(response.cookies.get('school_refresh_token').value, '');
   assert.equal(response.cookies.get('school_user').value, '');
   assert.equal(response.cookies.get('refresh_token'), undefined);
+});
+
+test('password recovery forwards the email without sending auth cookies or changing sessions', async () => {
+  const body = JSON.stringify({ email: 'teacher@example.test' });
+  global.fetch = async (url, init) => {
+    assert.equal(url, 'https://backend.test/api/auth/forgot-password/');
+    assert.equal(init.method, 'POST');
+    assert.equal(init.body, body);
+    assert.equal(init.cache, 'no-store');
+    assert.equal(init.headers.Authorization, undefined);
+    assert.equal(init.headers.Cookie, undefined);
+    return json({ detail: 'If an account exists, a link has been sent.' });
+  };
+  const response = await forgotPassword.POST(req('school_access_token=valid', 'POST', body));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.equal(response.headers.get('set-cookie'), null);
+  assert.deepEqual(await response.json(), { detail: 'If an account exists, a link has been sent.' });
+});
+
+test('successful password reset forwards the token and clears only School cookies', async () => {
+  const body = JSON.stringify({ uid: 'NA', token: 'test-token', new_password: 'NewPassword123!' });
+  global.fetch = async (url, init) => {
+    assert.equal(url, 'https://backend.test/api/auth/reset-password/');
+    assert.equal(init.method, 'POST');
+    assert.equal(init.body, body);
+    assert.equal(init.cache, 'no-store');
+    return json({ detail: 'Password has been reset successfully.' });
+  };
+  const response = await resetPassword.POST(req('school_access_token=school; access_token=guardian', 'POST', body));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  for (const cookie of ['school_access_token', 'school_refresh_token', 'school_user']) {
+    assert.equal(response.cookies.get(cookie).value, '');
+  }
+  assert.equal(response.cookies.get('access_token'), undefined);
+  assert.equal(response.cookies.get('refresh_token'), undefined);
+});
+
+test('invalid reset links and backend password validation leave sessions unchanged', async () => {
+  for (const error of [
+    { detail: 'Invalid or expired password reset link.' },
+    { new_password: ['This password is too common.'] },
+  ]) {
+    global.fetch = async () => json(error, 400);
+    const response = await resetPassword.POST(req('school_access_token=valid', 'POST', '{}'));
+    assert.equal(response.status, 400);
+    assert.equal(response.headers.get('set-cookie'), null);
+    assert.deepEqual(await response.json(), error);
+  }
+});
+
+test('password recovery routes report backend outages without clearing sessions', async () => {
+  global.fetch = async () => { throw new Error('offline'); };
+  for (const route of [forgotPassword, resetPassword]) {
+    const response = await route.POST(req('school_access_token=valid', 'POST', '{}'));
+    assert.equal(response.status, 502);
+    assert.equal(response.headers.get('set-cookie'), null);
+    assert.deepEqual(await response.json(), { detail: 'Tidak dapat menghubungi server autentikasi.' });
+  }
+});
+
+test('password recovery routes reject a missing backend configuration', async () => {
+  const apiUrl = process.env.DJANGO_API_URL;
+  process.env.DJANGO_API_URL = '';
+  global.fetch = async () => { throw new Error('must not forward'); };
+  try {
+    for (const relative of ['app/api/auth/forgot-password/route.ts', 'app/api/auth/reset-password/route.ts']) {
+      modules.delete(path.resolve(root, relative));
+      const response = await load(relative).POST(req('', 'POST', '{}'));
+      assert.equal(response.status, 503);
+      assert.deepEqual(await response.json(), { detail: 'Server autentikasi belum dikonfigurasi.' });
+      modules.delete(path.resolve(root, relative));
+    }
+  } finally {
+    process.env.DJANGO_API_URL = apiUrl;
+  }
+});
+
+test('School login links to recovery and reset form uses an email token, confirmation, and Suspense', () => {
+  const loginPage = fs.readFileSync(path.join(root, 'app/login/page.tsx'), 'utf8');
+  const resetPage = fs.readFileSync(path.join(root, 'app/reset-password/page.tsx'), 'utf8');
+  assert.match(loginPage, /href="\/forgot-password"/);
+  assert.match(resetPage, /searchParams\.get\("uid"\)/);
+  assert.match(resetPage, /searchParams\.get\("token"\)/);
+  assert.match(resetPage, /password !== confirmation/);
+  assert.match(resetPage, /<Suspense/);
+  assert.match(resetPage, /disabled=\{loading \|\| !uid \|\| !token\}/);
+  assert.match(resetPage, /href="\/forgot-password"/);
 });
 
 test('activity normalization reads actual API photo, student, and publication fields', () => {

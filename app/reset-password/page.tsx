@@ -14,7 +14,7 @@ function ResetPasswordForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [error, setError] = useState(
-    !uid || !token ? "Tautan ini tidak lengkap atau sudah kedaluwarsa. Hubungi administrator sekolah untuk bantuan." : "",
+    !uid || !token ? "Tautan ini tidak lengkap. Minta tautan pemulihan baru." : "",
   );
   const [complete, setComplete] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ function ResetPasswordForm() {
     event.preventDefault();
     setError("");
     if (!uid || !token) {
-      setError("Tautan ini tidak lengkap atau sudah kedaluwarsa. Hubungi administrator sekolah untuk bantuan.");
+      setError("Tautan ini tidak lengkap. Minta tautan pemulihan baru.");
       return;
     }
     if (password !== confirmation) {
@@ -40,7 +40,7 @@ function ResetPasswordForm() {
       });
       const data = (await response.json()) as { detail?: string; new_password?: string[] };
       if (!response.ok) {
-        setError(data.new_password?.[0] || data.detail || "Tautan reset tidak valid atau sudah kedaluwarsa. Hubungi administrator sekolah untuk bantuan.");
+        setError(data.new_password?.[0] || data.detail || "Tautan reset tidak valid atau sudah kedaluwarsa. Minta tautan pemulihan baru.");
       } else {
         setComplete(true);
       }
@@ -54,10 +54,10 @@ function ResetPasswordForm() {
   return (
     <main className="reset-page">
       <section className="reset-card">
-        <a className="reset-brand" href="/login" aria-label="ClassPing, kembali ke masuk">
+        <Link className="reset-brand" href="/login" aria-label="ClassPing, kembali ke masuk">
           <span className="reset-brand-mark" aria-hidden="true"><span /><span /><span /></span>
           <span>class<span>ping</span></span>
-        </a>
+        </Link>
         {complete ? (
           <>
             <p className="reset-eyebrow">KATA SANDI DIPERBARUI</p>
@@ -70,7 +70,7 @@ function ResetPasswordForm() {
             <p className="reset-eyebrow">KEAMANAN AKUN</p>
             <h1>Buat kata sandi baru</h1>
             <p className="reset-copy">Gunakan kata sandi baru untuk melindungi akun ClassPing Anda.</p>
-            <form onSubmit={submit}>
+            <form onSubmit={submit} aria-busy={loading}>
               <label htmlFor="newPassword">Kata sandi baru</label>
               <div className="reset-input">
                 <LockKeyhole aria-hidden="true" />
@@ -84,9 +84,9 @@ function ResetPasswordForm() {
                 <button type="button" onClick={() => setShowConfirmation((value) => !value)} aria-label={showConfirmation ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}>{showConfirmation ? <EyeOff /> : <Eye />}</button>
               </div>
               {error && <p className="reset-error" role="alert">{error}</p>}
-              <button className="reset-submit" type="submit" disabled={loading}>{loading ? "Menyimpan…" : "Simpan kata sandi baru"}</button>
+              <button className="reset-submit" type="submit" disabled={loading || !uid || !token}>{loading ? "Menyimpan…" : "Simpan kata sandi baru"}</button>
             </form>
-            <p className="reset-help">Tautan bermasalah? Hubungi administrator sekolah untuk bantuan.</p>
+            <p className="reset-help"><Link href="/forgot-password">Minta tautan pemulihan baru</Link></p>
           </>
         )}
       </section>

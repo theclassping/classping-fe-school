@@ -39,6 +39,19 @@ weekly worktime are currently persisted in browser storage. They are structured
 as React components so each can be replaced with its matching backend endpoint
 without another UI rewrite.
 
+## Password recovery
+
+`/login` links to `/forgot-password`. The request goes through the server-side
+`/api/auth/forgot-password` proxy. The email link opens `/reset-password?uid=…&token=…`,
+and the reset is validated by Django through `/api/auth/reset-password`.
+Successful resets clear only this portal's session cookies; invalid links can
+request a new email. No password or reset token is saved in browser storage.
+
+The backend must have email delivery configured and `SCHOOL_PASSWORD_RESET_URL`
+set to this portal's `/reset-password` URL. For dev deployments, use
+`https://classping-fe-school-git-dev-the-classping.vercel.app/reset-password`.
+For a local backend, use `http://localhost:3000/reset-password`.
+
 ## Quality checks
 
 ```bash
