@@ -1,89 +1,43 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getActivity, type Activity } from "../activityData";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { loadActivity, type ActivityDetailRecord } from "../activityApi";
+import DeleteActivityDialog from "../DeleteActivityDialog";
 
 export default function DeleteActivityPage() {
-  const [activity, setActivity] = useState<Activity>(getActivity(null));
-  const [deleted, setDeleted] = useState(false);
+  const router = useRouter();
+  const [activity, setActivity] = useState<ActivityDetailRecord | null>(null);
+  const [error, setError] = useState("");
   useEffect(() => {
-    setActivity(
-      getActivity(new URLSearchParams(window.location.search).get("activity")),
-    );
+    let active = true;
+    async function load() {
+      try {
+        const id = new URLSearchParams(window.location.search).get("activity");
+        const record = id ? await loadActivity(id) : null;
+        if (active) {
+          if (record) setActivity(record);
+          else setError("Aktivitas tidak ditemukan.");
+        }
+      } catch {
+        if (active) setError("Gagal memuat aktivitas.");
+      }
+    }
+    void load();
+    return () => { active = false; };
   }, []);
-  if (deleted)
-    return (
-      <main>
-        <section className="panel student-manage">
-          <div className="panel-heading">
-            <div>
-              <h2>Aktivitas dihapus</h2>
-              <p>Dokumen aktivitas dan tag terkait sudah dihapus.</p>
-            </div>
-          </div>
-          <div className="student-form">
-            <Link className="primary-button" href="/dashboard/activities">
-              Kembali ke aktivitas
-            </Link>
-          </div>
-        </section>
-      </main>
-    );
+  const returnToList = () => router.replace("/dashboard/activities");
   return (
     <main>
-      <section className="panel student-manage">
-        <div className="panel-heading">
-          <div>
-            <h2>Delete Aktivitas</h2>
-            <p>Hapus dokumen aktivitas yang tidak diperlukan</p>
-          </div>
-          <Link className="secondary-button" href="/dashboard/activities">
-            Kembali
-          </Link>
-        </div>
-        <div className="warning-box" style={{ margin: "0 22px 22px" }}>
-          <h3>Konfirmasi penghapusan</h3>
-          <p>
-            Aktivitas “{activity.title}” akan dihapus dari laporan kegiatan.
-            Foto dan tag yang terkait juga akan dihapus dari sistem.
-          </p>
-        </div>
-        <form
-          className="student-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setDeleted(true);
-          }}
-        >
-          <div className="form-grid">
-            <div className="field-group full">
-              <label htmlFor="deleteReason">Alasan penghapusan</label>
-              <select id="deleteReason">
-                <option>Data duplikat</option>
-                <option>Informasi salah</option>
-                <option>Lainnya</option>
-              </select>
-            </div>
-            <div className="field-group full">
-              <label htmlFor="deleteNote">Catatan admin</label>
-              <textarea
-                id="deleteNote"
-                rows={4}
-                placeholder="Tulis catatan atau keterangan penghapusan..."
-              />
-            </div>
-          </div>
-          <div className="student-form-actions">
-            <Link className="secondary-button" href="/dashboard/activities">
-              Batal
-            </Link>
-            <button className="primary-button" type="submit">
-              Hapus Aktivitas
-            </button>
-          </div>
-        </form>
-      </section>
+      {activity ? <DeleteActivityDialog
+        activity={{ id: activity.id, title: activity.name }}
+        onCancel={returnToList}
+        onDeleted={returnToList}
+      /> : <section className="panel student-manage">
+        <p role="status" className="empty-state">{error || "Memuat aktivitas..."}</p>
+        {error && <Link className="secondary-button" href="/dashboard/activities">Kembali</Link>}
+      </section>}
     </main>
   );
 }

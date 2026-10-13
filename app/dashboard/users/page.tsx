@@ -1,5 +1,7 @@
 "use client";
 
+import { loadList } from "@/lib/loadList";
+
 import { useEffect, useState } from "react";
 import UserForm from "./UserForm";
 
@@ -39,30 +41,7 @@ export default function UsersPage() {
             setLoading(true);
             setError("");
 
-            const response = await fetch("/api/proxy/users", {
-                method: "GET",
-                credentials: "include",
-                cache: "no-store",
-            });
-
-            if (response.status === 401) {
-                window.location.href = "/login";
-                return;
-            }
-
-            if (!response.ok) {
-                throw new Error("Failed to load users");
-            }
-
-            const data = await response.json();
-
-            setUsers(
-                Array.isArray(data)
-                    ? data
-                    : Array.isArray(data.results)
-                        ? data.results
-                        : []
-            );
+            setUsers(await loadList<User>("/api/proxy/users/"));
         } catch (err) {
             console.error(err);
             setError("Failed to load users.");

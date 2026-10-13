@@ -5151,6 +5151,22 @@ body.parent-view .sidebar {
   box-shadow: 0 20px 60px rgba(23, 35, 31, 0.2);
 }
 
+.activity-delete-dialog {
+  width: calc(100% - 32px);
+  max-width: 520px;
+  margin: auto;
+  border: 0;
+}
+
+.activity-delete-dialog::backdrop {
+  background: rgb(23 35 31 / 45%);
+}
+
+.activity-delete-dialog > p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;

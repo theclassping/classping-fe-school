@@ -4,8 +4,10 @@ import Link from "next/link";
 import { Eye, Pencil, Trash2, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import styles from "../components/TableActions.module.css";
+import ListPagination, { useListPagination } from "../components/ListPagination";
 import { loadActivities } from "./activityApi";
 import type { Activity } from "./activityData";
+import DeleteActivityDialog from "./DeleteActivityDialog";
 
 function ActivityCover({ activity }: { activity: Activity }) {
   const [index, setIndex] = useState(0);
@@ -32,6 +34,7 @@ export default function ActivitiesPage() {
   const [error, setError] = useState("");
   const [date, setDate] = useState("");
   const [classFilter, setClassFilter] = useState("all");
+  const [deletingActivity, setDeletingActivity] = useState<Activity | null>(null);
   useEffect(() => {
     async function fetchActivities() {
       try {
@@ -63,6 +66,8 @@ export default function ActivitiesPage() {
     [activities, classFilter, date],
   );
 
+  const pagination = useListPagination(filtered);
+
   return (
     <main>
       <section className="activity-section">
@@ -86,14 +91,14 @@ export default function ActivitiesPage() {
               <input
                 type="date"
                 value={date}
-                onChange={(event) => setDate(event.target.value)}
+                onChange={(event) => { setDate(event.target.value); pagination.reset(); }}
               />
             </span>
           </label>
           <select
             aria-label="Filter kelas aktivitas"
             value={classFilter}
-            onChange={(event) => setClassFilter(event.target.value)}
+            onChange={(event) => { setClassFilter(event.target.value); pagination.reset(); }}
           >
             <option value="all">Semua Kelas</option>
             {classOptions.map((className) => (
@@ -125,7 +130,7 @@ export default function ActivitiesPage() {
           ) : filtered.length === 0 ? (
             <p className="empty-state">No activities found.</p>
           ) : (
-            filtered.map((activity) => (
+            pagination.items.map((activity) => (
               <article className="activity-card panel" key={activity.slug}>
                 <ActivityCover activity={activity} />
                 <div className="activity-body">
@@ -174,14 +179,15 @@ export default function ActivitiesPage() {
                       >
                         <Pencil aria-hidden="true" />
                       </Link>
-                      <Link
+                      <button
                         className={`${styles.actionButton} ${styles.dangerButton}`}
-                        href={`/dashboard/activities/delete?activity=${activity.slug}`}
+                        type="button"
+                        onClick={() => setDeletingActivity(activity)}
                         aria-label={`Hapus ${activity.title}`}
                         title="Hapus aktivitas"
                       >
                         <Trash2 aria-hidden="true" />
-                      </Link>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -189,7 +195,16 @@ export default function ActivitiesPage() {
             ))
           )}
         </div>
+        {!loading && !error && <ListPagination {...pagination.controls} noun="aktivitas" />}
       </section>
+      {deletingActivity && <DeleteActivityDialog
+        activity={{ id: deletingActivity.slug, title: deletingActivity.title }}
+        onCancel={() => setDeletingActivity(null)}
+        onDeleted={() => {
+          setActivities((current) => current.filter((activity) => activity.slug !== deletingActivity.slug));
+          setDeletingActivity(null);
+        }}
+      />}
     </main>
   );
 }

@@ -2,6 +2,8 @@
 
 import { Ban, CircleCheck, Eye, Pencil, Search } from "lucide-react";
 import { useEffect, useState } from "react";
+import ListPagination, { useListPagination } from "../components/ListPagination";
+import { loadList } from "@/lib/loadList";
 import StudentForm from "./StudentForm";
 import styles from "../components/TableActions.module.css";
 
@@ -12,6 +14,12 @@ type Student = {
   last_name: string;
   student_number?: string;
   class_name?: string;
+  class_students?: Array<{
+    id: number;
+    class_id: number;
+    class_name?: string;
+    is_current?: boolean;
+  }>;
   gender?: string;
   status?: string;
   guardian_name?: string;
@@ -32,6 +40,8 @@ type StudentApiRecord = Omit<
   | "guardian_email"
 > & {
   class_students?: Array<{
+    id: number;
+    class_id: number;
     class_name?: string;
     is_current?: boolean;
   }>;
@@ -116,21 +126,7 @@ export default function StudentsPage() {
       setLoading(true);
       setError("");
 
-      const response = await fetch("/api/proxy/students/", {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal memuat data siswa");
-      }
-
-      const data = await response.json();
+      const data = await loadList<StudentApiRecord>("/api/proxy/students/");
 
       setStudents(normalizeStudents(data));
     } catch (loadError) {
@@ -200,6 +196,8 @@ export default function StudentsPage() {
     );
   });
 
+  const pagination = useListPagination(filteredStudents);
+
   return (
     <main className="dashboard-page">
       <section className="panel student-data">
@@ -225,14 +223,14 @@ export default function StudentsPage() {
               type="search"
               placeholder="Cari siswa atau wali..."
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => { setSearch(event.target.value); pagination.reset(); }}
             />
           </label>
 
           <select
             aria-label="Filter siswa berdasarkan kelas"
             value={classFilter}
-            onChange={(event) => setClassFilter(event.target.value)}
+            onChange={(event) => { setClassFilter(event.target.value); pagination.reset(); }}
           >
             <option value="ALL">Semua kelas</option>
             {classes.map((className) => (
@@ -278,7 +276,7 @@ export default function StudentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredStudents.map((student) => (
+                {pagination.items.map((student) => (
                   <tr key={student.id}>
                     <td>
                       {[
@@ -340,6 +338,7 @@ export default function StudentsPage() {
             </table>
           </div>
         )}
+        {!loading && !error && <ListPagination {...pagination.controls} noun="siswa" />}
       </section>
 
       {showStudentForm && (

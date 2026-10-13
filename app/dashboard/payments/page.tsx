@@ -2,6 +2,8 @@
 
 import {
   BellRing,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   Filter,
   Pencil,
@@ -9,7 +11,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { loadList } from "@/lib/loadList";
 import styles from "../components/TableActions.module.css";
+const PAGE_SIZE = 10;
 export type Payment = {
   id?: number;
   payment_id?: number;
@@ -72,34 +76,16 @@ export default function PaymentsPage() {
   const [classFilter, setClassFilter] = useState("ALL");
   const [reminder, setReminder] = useState<Payment | null>(null);
   const [toast, setToast] = useState("");
+  const [page, setPage] = useState(1);
 
   async function loadPayments() {
     try {
       setLoading(true);
       setError("");
 
-      const response = await fetch("/api/proxy/student-invoices/", {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Failed to load payments");
-      }
-
-      const data = await response.json();
-
-      const invoices: StudentInvoice[] = Array.isArray(data)
-        ? data
-        : Array.isArray(data.results)
-          ? data.results
-          : [];
+      const invoices = await loadList<StudentInvoice>("/api/proxy/student-invoices/");
       setPayments(invoices.map(normalizePayment));
+      setPage(1);
     } catch (loadError) {
       console.error(loadError);
       setError("Failed to load payments.");
@@ -127,12 +113,19 @@ export default function PaymentsPage() {
     [classFilter, payments, search],
   );
 
+  const totalPages = Math.max(1, Math.ceil(filteredPayments.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const visiblePayments = filteredPayments.slice(startIndex, startIndex + PAGE_SIZE);
+
   function updateSearch(value: string) {
     setSearch(value);
+    setPage(1);
   }
 
   function updateClass(value: string) {
     setClassFilter(value);
+    setPage(1);
   }
 
   function showToast(message: string) {
@@ -222,7 +215,7 @@ export default function PaymentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredPayments.map((payment) => (
+                {visiblePayments.map((payment) => (
                   <tr
                     key={`${paymentSlug(payment)}-${payment.invoice_date}-${payment.fee_type_name}`}
                   >
@@ -310,6 +303,22 @@ export default function PaymentsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+        {!loading && !error && filteredPayments.length > 0 && (
+          <div className={styles.paginationFooter}>
+            <span className={styles.paginationSummary} role="status">
+              Menampilkan <strong>{startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, filteredPayments.length)}</strong> dari <strong>{filteredPayments.length}</strong> transaksi
+            </span>
+            <nav className={styles.paginationControls} aria-label="Halaman pembayaran">
+              <button className={styles.paginationButton} type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>
+                <ChevronLeft aria-hidden="true" /> Sebelumnya
+              </button>
+              <span className={styles.pageIndicator} aria-live="polite">Halaman <strong>{currentPage}</strong> dari {totalPages}</span>
+              <button className={styles.paginationButton} type="button" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}>
+                Berikutnya <ChevronRight aria-hidden="true" />
+              </button>
+            </nav>
           </div>
         )}
         {!loading && !error && filteredPayments.length === 0 && (

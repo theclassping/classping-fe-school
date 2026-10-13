@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { loadList } from "@/lib/loadList";
 
 type Location = {
     id: number;
@@ -28,6 +29,12 @@ type Student = {
     nickname?: string;
     student_number?: string;
     class_name?: string;
+    class_students?: Array<{
+        id: number;
+        class_id?: number;
+        class_name?: string;
+        is_current?: boolean;
+    }>;
     date_of_birth?: string;
     gender?: string;
     address?: string;
@@ -65,6 +72,8 @@ export default function StudentForm({
     onCancel,
 }: StudentFormProps) {
     const isEdit = !!student;
+    const currentClass = student?.class_students?.find((assignment) => assignment.is_current)
+        ?? student?.class_students?.[0];
 
     const [form, setForm] = useState({
         first_name: student?.first_name ?? "",
@@ -72,7 +81,7 @@ export default function StudentForm({
         last_name: student?.last_name ?? "",
         nickname: student?.nickname ?? "",
         student_number: student?.student_number ?? "",
-        class_name: student?.class_name ?? "",
+        class_name: currentClass?.class_id != null ? String(currentClass.class_id) : "",
         location_id: "",
         date_of_birth: student?.date_of_birth ?? "",
         gender: student?.gender ?? "",
@@ -139,32 +148,15 @@ export default function StudentForm({
     }, [guardianMode, guardianSearch, isEdit]);
 
     async function loadClasses() {
-        const response = await fetch("/api/proxy/classes/", {
-            credentials: "include",
-            cache: "no-store",
-        });
-
-        if (response.status === 401) {
-            window.location.href = "/login";
-            return;
-        }
-
-        if (!response.ok) {
-            throw new Error("Gagal memuat kelas");
-        }
-
-        const data = await response.json();
-
-        const records = Array.isArray(data)
-            ? data
-            : Array.isArray(data.results)
-                ? data.results
-                : Array.isArray(data.data)
-                    ? data.data
-                    : [];
-
-        setClasses(records);
+        setClasses(await loadList<SchoolClass>("/api/proxy/classes/"));
     }
+
+    // Some student list responses include the class name without class_id.
+    // Resolve that name against the options while keeping explicit user changes.
+    const savedClassName = currentClass?.class_name ?? student?.class_name;
+    const selectedClassId = form.class_name || String(
+        classes.find((schoolClass) => schoolClass.name === savedClassName)?.id ?? ""
+    );
 
     async function loadLocations(type: string, parentId?: string) {
         const params = new URLSearchParams({ type });
@@ -360,10 +352,11 @@ export default function StudentForm({
                     status: form.status.toLowerCase(),
                     enroll_date: form.enroll_date,
 
-                    // Keep the current class assignment
+                    // Update the existing assignment rather than creating a duplicate.
                     class_students: [
                         {
-                            class_id: Number(form.class_name),
+                            ...(currentClass ? { id: currentClass.id } : {}),
+                            class_id: Number(selectedClassId),
                             is_current: true,
                         },
                     ],
@@ -402,7 +395,7 @@ export default function StudentForm({
 
                     class_students: [
                         {
-                            class_id: Number(form.class_name),
+                            class_id: Number(selectedClassId),
                             is_current: true,
                         },
                     ],
@@ -537,7 +530,7 @@ export default function StudentForm({
                             <select
                                 id="class_name"
                                 name="class_name"
-                                value={form.class_name}
+                                value={selectedClassId}
                                 onChange={handleChange}
                                 disabled={classesLoading}
                                 required
@@ -545,6 +538,10 @@ export default function StudentForm({
                                 <option value="">
                                     {classesLoading ? "Memuat kelas..." : "Pilih kelas"}
                                 </option>
+
+                                {selectedClassId && !classes.some((schoolClass) => String(schoolClass.id) === selectedClassId) && (
+                                    <option value={selectedClassId}>{savedClassName || `Kelas ${selectedClassId}`}</option>
+                                )}
 
                                 {classes.map((schoolClass) => (
                                     <option

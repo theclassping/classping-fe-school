@@ -70,6 +70,7 @@ const menuItems = [
 export default function DashboardSidebar({ open = false, onNavigate }: DashboardSidebarProps) {
   const pathname = usePathname();
   const [canManageSettings, setCanManageSettings] = useState(false);
+  const [canViewPayments, setCanViewPayments] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -84,6 +85,9 @@ export default function DashboardSidebar({ open = false, onNavigate }: Dashboard
         const data = await response.json();
         if (!controller.signal.aborted) {
           setCanManageSettings(data.user?.role === "STAFF" || data.user?.role === "ADMIN");
+          setCanViewPayments(["ADMIN", "STAFF", "OFFICER", "PRINCIPAL"].includes(
+            typeof data.user?.role === "string" ? data.user.role.toUpperCase() : "",
+          ));
         }
       } catch (error) {
         if (!controller.signal.aborted) console.error("Gagal memuat sesi pengguna", error);
@@ -104,6 +108,7 @@ export default function DashboardSidebar({ open = false, onNavigate }: Dashboard
         <p className="nav-label">MENU UTAMA</p>
 
         {menuItems.map((item) => {
+          if (item.href === "/dashboard/payments" && !canViewPayments) return null;
           const Icon = item.icon;
 
           const active =

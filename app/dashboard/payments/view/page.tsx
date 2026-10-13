@@ -45,7 +45,12 @@ type PaymentDetail = {
   paid_at: string | null;
   verified_at: string | null;
   verified_by_id: number | null;
-  verified_by: string | null;
+  verified_by: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+  } | string | null;
   rejection_reason: string | null;
   proofs: PaymentProof[];
   created_at: string;
@@ -67,10 +72,19 @@ function formatAmount(value: string) {
   return Number.isNaN(amount) ? value : `Rp ${amount.toLocaleString("id-ID")}`;
 }
 
+function verifierName(verifier: PaymentDetail["verified_by"]): string {
+  if (typeof verifier === "string") return verifier.trim() || "-";
+  if (!verifier) return "-";
+  return [verifier.first_name, verifier.last_name].filter(Boolean).join(" ").trim()
+    || verifier.email
+    || "-";
+}
+
 export default function PaymentViewPage() {
   const [payment, setPayment] = useState<PaymentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     const paymentId = new URLSearchParams(window.location.search).get(
@@ -94,6 +108,10 @@ export default function PaymentViewPage() {
 
         if (response.status === 401) {
           window.location.href = "/login";
+          return;
+        }
+        if (response.status === 404) {
+          setNotFound(true);
           return;
         }
         if (!response.ok) throw new Error("Failed to load payment details.");
@@ -137,6 +155,8 @@ export default function PaymentViewPage() {
 
         {loading ? (
           <p className="empty-state">Loading payment details...</p>
+        ) : notFound ? (
+          <p className="empty-state">Belum ada pembayaran yang dilakukan</p>
         ) : error ? (
           <div className="empty-state">
             <p>{error}</p>
@@ -194,7 +214,7 @@ export default function PaymentViewPage() {
                 </div>
                 <div className="detail-item">
                   <span>Verified By</span>
-                  <strong>{payment.verified_by ?? "-"}</strong>
+                  <strong>{verifierName(payment.verified_by)}</strong>
                 </div>
                 <div className="detail-item">
                   <span>Rejection Reason</span>

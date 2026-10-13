@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Ban, FilePlus2, Pencil } from "lucide-react";
 import styles from "../components/TableActions.module.css";
+import ListPagination, { useListPagination } from "../components/ListPagination";
+import { loadList } from "@/lib/loadList";
 import UserForm from "../users/UserForm";
 import SettingsFormDialog, { type Field } from "./SettingsFormDialog";
 import StaffForm from "./StaffForm";
@@ -197,22 +199,7 @@ export default function SettingsPage() {
       setUsersLoading(true);
       setUsersError("");
 
-      const response = await fetch("/api/proxy/users", {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal memuat pengguna");
-      }
-
-      const data = await response.json();
-      setUsers(Array.isArray(data) ? data : (data.results ?? []));
+      setUsers(await loadList<User>("/api/proxy/users/"));
     } catch (error) {
       console.error(error);
       setUsersError("Gagal memuat pengguna.");
@@ -226,30 +213,7 @@ export default function SettingsPage() {
       setStaffsLoading(true);
       setStaffsError("");
 
-      const response = await fetch("/api/proxy/staffs", {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal memuat data staf");
-      }
-
-      const data = await response.json();
-      setStaffs(
-        Array.isArray(data)
-          ? data
-          : Array.isArray(data.results)
-            ? data.results
-            : Array.isArray(data.data)
-              ? data.data
-              : [],
-      );
+      setStaffs(await loadList<Staff>("/api/proxy/staffs/"));
     } catch (error) {
       console.error(error);
       setStaffsError("Gagal memuat data staf.");
@@ -263,22 +227,7 @@ export default function SettingsPage() {
       setClassesLoading(true);
       setClassesError("");
 
-      const response = await fetch("/api/proxy/class-teachers", {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal memuat kelas");
-      }
-
-      const data = await response.json();
-      setClasses(Array.isArray(data) ? data : (data.results ?? []));
+      setClasses(await loadList<Class>("/api/proxy/class-teachers/"));
     } catch (error) {
       console.error(error);
       setClassesError("Gagal memuat kelas.");
@@ -292,30 +241,7 @@ export default function SettingsPage() {
       setFeeTypesLoading(true);
       setFeeTypesError("");
 
-      const response = await fetch("/api/proxy/fee-types", {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal memuat jenis biaya");
-      }
-
-      const data = await response.json();
-      setFeeTypes(
-        Array.isArray(data)
-          ? data
-          : Array.isArray(data.results)
-            ? data.results
-            : Array.isArray(data.data)
-              ? data.data
-              : [],
-      );
+      setFeeTypes(await loadList<FeeType>("/api/proxy/fee-types/"));
     } catch (error) {
       console.error(error);
       setFeeTypesError("Gagal memuat jenis biaya.");
@@ -401,6 +327,24 @@ export default function SettingsPage() {
   const staffUsers = users.filter((user) =>
     ["ADMIN", "STAFF", "TEACHER", "PARENT"].includes(user.role),
   ); //Admin will remove
+
+  const userPagination = useListPagination(staffUsers);
+  const staffPagination = useListPagination(staffs);
+  const classPagination = useListPagination(classes);
+  const feePagination = useListPagination(feeTypes);
+  const rowPagination = useListPagination(section.rows);
+  const activePagination = activeSection === "user" ? userPagination
+    : activeSection === "teacher-staff" ? staffPagination
+    : activeSection === "class" ? classPagination
+    : activeSection === "fee-type" ? feePagination : rowPagination;
+  const listLoading = activeSection === "user" ? usersLoading
+    : activeSection === "teacher-staff" ? staffsLoading
+    : activeSection === "class" ? classesLoading
+    : activeSection === "fee-type" ? feeTypesLoading : false;
+  const listError = activeSection === "user" ? usersError
+    : activeSection === "teacher-staff" ? staffsError
+    : activeSection === "class" ? classesError
+    : activeSection === "fee-type" ? feeTypesError : "";
 
   if (sessionLoading || !canManageSettings) {
     return (
@@ -506,7 +450,7 @@ export default function SettingsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {staffUsers.map((user) => (
+                      {userPagination.items.map((user) => (
                         <tr key={user.id}>
                           <td>
                             {user.first_name} {user.last_name}
@@ -558,7 +502,7 @@ export default function SettingsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {staffs.map((staff) => (
+                      {staffPagination.items.map((staff) => (
                         <tr key={staff.id}>
                           <td>
                             {staff.first_name} {staff.last_name}
@@ -613,7 +557,7 @@ export default function SettingsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {classes.map((cls) => (
+                      {classPagination.items.map((cls) => (
                         <tr key={cls.id}>
                           <td>{cls.class_name}</td>
                           <td>{cls.academic_year_name}</td>
@@ -662,7 +606,7 @@ export default function SettingsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {feeTypes.map((feeType) => (
+                      {feePagination.items.map((feeType) => (
                         <tr key={feeType.id}>
                           <td>{feeType.name}</td>
                           <td>{feeType.description}</td>
@@ -721,7 +665,7 @@ export default function SettingsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {section.rows.map((row) => (
+                    {rowPagination.items.map((row) => (
                       <tr key={row.join("-")}>
                         {row.map((cell) => (
                           <td key={cell}>{cell}</td>
@@ -737,6 +681,7 @@ export default function SettingsPage() {
                 </table>
               )}
             </div>
+            {!listLoading && !listError && <ListPagination {...activePagination.controls} noun="data" />}
             {feeTypeActionMessage && activeSection === "fee-type" && (
               <p className="settings-save-message" role="status">
                 {feeTypeActionMessage}

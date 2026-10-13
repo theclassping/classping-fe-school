@@ -35,6 +35,7 @@ type PaymentDetail = {
   amount: string;
   payment_method: string;
   status: string;
+  rejection_reason?: string | null;
   proofs?: Proof[];
 };
 type InvoiceDetail = {
@@ -55,6 +56,7 @@ type EditRecord = {
   amount: string;
   paymentMethod: string;
   status: string;
+  rejectionReason: string;
   proofs: Proof[];
 };
 
@@ -105,6 +107,7 @@ export default function PaymentEditPage() {
             amount: payment.amount,
             paymentMethod: payment.payment_method,
             status: payment.status,
+            rejectionReason: payment.rejection_reason ?? "",
             proofs: payment.proofs ?? [],
           });
           return;
@@ -131,6 +134,7 @@ export default function PaymentEditPage() {
             amount: invoice.total_amount,
             paymentMethod: "",
             status: "submitted",
+            rejectionReason: "",
             proofs: [],
           });
           return;
@@ -182,6 +186,10 @@ export default function PaymentEditPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!record) return;
+    if (record.status === "rejected" && !record.rejectionReason.trim()) {
+      setError("Alasan penolakan wajib diisi.");
+      return;
+    }
     setSubmitting(true);
     setError("");
     try {
@@ -204,6 +212,9 @@ export default function PaymentEditPage() {
             amount: record.amount,
             payment_method: record.paymentMethod,
             status: record.status,
+            ...(record.status === "rejected"
+              ? { rejection_reason: record.rejectionReason.trim() }
+              : {}),
             ...(proofKey ? { proofs: [{ image_data: proofKey }] } : {}),
           }),
         },
@@ -296,6 +307,20 @@ export default function PaymentEditPage() {
                   <option value="rejected">Rejected</option>
                 </select>
               </div>
+              {record.status === "rejected" && (
+                <div className="field-group full">
+                  <label htmlFor="paymentRejectionReason">Alasan penolakan</label>
+                  <textarea
+                    id="paymentRejectionReason"
+                    name="rejection_reason"
+                    rows={3}
+                    value={record.rejectionReason}
+                    onChange={(event) => update({ rejectionReason: event.target.value })}
+                    placeholder="Jelaskan alasan pembayaran ditolak..."
+                    required
+                  />
+                </div>
+              )}
               {!record.paymentId && (
                 <div className="field-group full">
                   <label htmlFor="paymentProof">Bukti pembayaran</label>

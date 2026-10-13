@@ -1,3 +1,4 @@
+import { loadList } from "@/lib/loadList";
 import type { Activity } from "./activityData";
 
 type ActivityStudentRecord = {
@@ -157,19 +158,7 @@ export function normalizeActivities(data: unknown): Activity[] {
 }
 
 export async function loadActivities() {
-    const response = await fetch("/api/proxy/activities/", {
-        credentials: "include",
-        cache: "no-store",
-    });
-
-    if (response.status === 401) {
-        window.location.href = "/login";
-        return [];
-    }
-
-    if (!response.ok) throw new Error("Failed to load activities");
-
-    return normalizeActivities(await response.json());
+    return normalizeActivities(await loadList("/api/proxy/activities/"));
 }
 
 export async function loadActivity(
