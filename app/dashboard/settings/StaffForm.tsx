@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { loadBranchesForCurrentSchool } from "../profile/branchApi";
 
 type Staff = {
     id: number;
@@ -51,19 +52,10 @@ export default function StaffForm({
         const controller = new AbortController();
         async function loadBranches() {
             try {
-                let url = "/api/proxy/branches/";
-                const visited = new Set<string>();
-                const records: Array<{ id: number; name: string }> = [];
-                while (!visited.has(url)) {
-                    visited.add(url);
-                    const response = await fetch(url, { credentials: "include", cache: "no-store", signal: controller.signal });
-                    if (!response.ok) throw new Error("Gagal memuat cabang. Buka kembali form untuk mencoba lagi.");
-                    const data = await response.json();
-                    records.push(...(Array.isArray(data) ? data : data.results ?? data.data ?? []));
-                    if (!data.next) break;
-                    url = `/api/proxy/branches/${new URL(data.next, "https://backend.invalid").search}`;
+                const records = await loadBranchesForCurrentSchool(controller.signal);
+                if (!controller.signal.aborted) {
+                    setBranches(records.map(({ id, name }) => ({ id, name })));
                 }
-                if (!controller.signal.aborted) setBranches(records);
             } catch (err) {
                 if (!controller.signal.aborted) setBranchesError(err instanceof Error ? err.message : "Gagal memuat cabang.");
             } finally {

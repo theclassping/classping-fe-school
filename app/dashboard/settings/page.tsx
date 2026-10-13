@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Ban, FilePlus2, Pencil } from "lucide-react";
+import { Ban, CircleCheck, FilePlus2, Pencil } from "lucide-react";
 import styles from "../components/TableActions.module.css";
 import ListPagination, { useListPagination } from "../components/ListPagination";
 import { loadList } from "@/lib/loadList";
@@ -325,8 +325,9 @@ export default function SettingsPage() {
   }, []);
 
   const staffUsers = users.filter((user) =>
-    ["ADMIN", "STAFF", "TEACHER", "PARENT"].includes(user.role),
-  ); //Admin will remove
+    ["ADMIN", "STAFF", "TEACHER", "PARENT"].includes(user.role) &&
+      (userRole?.toUpperCase() === "ADMIN" || user.role.toUpperCase() !== "ADMIN"),
+  );
 
   const userPagination = useListPagination(staffUsers);
   const staffPagination = useListPagination(staffs);
@@ -634,7 +635,7 @@ export default function SettingsPage() {
                                   setFeeTypeActionError("");
                                   setDeactivatingFeeType(feeType);
                                 }}
-                              ><Ban aria-hidden="true" /></button>
+                              >{feeType.is_active ? <Ban aria-hidden="true" /> : <CircleCheck aria-hidden="true" />}</button>
                               <button
                                 className={styles.actionButton}
                                 type="button"

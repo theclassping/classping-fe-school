@@ -39,6 +39,27 @@
 .actions button { min-height: 42px; }
 .close:focus-visible, .actions button:focus-visible { outline: 3px solid #147d6455; outline-offset: 3px; }
 
+.schoolCount { align-self: center; margin-left: auto; padding: 8px 12px; border-radius: 999px; background: #e4f4ed; color: var(--green); font-size: 12px; font-weight: 800; white-space: nowrap; }
+.schoolList { display: grid; gap: 16px; margin-top: 18px; }
+.schoolCard { min-width: 0; padding: 20px; }
+.schoolHeader { display: flex; align-items: center; gap: 13px; min-width: 0; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.schoolMark { display: grid; place-items: center; flex: 0 0 48px; width: 48px; height: 48px; border-radius: 14px; background: #dff2ea; color: var(--green); font: 800 14px "Plus Jakarta Sans"; }
+.schoolHeader > div { flex: 1; min-width: 0; }
+.schoolHeader h2 { margin: 0; overflow-wrap: anywhere; font: 700 17px "Plus Jakarta Sans"; }
+.schoolHeader p { margin: 5px 0 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.schoolStatus, .branchStatus { display: inline-flex; align-items: center; justify-content: center; padding: 6px 9px; border-radius: 999px; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.active { background: #e4f4ed; color: var(--green); }
+.inactive { background: #f1f3f2; color: #67736d; }
+.branchSection { margin-top: 16px; }
+.branchSection h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font: 700 12px "Plus Jakarta Sans"; }
+.branchSection h3 span { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: #f0f5f2; color: #65766e; font: 700 10px "DM Sans"; }
+.branchSection ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.branchSection li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; padding: 11px 12px; border: 1px solid #e8efeb; border-radius: 10px; background: #fafcfb; }
+.branchSection li > div { display: grid; gap: 4px; min-width: 0; }
+.branchSection li strong { font-size: 12px; overflow-wrap: anywhere; }
+.branchSection li small { color: var(--muted); font-size: 10px; }
+.noBranches { margin: 0; color: var(--muted); font-size: 12px; }
+
 @media (max-width: 600px) {
   .dialog { max-height: calc(100dvh - 24px); border-radius: 18px; }
   .header { padding: 20px; gap: 10px; }
@@ -49,4 +70,9 @@
   .footer { flex-direction: column; align-items: stretch; gap: 12px; padding: 16px 20px; }
   .actions { display: grid; grid-template-columns: 1fr 1.6fr; }
   .actions button { width: 100%; justify-content: center; padding-inline: 10px; }
+  .schoolCount { align-self: flex-start; margin: 10px 0 0; }
+  .schoolHeader { flex-wrap: wrap; }
+  .schoolStatus { margin-left: 61px; }
+  .schoolCard { padding: 16px; }
+  .branchSection li { align-items: flex-start; }
 }

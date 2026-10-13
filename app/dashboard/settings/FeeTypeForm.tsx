@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { loadBranchesForCurrentSchool } from "../profile/branchApi";
 
 type SchoolClass = {
   id: number;
@@ -70,6 +72,7 @@ export default function FeeTypeForm({
   onCancel,
 }: FeeTypeFormProps) {
   const isEdit = !!feeType;
+  const router = useRouter();
 
   const [form, setForm] = useState({
     name: feeType?.name ?? "",
@@ -104,36 +107,21 @@ export default function FeeTypeForm({
         setBranchesLoading(true);
         setBranchesError("");
 
-        const response = await fetch("/api/proxy/branches/", {
-          credentials: "include",
-          cache: "no-store",
-          signal: controller.signal,
-        });
-
-        if (response.status === 401) {
-          window.location.href = "/login";
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error("Gagal memuat cabang");
-        }
-
-        const data = await response.json();
-        const records = Array.isArray(data)
-          ? data
-          : Array.isArray(data.results)
-            ? data.results
-            : Array.isArray(data.data)
-              ? data.data
-              : [];
-
+        const records = await loadBranchesForCurrentSchool(controller.signal);
         setBranches(records);
       } catch (loadError) {
         if (
           loadError instanceof DOMException &&
           loadError.name === "AbortError"
         ) {
+          return;
+        }
+
+        if (
+          loadError instanceof Error &&
+          loadError.message === "Sesi berakhir. Silakan masuk kembali."
+        ) {
+          router.push("/login");
           return;
         }
 
@@ -149,7 +137,7 @@ export default function FeeTypeForm({
     void loadBranches();
 
     return () => controller.abort();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!form.branch) {

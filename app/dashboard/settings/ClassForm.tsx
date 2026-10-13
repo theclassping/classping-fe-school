@@ -12,6 +12,22 @@ function teacherName(teacher: Teacher) {
     return `${teacher.first_name} ${teacher.last_name}`.trim();
 }
 
+function getCurrentAcademicYear() {
+    const year = new Date().getFullYear();
+    return `${year}/${year + 1}`;
+}
+
+function getAcademicYearOptions(selectedYear: string) {
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 8 }, (_, index) => {
+        const startYear = currentYear - 1 + index;
+        return `${startYear}/${startYear + 1}`;
+    });
+
+    if (selectedYear && !years.includes(selectedYear)) years.push(selectedYear);
+    return years.sort((left, right) => Number(left.slice(0, 4)) - Number(right.slice(0, 4)));
+}
+
 type Class = {
     id: number;
     class_name: string;
@@ -34,9 +50,10 @@ export default function ClassForm({
 
     const [form, setForm] = useState({
         class_name: classData?.class_name ?? "",
-        academic_year_name: classData?.academic_year_name ?? "",
+        academic_year_name: classData?.academic_year_name ?? getCurrentAcademicYear(),
         teacher_name: classData?.teacher_name ?? "",
     });
+    const academicYearOptions = getAcademicYearOptions(form.academic_year_name);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -243,13 +260,19 @@ export default function ClassForm({
                                 Tahun ajaran
                             </label>
 
-                            <input
+                            <select
                                 id="academic_year_name"
                                 name="academic_year_name"
                                 value={form.academic_year_name}
                                 onChange={handleChange}
                                 required
-                            />
+                            >
+                                {academicYearOptions.map((academicYear) => (
+                                    <option key={academicYear} value={academicYear}>
+                                        {academicYear}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         <div className="form-field full">
