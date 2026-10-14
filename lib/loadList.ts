@@ -3,8 +3,13 @@
 export async function loadList<T>(endpoint: string): Promise<T[]> {
   const records: T[] = [];
   const visited = new Set<string>();
+  const filters = new URL(endpoint, window.location.origin).searchParams;
   function orderedUrl(value: string): string {
     const params = new URL(value, window.location.origin).searchParams;
+    // Keep the original filters even if a backend next link omits them.
+    filters.forEach((filter, key) => {
+      if (!["page", "offset", "cursor"].includes(key)) params.set(key, filter);
+    });
     params.set("ordering", "-created_at");
     return `${endpoint.split("?")[0]}?${params}`;
   }

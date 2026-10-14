@@ -1,5 +1,6 @@
 import "./globals.css";
 import "./prototype-latest.css";
+import "./forms.css";
 
 export default function RootLayout({
   children,

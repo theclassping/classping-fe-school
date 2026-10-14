@@ -1,5 +1,7 @@
 "use client";
 
+import { loadClassOptions } from "@/lib/classOptions";
+
 import { FormEvent, useEffect, useState } from "react";
 
 type FeeType = {
@@ -62,10 +64,17 @@ function normalizeStudents(data: unknown): Student[] {
 
 export default function GenerateInvoiceForm({
   feeType,
-  classes,
   onSuccess,
   onCancel,
 }: GenerateInvoiceFormProps) {
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [classOptionsError, setClassOptionsError] = useState("");
+  useEffect(() => {
+    let active = true;
+    void loadClassOptions().then((records) => { if (active) setClasses(records); })
+      .catch(() => { if (active) setClassOptionsError("Gagal memuat kelas."); });
+    return () => { active = false; };
+  }, []);
   const [classId, setClassId] = useState("");
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [studentSearch, setStudentSearch] = useState("");
@@ -202,7 +211,7 @@ export default function GenerateInvoiceForm({
 
   return (
     <div className="modal-overlay">
-      <div className="modal">
+      <div className="modal app-form-modal">
         <div className="modal-header">
           <div>
             <h2>Buat Tagihan</h2>
@@ -211,6 +220,7 @@ export default function GenerateInvoiceForm({
           <button
             type="button"
             className="modal-close"
+                        aria-label="Tutup formulir"
             onClick={onCancel}
             disabled={loading}
           >
@@ -220,6 +230,7 @@ export default function GenerateInvoiceForm({
 
         {error && <div className="form-error">{error}</div>}
 
+        {classOptionsError && <p role="alert" className="form-error">{classOptionsError}</p>}
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <div className="form-field">

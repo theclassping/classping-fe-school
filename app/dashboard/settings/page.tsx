@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Ban, CircleCheck, FilePlus2, Pencil } from "lucide-react";
 import styles from "../components/TableActions.module.css";
 import ListPagination, { useListPagination } from "../components/ListPagination";
@@ -61,15 +61,15 @@ type SettingsSection = {
 };
 
 const sections: SettingsSection[] = [
-  {
-    id: "user",
-    label: "Pengguna",
-    title: "Pengguna",
-    addLabel: "+ Pengguna",
-    fields: [],
-    headings: ["Nama", "Email", "Peran", "Status"],
-    rows: [],
-  },
+  // {
+  //   id: "user",
+  //   label: "Pengguna",
+  //   title: "Pengguna",
+  //   addLabel: "+ Pengguna",
+  //   fields: [],
+  //   headings: ["Nama", "Email", "Peran", "Status"],
+  //   rows: [],
+  // },
   {
     id: "teacher-staff",
     label: "Guru/Staf",
@@ -194,15 +194,27 @@ export default function SettingsPage() {
   const [feeTypeActionError, setFeeTypeActionError] = useState("");
   const [feeTypeActionMessage, setFeeTypeActionMessage] = useState("");
 
+  const sessionBranchId = useRef<number | null>(null);
+
+  function loadBranchList<T>(endpoint: string) {
+    const branchId = sessionBranchId.current;
+    if (branchId === null) {
+      throw new Error("Tidak ada cabang sekolah yang terhubung dengan akun Anda.");
+    }
+    return loadList<T>(`${endpoint}?branch_id=${branchId}`);
+  }
+
   async function loadUsers() {
     try {
       setUsersLoading(true);
       setUsersError("");
 
-      setUsers(await loadList<User>("/api/proxy/users/"));
+      setUsers(await loadBranchList<User>("/api/proxy/users/"));
     } catch (error) {
       console.error(error);
-      setUsersError("Gagal memuat pengguna.");
+      setUsersError(sessionBranchId.current === null
+        ? "Tidak ada cabang sekolah yang terhubung dengan akun Anda."
+        : "Gagal memuat pengguna.");
     } finally {
       setUsersLoading(false);
     }
@@ -213,10 +225,12 @@ export default function SettingsPage() {
       setStaffsLoading(true);
       setStaffsError("");
 
-      setStaffs(await loadList<Staff>("/api/proxy/staffs/"));
+      setStaffs(await loadBranchList<Staff>("/api/proxy/staffs/"));
     } catch (error) {
       console.error(error);
-      setStaffsError("Gagal memuat data staf.");
+      setStaffsError(sessionBranchId.current === null
+        ? "Tidak ada cabang sekolah yang terhubung dengan akun Anda."
+        : "Gagal memuat data staf.");
     } finally {
       setStaffsLoading(false);
     }
@@ -227,10 +241,12 @@ export default function SettingsPage() {
       setClassesLoading(true);
       setClassesError("");
 
-      setClasses(await loadList<Class>("/api/proxy/class-teachers/"));
+      setClasses(await loadBranchList<Class>("/api/proxy/class-teachers/"));
     } catch (error) {
       console.error(error);
-      setClassesError("Gagal memuat kelas.");
+      setClassesError(sessionBranchId.current === null
+        ? "Tidak ada cabang sekolah yang terhubung dengan akun Anda."
+        : "Gagal memuat kelas.");
     } finally {
       setClassesLoading(false);
     }
@@ -241,10 +257,12 @@ export default function SettingsPage() {
       setFeeTypesLoading(true);
       setFeeTypesError("");
 
-      setFeeTypes(await loadList<FeeType>("/api/proxy/fee-types/"));
+      setFeeTypes(await loadBranchList<FeeType>("/api/proxy/fee-types/"));
     } catch (error) {
       console.error(error);
-      setFeeTypesError("Gagal memuat jenis biaya.");
+      setFeeTypesError(sessionBranchId.current === null
+        ? "Tidak ada cabang sekolah yang terhubung dengan akun Anda."
+        : "Gagal memuat jenis biaya.");
     } finally {
       setFeeTypesLoading(false);
     }
@@ -302,6 +320,8 @@ export default function SettingsPage() {
         const data = await response.json();
         if (controller.signal.aborted) return;
         const role = data.user?.role ?? null;
+        const branchId = data.user?.branch_id;
+        sessionBranchId.current = Number.isInteger(branchId) && branchId > 0 ? branchId : null;
         setUserRole(role);
         if (role === "STAFF" || role === "ADMIN") {
           void loadUsers();

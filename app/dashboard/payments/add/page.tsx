@@ -1,5 +1,7 @@
 "use client";
 
+import { loadClassOptions } from "@/lib/classOptions";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
@@ -51,11 +53,7 @@ export default function AddPaymentPage() {
     async function loadOptions() {
       try {
         const [classesResponse, feeTypesResponse] = await Promise.all([
-          fetch("/api/proxy/classes/", {
-            credentials: "include",
-            cache: "no-store",
-            signal: controller.signal,
-          }),
+          loadClassOptions(),
           fetch("/api/proxy/fee-types/", {
             credentials: "include",
             cache: "no-store",
@@ -63,19 +61,19 @@ export default function AddPaymentPage() {
           }),
         ]);
 
-        if (classesResponse.status === 401 || feeTypesResponse.status === 401) {
+        if (feeTypesResponse.status === 401) {
           router.push("/login");
           return;
         }
-        if (!classesResponse.ok || !feeTypesResponse.ok) {
+        if (!feeTypesResponse.ok) {
           throw new Error("Gagal memuat pilihan pembayaran.");
         }
 
         const [classData, feeTypeData] = await Promise.all([
-          classesResponse.json(),
+          classesResponse,
           feeTypesResponse.json(),
         ]);
-        setClasses(recordsFrom(classData) as SchoolClass[]);
+        setClasses(classData);
         setFeeTypes(recordsFrom(feeTypeData) as FeeType[]);
       } catch (loadError) {
         if (loadError instanceof DOMException && loadError.name === "AbortError") return;

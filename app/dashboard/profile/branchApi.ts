@@ -45,6 +45,10 @@ export async function loadCurrentBranch(signal?: AbortSignal): Promise<Branch> {
   const userId = session.user?.id;
   if (typeof userId !== "number") throw new Error("Data pengguna tidak tersedia. Silakan masuk kembali.");
 
+  if (typeof session.user.branch_id === "number") {
+    return requestJson(`/api/proxy/branches/${session.user.branch_id}/`, { signal });
+  }
+
   let url = `/api/proxy/staffs/?user=${userId}`;
   const visited = new Set<string>();
   while (!visited.has(url)) {

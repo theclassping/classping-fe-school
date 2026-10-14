@@ -140,7 +140,7 @@ export default function UserForm({
 
     return (
         <div className="modal-overlay">
-            <div className="modal">
+            <div className="modal app-form-modal">
                 <div className="modal-header">
                     <div>
                         <h2>
@@ -157,6 +157,7 @@ export default function UserForm({
                     <button
                         type="button"
                         className="modal-close"
+                        aria-label="Tutup formulir"
                         onClick={onCancel}
                     >
                         ×

@@ -22,6 +22,15 @@ type Student = {
   }>;
   gender?: string;
   status?: string;
+  student_guardians?: Array<{
+    id?: number;
+    guardian_id?: number;
+    guardian_name?: string;
+    guardian_phone_number?: string;
+    guardian_email?: string;
+    relationship?: string;
+    is_primary?: boolean;
+  }>;
   guardian_name?: string;
   guardian_phone?: string;
   nickname?: string;
@@ -34,6 +43,7 @@ type Student = {
 type StudentApiRecord = Omit<
   Student,
   | "class_name"
+  | "student_guardians"
   | "guardian_name"
   | "guardian_phone"
   | "guardian_relation"
@@ -46,6 +56,8 @@ type StudentApiRecord = Omit<
     is_current?: boolean;
   }>;
   student_guardians?: Array<{
+    id?: number;
+    guardian_id?: number;
     guardian_name?: string;
     guardian_phone_number?: string;
     relationship?: string;
@@ -126,7 +138,23 @@ export default function StudentsPage() {
       setLoading(true);
       setError("");
 
-      const data = await loadList<StudentApiRecord>("/api/proxy/students/");
+      const sessionResponse = await fetch("/api/auth/session", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (sessionResponse.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
+      if (!sessionResponse.ok) throw new Error("Gagal memuat sesi pengguna.");
+      const session = await sessionResponse.json();
+      const branchId = session.user?.branch_id;
+      if (!Number.isInteger(branchId) || branchId <= 0) {
+        setStudents([]);
+        setError("Tidak ada cabang sekolah yang terhubung dengan akun Anda.");
+        return;
+      }
+      const data = await loadList<StudentApiRecord>(`/api/proxy/students?branch_id=${branchId}`);
 
       setStudents(normalizeStudents(data));
     } catch (loadError) {
@@ -409,22 +437,39 @@ export default function StudentsPage() {
                 <strong>{formatStatus(viewingStudent.status)}</strong>
               </div>
               <div className="detail-item">
-                <span>Wali</span>
-                <strong>{viewingStudent.guardian_name || "-"}</strong>
-              </div>
-              <div className="detail-item">
-                <span>Nomor WhatsApp wali</span>
-                <strong>{viewingStudent.guardian_phone || "-"}</strong>
-              </div>
-              <div className="detail-item">
-                <span>Email wali</span>
-                <strong>{viewingStudent.guardian_email || "-"}</strong>
-              </div>
-              <div className="detail-item">
                 <span>Alamat</span>
                 <strong>{viewingStudent.address || "-"}</strong>
               </div>
             </div>
+            <h3>Detail Wali</h3>
+            {(viewingStudent.student_guardians?.length ? viewingStudent.student_guardians : [{
+              guardian_name: viewingStudent.guardian_name,
+              guardian_phone_number: viewingStudent.guardian_phone,
+              guardian_email: viewingStudent.guardian_email,
+              relationship: viewingStudent.guardian_relation,
+            }]).map((guardian, index) => (
+              <section key={guardian.id ?? guardian.guardian_id ?? index} aria-label={`Wali ${index + 1}`} style={{ borderTop: "1px solid var(--line)", paddingTop: 16, marginTop: 16 }}>
+                <h4>Wali {index + 1}</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span>Nama wali</span>
+                    <strong>{guardian.guardian_name || "-"}</strong>
+                  </div>
+                  <div className="detail-item">
+                    <span>Hubungan</span>
+                    <strong>{({ father: "Ayah", mother: "Ibu", guardian: "Wali" } as Record<string, string>)[guardian.relationship ?? ""] ?? (guardian.relationship || "-")}</strong>
+                  </div>
+                  <div className="detail-item">
+                    <span>Nomor WhatsApp wali</span>
+                    <strong>{guardian.guardian_phone_number || "-"}</strong>
+                  </div>
+                  <div className="detail-item">
+                    <span>Email wali</span>
+                    <strong style={{ overflowWrap: "anywhere" }}>{guardian.guardian_email || "-"}</strong>
+                  </div>
+                </div>
+              </section>
+            ))}
           </div>
         </div>
       )}

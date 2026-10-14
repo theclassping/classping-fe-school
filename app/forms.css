@@ -1,0 +1,172 @@
+/* Shared form presentation across dashboard and account screens. */
+.form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+:is(.form-field, .field-group) { min-width: 0; gap: 8px; }
+:is(.form-field, .field-group) > label {
+  color: #40544a;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+:is(.form-field, .field-group) > :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 11px 13px;
+  border: 1px solid #d7e2dc;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font: 400 14px/1.5 "DM Sans", sans-serif;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+
+:is(.form-field, .field-group) textarea { min-height: 88px; resize: vertical; }
+:is(.form-field, .field-group) :is(input, textarea)::placeholder { color: #91a098; }
+:is(.form-field, .field-group) :is(input, select, textarea):hover:not(:disabled):not(:focus) { border-color: #adc6b9; }
+:is(.form-field, .field-group) :is(input, select, textarea):focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px #147d640a;
+}
+:is(.form-field, .field-group) :is(input, select, textarea):disabled,
+:is(.form-field, .field-group) input[readonly] {
+  background: var(--canvas);
+  color: #718079;
+  border-color: var(--line);
+}
+:is(.form-field, .field-group) :is(input, select, textarea):disabled { cursor: not-allowed; }
+:is(.form-field, .field-group) > :is(small, p) { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+:is(.form-field, .field-group) > .form-error { color: #b42318; }
+input:is([type="checkbox"], [type="radio"]) { accent-color: var(--green); }
+.form-field.checkbox-field {
+  align-self: end;
+  min-height: 46px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--canvas);
+}
+.form-field.checkbox-field input[type="checkbox"] { width: 17px; height: 17px; flex-shrink: 0; }
+.form-field.checkbox-field label { margin: 0; }
+
+.app-form-modal.modal {
+  width: min(760px, 100%);
+  padding: 0;
+  border: 1px solid #e0e9e3;
+  border-radius: 20px;
+  box-shadow: 0 24px 80px #163c2e29;
+  overscroll-behavior: contain;
+}
+.app-form-modal > .modal-header {
+  align-items: flex-start;
+  gap: 16px;
+  margin: 0;
+  padding: 24px 28px;
+  border-bottom: 1px solid var(--line);
+  background: #f8fbf9;
+}
+.app-form-modal .modal-header h2 { margin: 0; font-size: 21px; letter-spacing: -.4px; line-height: 1.4; }
+.app-form-modal .modal-header p { margin: 6px 0 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.app-form-modal .modal-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  line-height: 1;
+}
+.app-form-modal .modal-close:hover { background: var(--mint); color: var(--green-dark); }
+.app-form-modal > form { padding: 24px 28px 0; }
+.app-form-modal > .form-error { margin: 18px 28px 0; }
+.app-form-modal form > h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 28px 0 18px;
+  font-size: 14px;
+  color: var(--ink);
+}
+.app-form-modal form > h3:first-child { margin-top: 0; }
+.app-form-modal form > h3::before { content: ""; width: 4px; height: 16px; border-radius: 4px; background: var(--green); }
+.app-form-modal .modal-actions {
+  z-index: 2;
+  margin: 24px -28px 0;
+  padding: 18px 28px;
+  border-top: 1px solid var(--line);
+  background: #fff;
+  box-shadow: 0 -4px 14px #17231f04;
+}
+.guardian-form-section {
+  min-width: 0;
+  margin: 20px 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f8fbf9;
+}
+.guardian-form-section legend { padding: 0 7px; font-size: 13px; font-weight: 700; color: var(--green-dark); }
+.guardian-form-section > button { margin-top: 16px; }
+
+.student-form { padding: 4px 28px 24px; }
+.student-form > h3 { margin: 22px 0 18px; font-size: 14px; color: var(--green-dark); }
+.student-form > .form-grid {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fafcfb;
+}
+.student-form-actions {
+  align-items: center;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  margin-top: 24px;
+}
+fieldset.form-grid { min-width: 0; margin: 0; padding: 0; border: 0; }
+.student-checkbox-list { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px; background: white; border-radius: 12px; gap: 8px; }
+.student-checkbox-item { padding: 10px; border: 1px solid var(--line); border-radius: 8px; min-height: 42px; font-size: 13px; }
+.student-checkbox-item:has(input:checked) { border-color: var(--green); background: var(--mint); color: var(--green-dark); }
+.student-checkbox-item span { white-space: normal; overflow-wrap: anywhere; }
+.student-checkbox-item input[type="checkbox"] { width: 16px; height: 16px; }
+
+:is(.app-form-modal, .student-form) :is(.button-primary, .button-secondary, .primary-button, .secondary-button) {
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+form button:focus-visible, form a:focus-visible, .modal-close:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+.form-error { border: 1px solid #f6d6d2; line-height: 1.6; overflow-wrap: anywhere; }
+.reset-card { border-radius: 22px; box-shadow: 0 20px 60px #163c2e0d; }
+.reset-input:focus-within { outline: 2px solid var(--green); outline-offset: 2px; }
+.reset-submit { min-height: 46px; border-radius: 10px; }
+.login-form input:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+@media (max-width: 640px) {
+  .form-grid, .student-checkbox-list { grid-template-columns: minmax(0, 1fr); }
+  :is(.form-field, .field-group).full { grid-column: 1 / -1; }
+  .app-form-modal > .modal-header { padding: 20px; }
+  .app-form-modal .modal-header h2 { font-size: 19px; }
+  .app-form-modal > form { padding: 20px 20px 0; }
+  .app-form-modal > .form-error { margin: 16px 20px 0; }
+  .app-form-modal .modal-actions { margin: 24px -20px 0; padding: 16px 20px; }
+  .app-form-modal .modal-actions > *, .student-form-actions > * { flex: 1; text-align: center; }
+  .student-form { padding: 0 16px 20px; }
+  .student-form > .form-grid { padding: 16px; }
+  :is(.form-field, .field-group) > :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.form-field, .field-group) :is(input, select, textarea) { transition: none; }
+}

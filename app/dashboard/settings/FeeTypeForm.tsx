@@ -1,20 +1,16 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import styles from "./FeeTypeForm.module.css";
+import { Wallet, X } from "lucide-react";
+import { loadClassOptions } from "@/lib/classOptions";
+
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { loadBranchesForCurrentSchool } from "../profile/branchApi";
 
 type SchoolClass = {
   id: number;
   class_name?: string;
   name?: string;
-  label?: string;
-};
-
-type Branch = {
-  id: number;
-  name?: string;
-  branch_name?: string;
   label?: string;
 };
 
@@ -86,7 +82,6 @@ export default function FeeTypeForm({
   });
 
   const [classes, setClasses] = useState<SchoolClass[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
   const [branchesLoading, setBranchesLoading] = useState(true);
   const [branchesError, setBranchesError] = useState("");
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>(() => {
@@ -94,7 +89,6 @@ export default function FeeTypeForm({
   });
   const [classesLoading, setClassesLoading] = useState(false);
   const [classesError, setClassesError] = useState("");
-  const initialBranch = useRef(form.branch);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -102,112 +96,39 @@ export default function FeeTypeForm({
   useEffect(() => {
     const controller = new AbortController();
 
-    async function loadBranches() {
+    async function loadOptions() {
       try {
-        setBranchesLoading(true);
-        setBranchesError("");
-
-        const records = await loadBranchesForCurrentSchool(controller.signal);
-        setBranches(records);
+        const response = await fetch("/api/auth/session", {
+          credentials: "include", cache: "no-store", signal: controller.signal,
+        });
+        if (response.status === 401) { router.push("/login"); return; }
+        if (!response.ok) throw new Error("Gagal memuat sesi pengguna.");
+        const session = await response.json();
+        const branchId = session.user?.branch_id;
+        if (!Number.isInteger(branchId) || branchId <= 0) {
+          throw new Error("Tidak ada cabang sekolah yang terhubung dengan akun Anda.");
+        }
+        if (controller.signal.aborted) return;
+        setForm((current) => ({ ...current, branch: branchId }));
+        setClassesLoading(true);
+        try {
+          const records = await loadClassOptions();
+          if (!controller.signal.aborted) setClasses(records);
+        } catch {
+          if (!controller.signal.aborted) setClassesError("Gagal memuat kelas.");
+        }
       } catch (loadError) {
-        if (
-          loadError instanceof DOMException &&
-          loadError.name === "AbortError"
-        ) {
-          return;
-        }
-
-        if (
-          loadError instanceof Error &&
-          loadError.message === "Sesi berakhir. Silakan masuk kembali."
-        ) {
-          router.push("/login");
-          return;
-        }
-
-        console.error(loadError);
-        setBranchesError("Gagal memuat cabang.");
+        if (!controller.signal.aborted) setBranchesError(loadError instanceof Error ? loadError.message : "Gagal memuat cabang.");
       } finally {
         if (!controller.signal.aborted) {
           setBranchesLoading(false);
-        }
-      }
-    }
-
-    void loadBranches();
-
-    return () => controller.abort();
-  }, [router]);
-
-  useEffect(() => {
-    if (!form.branch) {
-      setClasses([]);
-      setSelectedClassIds([]);
-      return;
-    }
-
-    if (form.branch !== initialBranch.current) {
-      setSelectedClassIds([]);
-    }
-
-    initialBranch.current = form.branch;
-
-    const controller = new AbortController();
-
-    async function loadClasses() {
-      try {
-        setClassesLoading(true);
-        setClassesError("");
-
-        const response = await fetch(
-          `/api/proxy/classes/?branch_id=${encodeURIComponent(String(form.branch))}`,
-          {
-            credentials: "include",
-            cache: "no-store",
-            signal: controller.signal,
-          },
-        );
-
-        if (response.status === 401) {
-          window.location.href = "/login";
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error("Gagal memuat kelas");
-        }
-
-        const data = await response.json();
-        const records = Array.isArray(data)
-          ? data
-          : Array.isArray(data.results)
-            ? data.results
-            : Array.isArray(data.data)
-              ? data.data
-              : [];
-
-        setClasses(records);
-      } catch (loadError) {
-        if (
-          loadError instanceof DOMException &&
-          loadError.name === "AbortError"
-        ) {
-          return;
-        }
-
-        console.error(loadError);
-        setClassesError("Gagal memuat kelas.");
-      } finally {
-        if (!controller.signal.aborted) {
           setClassesLoading(false);
         }
       }
     }
-
-    void loadClasses();
-
+    void loadOptions();
     return () => controller.abort();
-  }, [form.branch]);
+  }, [router]);
 
   useEffect(() => {
     const feeTypeId = feeType?.id;
@@ -259,7 +180,7 @@ export default function FeeTypeForm({
   }, [feeType?.id]);
 
   function handleChange(
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) {
     const { name, value } = event.target;
     const nextValue =
@@ -277,6 +198,10 @@ export default function FeeTypeForm({
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
 
+    if (branchesLoading || classesLoading || branchesError || classesError || !form.branch) {
+      setError("Cabang dan kelas belum tersedia. Silakan buka kembali form.");
+      return;
+    }
     setLoading(true);
     setError("");
 
@@ -366,212 +291,80 @@ export default function FeeTypeForm({
 
   return (
     <div className="modal-overlay">
-      <div className="modal">
-        <div className="modal-header">
+      <div className={`modal ${styles.modal}`} role="dialog" aria-modal="true" aria-labelledby="fee-type-title">
+        <div className={styles.header}>
+          <span className={styles.icon}><Wallet aria-hidden="true" /></span>
           <div>
-            <h2>{isEdit ? "Edit Jenis Biaya" : "Tambah Jenis Biaya"}</h2>
-
-            <p>
-              {isEdit ? "Perbarui informasi jenis biaya." : "Tambahkan jenis biaya baru."}
-            </p>
+            <h2 id="fee-type-title">{isEdit ? "Edit Jenis Biaya" : "Tambah Jenis Biaya"}</h2>
+            <p>Atur biaya sekolah dan pilih kelas yang dikenakan biaya.</p>
           </div>
-
-          <button type="button" className="modal-close" onClick={onCancel}>
-            ×
-          </button>
+          <button type="button" className={styles.close} aria-label="Tutup" onClick={onCancel}><X aria-hidden="true" /></button>
         </div>
-
-        {error && <div className="form-error">{error}</div>}
-
         <form onSubmit={handleSubmit}>
-          <div className="form-grid">
-            <div className="form-field">
-              <label htmlFor="name">Nama</label>
-
-              <input
-                id="name"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="description">Deskripsi</label>
-
-              <input
-                id="description"
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="form-field">
-              <label htmlFor="branch">Cabang</label>
-
-              <select
-                id="branch"
-                name="branch"
-                value={form.branch || ""}
-                onChange={handleChange}
-                disabled={branchesLoading}
-                required
-              >
-                <option value="">
-                  {branchesLoading ? "Memuat cabang..." : "Pilih cabang"}
-                </option>
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name ??
-                      branch.branch_name ??
-                      branch.label ??
-                      `Cabang ${branch.id}`}
-                  </option>
-                ))}
-              </select>
-
-              {branchesError && (
-                <small className="form-error">{branchesError}</small>
-              )}
-            </div>
-
-            <div className="form-field full">
-              <label>Kelas</label>
-
-              <div className="student-checkbox-list">
-                {classesLoading ? (
-                  <span>Memuat kelas...</span>
-                ) : classes.length === 0 ? (
-                  <span>
-                    {form.branch
-                      ? "Tidak ada kelas untuk cabang ini"
-                      : "Pilih cabang terlebih dahulu"}
-                  </span>
-                ) : (
-                  classes.map((schoolClass) => {
-                    const classId = String(schoolClass.id);
-
-                    return (
-                      <label
-                        key={schoolClass.id}
-                        className="student-checkbox-item"
-                        htmlFor={`fee-class-${schoolClass.id}`}
-                      >
-                        <input
-                          id={`fee-class-${schoolClass.id}`}
-                          type="checkbox"
-                          checked={selectedClassIds.includes(classId)}
-                          onChange={(event) => {
-                            setSelectedClassIds((currentIds) =>
-                              event.target.checked
-                                ? [...currentIds, classId]
-                                : currentIds.filter((id) => id !== classId),
-                            );
-                          }}
-                          disabled={!form.branch}
-                        />
-                        <span>
-                          {schoolClass.class_name ??
-                            schoolClass.name ??
-                            schoolClass.label ??
-                            `Kelas ${schoolClass.id}`}
-                        </span>
-                      </label>
-                    );
-                  })
-                )}
+          <div className={styles.body}>
+            {error && <p className="form-error" role="alert">{error}</p>}
+            {branchesError && <p className="form-error" role="alert">{branchesError}</p>}
+            <section className={styles.section} aria-labelledby="fee-information">
+              <h3 id="fee-information">Informasi biaya</h3>
+              <div className={styles.grid}>
+                <div className="form-field">
+                  <label htmlFor="name">Nama biaya <span className={styles.required}>*</span></label>
+                  <input id="name" name="name" value={form.name} onChange={handleChange} placeholder="Contoh: SPP bulanan" required />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="amount">Jumlah <span className={styles.required}>*</span></label>
+                  <div className={styles.amount}>
+                    <span>Rp</span>
+                    <input id="amount" name="amount" type="number" min="0" step="0.01" value={form.amount} onChange={handleChange} placeholder="250000" required />
+                  </div>
+                </div>
+                <div className={`form-field ${styles.full}`}>
+                  <label htmlFor="description">Deskripsi <span className={styles.required}>*</span></label>
+                  <textarea id="description" name="description" rows={2} value={form.description} onChange={handleChange} placeholder="Jelaskan tujuan atau rincian biaya ini..." required />
+                </div>
               </div>
-
-              {classesError && (
-                <small className="form-error">{classesError}</small>
-              )}
-            </div>
-
-            <div className="form-field full">
-              <label htmlFor="amount">Jumlah</label>
-
-              <input
-                id="amount"
-                name="amount"
-                type="number"
-                value={form.amount}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="currency">Mata uang</label>
-
-              <input
-                id="currency"
-                name="currency"
-                value={form.currency}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="recurring_frequency">Frekuensi berulang</label>
-
-              <select
-                id="recurring_frequency"
-                name="recurring_frequency"
-                value={form.recurring_frequency}
-                onChange={handleChange}
-                disabled={!form.is_recurring}
-                required
-              >
-                <option value="monthly">Bulanan</option>
-                <option value="quarterly">Triwulanan</option>
-                <option value="annually">Tahunan</option>
-              </select>
-            </div>
-
-            <div className="form-field checkbox-field">
-              <input
-                id="is_recurring"
-                name="is_recurring"
-                type="checkbox"
-                checked={form.is_recurring}
-                onChange={handleChange}
-              />
-              <label htmlFor="is_recurring">Biaya berulang</label>
-            </div>
-
-            <div className="form-field checkbox-field">
-              <input
-                id="is_active"
-                name="is_active"
-                type="checkbox"
-                checked={form.is_active}
-                onChange={handleChange}
-              />
-              <label htmlFor="is_active">Aktif</label>
-            </div>
+            </section>
+            <section className={styles.section} aria-labelledby="fee-classes">
+              <div className={styles.sectionHeading}>
+                <div><h3 id="fee-classes">Kelas penerima</h3><p>Pilih kelas yang dikenakan biaya ini.</p></div>
+                <span className={styles.count}>{classes.filter((item) => selectedClassIds.includes(String(item.id))).length} dipilih</span>
+              </div>
+              <div className={styles.classGrid}>
+                {branchesLoading || classesLoading ? <p className={styles.empty}>Memuat kelas...</p>
+                  : classes.length === 0 ? <p className={styles.empty}>Tidak ada kelas tersedia.</p>
+                  : classes.map((schoolClass) => {
+                    const classId = String(schoolClass.id);
+                    const selected = selectedClassIds.includes(classId);
+                    return <label key={classId} className={`${styles.classOption} ${selected ? styles.selected : ""}`}>
+                      <input type="checkbox" checked={selected} disabled={!form.branch} onChange={(event) => setSelectedClassIds((current) => event.target.checked ? [...current, classId] : current.filter((id) => id !== classId))} />
+                      <span>{schoolClass.class_name ?? schoolClass.name ?? schoolClass.label ?? `Kelas ${classId}`}</span>
+                    </label>;
+                  })}
+              </div>
+              {classesError && <p className="form-error" role="alert">{classesError}</p>}
+            </section>
+            <section className={styles.section} aria-labelledby="fee-options">
+              <h3 id="fee-options">Pengaturan biaya</h3>
+              <label className={styles.setting}>
+                <span><strong>Biaya berulang</strong><small>Dikenakan secara berkala sesuai frekuensi.</small></span>
+                <input name="is_recurring" type="checkbox" role="switch" checked={form.is_recurring} onChange={handleChange} />
+              </label>
+              {form.is_recurring && <div className={`form-field ${styles.frequency}`}>
+                <label htmlFor="recurring_frequency">Frekuensi</label>
+                <select id="recurring_frequency" name="recurring_frequency" value={form.recurring_frequency} onChange={handleChange} required>
+                  <option value="monthly">Bulanan</option><option value="quarterly">Triwulanan</option><option value="annually">Tahunan</option>
+                </select>
+              </div>}
+              <label className={styles.setting}>
+                <span><strong>Aktif</strong><small>Jenis biaya tersedia untuk pembuatan tagihan.</small></span>
+                <input name="is_active" type="checkbox" role="switch" checked={form.is_active} onChange={handleChange} />
+              </label>
+            </section>
           </div>
-
-          <div className="modal-actions">
-            <button
-              type="button"
-              className="button-secondary"
-              onClick={onCancel}
-              disabled={loading}
-            >
-              Batal
-            </button>
-
-            <button type="submit" className="button-primary" disabled={loading}>
-              {loading
-                ? isEdit
-                  ? "Menyimpan..."
-                  : "Membuat..."
-                : isEdit
-                  ? "Simpan Perubahan"
-                  : "Simpan Jenis Biaya"}
+          <div className={styles.footer}>
+            <button type="button" className="button-secondary" onClick={onCancel} disabled={loading}>Batal</button>
+            <button type="submit" className="button-primary" disabled={loading || branchesLoading || classesLoading || !!branchesError || !!classesError || !form.branch}>
+              {loading ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Simpan Jenis Biaya"}
             </button>
           </div>
         </form>

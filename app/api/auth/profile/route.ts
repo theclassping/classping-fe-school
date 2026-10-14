@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ACCESS_COOKIE, REFRESH_COOKIE, SessionError, clearSessionCookies, isSessionUser, refreshSession, setSessionCookies, type Tokens } from "@/lib/session";
+import { ACCESS_COOKIE, REFRESH_COOKIE, SessionError, clearSessionCookies, isSessionUser, refreshSession, setSessionCookies, withUserBranch, type Tokens } from "@/lib/session";
 
 export async function PATCH(request: NextRequest) {
   let renewed: Tokens | undefined;
@@ -50,8 +50,9 @@ export async function PATCH(request: NextRequest) {
     if (!detail.ok) throw new SessionError(502, "Nama tersimpan, tetapi profil belum dapat dimuat kembali. Silakan muat ulang halaman.");
     const user: unknown = await detail.json();
     if (!isSessionUser(user)) throw new SessionError(502, "Respons profil tidak valid.");
-    const response = NextResponse.json({ user }, { headers: { "Cache-Control": "no-store" } });
-    setSessionCookies(response, { access: access!, refresh: renewed?.refresh ?? refresh }, user);
+    const sessionUser = await withUserBranch(user, access!);
+    const response = NextResponse.json({ user: sessionUser }, { headers: { "Cache-Control": "no-store" } });
+    setSessionCookies(response, { access: access!, refresh: renewed?.refresh ?? refresh }, sessionUser);
     return response;
   } catch (error) {
     const status = error instanceof SessionError ? error.status : 502;

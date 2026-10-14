@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { isSessionUser, setSessionCookies } from "@/lib/session";
+import { isSessionUser, setSessionCookies, withUserBranch } from "@/lib/session";
 
 const DJANGO_API_URL = process.env.DJANGO_API_URL;
 
@@ -41,13 +41,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const user = await withUserBranch(data.user, accessToken);
     const nextResponse = NextResponse.json({
       success: true,
-      user: data.user,
+      user,
     });
     nextResponse.headers.set("Cache-Control", "no-store");
 
-    setSessionCookies(nextResponse, { access: accessToken, refresh: refreshToken }, data.user);
+    setSessionCookies(nextResponse, { access: accessToken, refresh: refreshToken }, user);
 
     return nextResponse;
   } catch (error) {

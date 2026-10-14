@@ -83,7 +83,23 @@ export default function PaymentsPage() {
       setLoading(true);
       setError("");
 
-      const invoices = await loadList<StudentInvoice>("/api/proxy/student-invoices/");
+      const sessionResponse = await fetch("/api/auth/session", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (sessionResponse.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
+      if (!sessionResponse.ok) throw new Error("Failed to load session.");
+      const session = await sessionResponse.json();
+      const branchId = session.user?.branch_id;
+      if (!Number.isInteger(branchId) || branchId <= 0) {
+        setPayments([]);
+        setError("Tidak ada cabang sekolah yang terhubung dengan akun Anda.");
+        return;
+      }
+      const invoices = await loadList<StudentInvoice>(`/api/proxy/student-invoices?branch_id=${branchId}`);
       setPayments(invoices.map(normalizePayment));
       setPage(1);
     } catch (loadError) {

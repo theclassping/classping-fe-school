@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { loadList } from "@/lib/loadList";
 
 type Teacher = {
     id: number;
@@ -12,21 +13,10 @@ function teacherName(teacher: Teacher) {
     return `${teacher.first_name} ${teacher.last_name}`.trim();
 }
 
-function getCurrentAcademicYear() {
-    const year = new Date().getFullYear();
-    return `${year}/${year + 1}`;
-}
-
-function getAcademicYearOptions(selectedYear: string) {
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: 8 }, (_, index) => {
-        const startYear = currentYear - 1 + index;
-        return `${startYear}/${startYear + 1}`;
-    });
-
-    if (selectedYear && !years.includes(selectedYear)) years.push(selectedYear);
-    return years.sort((left, right) => Number(left.slice(0, 4)) - Number(right.slice(0, 4)));
-}
+type AcademicYear = {
+    id: number;
+    name: string;
+};
 
 type Class = {
     id: number;
@@ -50,10 +40,12 @@ export default function ClassForm({
 
     const [form, setForm] = useState({
         class_name: classData?.class_name ?? "",
-        academic_year_name: classData?.academic_year_name ?? getCurrentAcademicYear(),
+        academic_year_name: classData?.academic_year_name ?? "",
         teacher_name: classData?.teacher_name ?? "",
     });
-    const academicYearOptions = getAcademicYearOptions(form.academic_year_name);
+    const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+    const [academicYearsLoading, setAcademicYearsLoading] = useState(true);
+    const [academicYearsError, setAcademicYearsError] = useState("");
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -103,6 +95,22 @@ export default function ClassForm({
 
         void loadTeachers();
         return () => controller.abort();
+    }, []);
+
+    useEffect(() => {
+        let active = true;
+        async function loadAcademicYears() {
+            try {
+                const records = await loadList<AcademicYear>("/api/proxy/academic-years/");
+                if (active) setAcademicYears(records);
+            } catch {
+                if (active) setAcademicYearsError("Gagal memuat tahun ajaran. Buka kembali form untuk mencoba lagi.");
+            } finally {
+                if (active) setAcademicYearsLoading(false);
+            }
+        }
+        void loadAcademicYears();
+        return () => { active = false; };
     }, []);
 
     function handleChange(
@@ -210,7 +218,7 @@ export default function ClassForm({
 
     return (
         <div className="modal-overlay">
-            <div className="modal">
+            <div className="modal app-form-modal">
                 <div className="modal-header">
                     <div>
                         <h2>
@@ -227,6 +235,7 @@ export default function ClassForm({
                     <button
                         type="button"
                         className="modal-close"
+                        aria-label="Tutup formulir"
                         onClick={onCancel}
                     >
                         ×
@@ -242,7 +251,7 @@ export default function ClassForm({
                 <form onSubmit={handleSubmit}>
                     <div className="form-grid">
                         <div className="form-field">
-                            <label htmlFor="name">
+                            <label htmlFor="class_name">
                                 Nama kelas
                             </label>
 
@@ -265,14 +274,21 @@ export default function ClassForm({
                                 name="academic_year_name"
                                 value={form.academic_year_name}
                                 onChange={handleChange}
+                                disabled={academicYearsLoading || !!academicYearsError}
                                 required
                             >
-                                {academicYearOptions.map((academicYear) => (
-                                    <option key={academicYear} value={academicYear}>
-                                        {academicYear}
+                                <option value="">{academicYearsLoading ? "Memuat tahun ajaran..." : "Pilih tahun ajaran"}</option>
+                                {isEdit && form.academic_year_name && !academicYears.some((year) => year.name === form.academic_year_name) && (
+                                    <option value={form.academic_year_name}>{form.academic_year_name}</option>
+                                )}
+                                {academicYears.map((academicYear) => (
+                                    <option key={academicYear.id} value={academicYear.name}>
+                                        {academicYear.name}
                                     </option>
                                 ))}
                             </select>
+                            {academicYearsError && <div className="form-error" role="alert">{academicYearsError}</div>}
+                            {!academicYearsLoading && !academicYearsError && academicYears.length === 0 && <p>Belum ada tahun ajaran tersedia.</p>}
                         </div>
 
                         <div className="form-field full">
@@ -320,7 +336,7 @@ export default function ClassForm({
                         <button
                             type="submit"
                             className="button-primary"
-                            disabled={loading || teachersLoading || !!teachersError}
+                            disabled={loading || teachersLoading || !!teachersError || academicYearsLoading || !!academicYearsError || !form.academic_year_name}
                         >
                             {loading
                                 ? isEdit

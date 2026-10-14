@@ -1,3 +1,4 @@
+import { loadClassOptions } from "@/lib/classOptions";
 export type ActivityClass = {
   id: string;
   label: string;
@@ -51,17 +52,5 @@ export function normalizeActivityClasses(data: unknown): ActivityClass[] {
 }
 
 export async function loadActivityClasses() {
-  const response = await fetch("/api/proxy/classes/", {
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  if (response.status === 401) {
-    window.location.href = "/login";
-    return [];
-  }
-
-  if (!response.ok) throw new Error("Failed to load classes");
-
-  return normalizeActivityClasses(await response.json());
+  return normalizeActivityClasses(await loadClassOptions());
 }
