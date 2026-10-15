@@ -158,7 +158,21 @@ export function normalizeActivities(data: unknown): Activity[] {
 }
 
 export async function loadActivities() {
-    return normalizeActivities(await loadList("/api/proxy/activities/"));
+    const response = await fetch("/api/auth/session", {
+        credentials: "include",
+        cache: "no-store",
+    });
+    if (response.status === 401) {
+        window.location.href = "/login";
+        return [];
+    }
+    if (!response.ok) throw new Error("Gagal memuat sesi pengguna.");
+    const session = await response.json();
+    const branchId = session.user?.branch_id;
+    if (!Number.isInteger(branchId) || branchId <= 0) {
+        throw new Error("Tidak ada cabang sekolah yang terhubung dengan akun Anda.");
+    }
+    return normalizeActivities(await loadList(`/api/proxy/activities/?branch_id=${branchId}`));
 }
 
 export async function loadActivity(
