@@ -41,24 +41,28 @@ export default function ClassForm({
     const [form, setForm] = useState({
         class_name: classData?.class_name ?? "",
         academic_year_name: classData?.academic_year_name ?? "",
+        academic_year: "",
         teacher_name: classData?.teacher_name ?? "",
     });
     const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
     const [academicYearsLoading, setAcademicYearsLoading] = useState(true);
     const [academicYearsError, setAcademicYearsError] = useState("");
+    const [branchId, setBranchId] = useState<number | null>(null);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [teachersLoading, setTeachersLoading] = useState(true);
     const [teachersError, setTeachersError] = useState("");
+    const [selectedTeacherIds, setSelectedTeacherIds] = useState<number[]>([]);
 
     useEffect(() => {
+        if (branchId === null) return;
         const controller = new AbortController();
 
         async function loadTeachers() {
             try {
-                let url = "/api/proxy/staffs/?staff_type=teacher";
+                let url = `/api/proxy/staffs/?staff_type=teacher&branch_id=${branchId}`;
                 const visited = new Set<string>();
                 const records: Teacher[] = [];
 
@@ -80,6 +84,7 @@ export default function ClassForm({
                     if (!data.next) break;
                     const params = new URL(data.next, window.location.origin).searchParams;
                     params.set("staff_type", "teacher");
+                    params.set("branch_id", String(branchId));
                     url = `/api/proxy/staffs/?${params}`;
                 }
 
@@ -95,16 +100,27 @@ export default function ClassForm({
 
         void loadTeachers();
         return () => controller.abort();
-    }, []);
+    }, [branchId]);
 
     useEffect(() => {
         let active = true;
         async function loadAcademicYears() {
             try {
-                const records = await loadList<AcademicYear>("/api/proxy/academic-years/");
+                const response = await fetch("/api/auth/session", {
+                    credentials: "include",
+                    cache: "no-store",
+                });
+                if (!response.ok) throw new Error("Gagal memuat sesi pengguna.");
+                const session = await response.json();
+                const userBranchId = session.user?.branch_id;
+                if (!Number.isInteger(userBranchId) || userBranchId <= 0) {
+                    throw new Error("Tidak ada cabang sekolah yang terhubung dengan akun Anda.");
+                }
+                if (active) setBranchId(userBranchId);
+                const records = await loadList<AcademicYear>(`/api/proxy/academic-years/?branch_id=${userBranchId}&is_current=true`);
                 if (active) setAcademicYears(records);
-            } catch {
-                if (active) setAcademicYearsError("Gagal memuat tahun ajaran. Buka kembali form untuk mencoba lagi.");
+            } catch (error) {
+                if (active) setAcademicYearsError(error instanceof Error ? error.message : "Gagal memuat tahun ajaran. Buka kembali form untuk mencoba lagi.");
             } finally {
                 if (active) setAcademicYearsLoading(false);
             }
@@ -137,13 +153,26 @@ export default function ClassForm({
 
             const method = classData ? "PATCH" : "POST";
 
+            if (!classData && branchId === null) {
+                throw new Error("Cabang sekolah tidak tersedia.");
+            }
+
+            if (!classData && !academicYears.some((year) => year.id === Number(form.academic_year))) {
+                throw new Error("Pilih tahun ajaran yang tersedia.");
+            }
+
             const body = classData
                 ? {
                     class_name: form.class_name,
                     academic_year_name: form.academic_year_name,
                     teacher_name: form.teacher_name,
                 }
-                : form;
+                : {
+                    name: form.class_name.trim(),
+                    branch: branchId,
+                    academic_year: Number(form.academic_year),
+                    teacher_ids: selectedTeacherIds,
+                };
 
             console.log(
                 isEdit
@@ -271,8 +300,8 @@ export default function ClassForm({
 
                             <select
                                 id="academic_year_name"
-                                name="academic_year_name"
-                                value={form.academic_year_name}
+                                name={isEdit ? "academic_year_name" : "academic_year"}
+                                value={isEdit ? form.academic_year_name : form.academic_year}
                                 onChange={handleChange}
                                 disabled={academicYearsLoading || !!academicYearsError}
                                 required
@@ -282,7 +311,7 @@ export default function ClassForm({
                                     <option value={form.academic_year_name}>{form.academic_year_name}</option>
                                 )}
                                 {academicYears.map((academicYear) => (
-                                    <option key={academicYear.id} value={academicYear.name}>
+                                    <option key={academicYear.id} value={isEdit ? academicYear.name : academicYear.id}>
                                         {academicYear.name}
                                     </option>
                                 ))}
@@ -291,7 +320,29 @@ export default function ClassForm({
                             {!academicYearsLoading && !academicYearsError && academicYears.length === 0 && <p>Belum ada tahun ajaran tersedia.</p>}
                         </div>
 
-                        <div className="form-field full">
+                        {!isEdit && <div className="form-field full">
+                            <label id="class-teachers-label">Guru kelas</label>
+                            <div className="student-checkbox-list" role="group" aria-labelledby="class-teachers-label">
+                                {teachersLoading ? <p>Memuat guru...</p> : teachers.map((teacher) => (
+                                    <label key={teacher.id} className="student-checkbox-item">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedTeacherIds.includes(teacher.id)}
+                                            onChange={(event) => setSelectedTeacherIds((current) => event.target.checked
+                                                ? [...current, teacher.id]
+                                                : current.filter((id) => id !== teacher.id))}
+                                            disabled={loading}
+                                        />
+                                        <span>{teacherName(teacher)}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            {teachersError && <p className="form-error" role="alert">{teachersError}</p>}
+                            {!teachersLoading && !teachersError && teachers.length === 0 && <p>Belum ada guru tersedia.</p>}
+                            <small>Pilih satu atau lebih guru untuk kelas ini.</small>
+                        </div>}
+
+                        {isEdit && <div className="form-field full">
                             <label htmlFor="teacher_name">
                                 Wali kelas
                             </label>
@@ -320,7 +371,7 @@ export default function ClassForm({
                             {!teachersLoading && !teachersError && teachers.length === 0 && (
                                 <p>Belum ada guru tersedia.</p>
                             )}
-                        </div>
+                        </div>}
                     </div>
 
                     <div className="modal-actions">
@@ -336,7 +387,7 @@ export default function ClassForm({
                         <button
                             type="submit"
                             className="button-primary"
-                            disabled={loading || teachersLoading || !!teachersError || academicYearsLoading || !!academicYearsError || !form.academic_year_name}
+                            disabled={loading || teachersLoading || !!teachersError || academicYearsLoading || !!academicYearsError || (!isEdit && branchId === null) || !(isEdit ? form.academic_year_name : form.academic_year)}
                         >
                             {loading
                                 ? isEdit
