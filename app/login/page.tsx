@@ -1,6 +1,7 @@
 "use client";
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { Download, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -139,6 +140,20 @@ try {
               {loading ? "..." : ""}
             </button>
           </form>
+
+          <a
+            className="login-guide"
+            href="/panduan/panduan-portal-sekolah.pdf"
+            target="_blank"
+            rel="noopener"
+          >
+            <FileText aria-hidden="true" />
+            <span>
+              <strong>Panduan pengguna</strong>
+              <small>Cara menggunakan portal sekolah (PDF)</small>
+            </span>
+            <Download aria-hidden="true" />
+          </a>
         </div>
       </section>
     </main>
