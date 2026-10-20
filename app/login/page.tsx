@@ -1,7 +1,7 @@
 "use client";
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { Download, FileText } from "lucide-react";
+import { Download, Eye, EyeOff, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -9,6 +9,7 @@ const router = useRouter();
 
 const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
+const [showPassword, setShowPassword] = useState(false);
 const [error, setError] = useState("");
 const [loading, setLoading] = useState(false);
 
@@ -121,12 +122,22 @@ try {
               <input
                 id="loginPassword"
                 name="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 value={password} 
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Masukkan kata sandi"
                 required
               />
+              <button
+                type="button"
+                aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+                aria-pressed={showPassword}
+                aria-controls="loginPassword"
+                onClick={() => setShowPassword((current) => !current)}
+              >
+                {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+              </button>
             </div>
 
             <p className="reset-help"><Link href="/forgot-password">Lupa kata sandi?</Link></p>
