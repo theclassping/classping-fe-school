@@ -61,6 +61,33 @@ test('login sets School-only HTTP-only cookies with backend token lifetimes', as
   assert.deepEqual(JSON.parse(storedUser.value), user);
 });
 
+test('login denies non-school roles before loading a branch and clears existing cookies', async () => {
+  for (const role of ['PARENT', 'STUDENT', 'UNKNOWN']) {
+    let calls = 0;
+    global.fetch = async () => {
+      calls++;
+      return json({ access: jwt(300), refresh: jwt(86400), user: { ...user, role } });
+    };
+    const response = await login.POST(new NextRequest('https://school.test/api/auth/login', { method: 'POST', body: '{}' }));
+    assert.equal(response.status, 403);
+    assert.match((await response.json()).detail, /tidak memiliki akses/);
+    assert.equal(calls, 1);
+    for (const name of ['school_access_token', 'school_refresh_token', 'school_user']) {
+      assert.equal(response.cookies.get(name).value, '');
+      assert.equal(response.cookies.get(name).expires.getTime(), 0);
+    }
+  }
+});
+
+test('login allows each school role', async () => {
+  for (const role of ['ADMIN', 'STAFF', 'TEACHER']) {
+    global.fetch = async () => json({ access: jwt(300), refresh: jwt(86400), user: { ...user, role, branch_id: null } });
+    const response = await login.POST(new NextRequest('https://school.test/api/auth/login', { method: 'POST', body: '{}' }));
+    assert.equal(response.status, 200);
+    assert(response.cookies.get('school_access_token').value);
+  }
+});
+
 test('login rejects an incomplete user response without setting session cookies', async () => {
   global.fetch = async () => json({ access: jwt(300), refresh: jwt(86400), user: { id: 1 } });
   const response = await login.POST(new NextRequest('https://school.test/api/auth/login', { method: 'POST', body: '{}' }));
