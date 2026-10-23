@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { isSessionUser, setSessionCookies, withUserBranch } from "@/lib/session";
+import { clearSessionCookies, isSessionUser, setSessionCookies, withUserBranch } from "@/lib/session";
 
 const DJANGO_API_URL = process.env.DJANGO_API_URL;
 
@@ -39,6 +39,15 @@ export async function POST(request: NextRequest) {
         },
         { status: 500 }
       );
+    }
+
+    if (!["STAFF", "TEACHER"].includes(data.user.role.toUpperCase())) {
+      const deniedResponse = NextResponse.json(
+        { detail: "Akun ini tidak memiliki akses ke portal School." },
+        { status: 403, headers: { "Cache-Control": "no-store" } }
+      );
+      clearSessionCookies(deniedResponse);
+      return deniedResponse;
     }
 
     const user = await withUserBranch(data.user, accessToken);

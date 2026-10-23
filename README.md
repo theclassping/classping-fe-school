@@ -20,6 +20,11 @@ user account. Auth cookies are set by the server-side login route; authenticated
 browser requests then use `/api/proxy/*` so backend credentials are never
 exposed to client-side code.
 
+School login accepts `STAFF` and `TEACHER` accounts only. `ADMIN`, `PARENT`, and
+other roles receive a forbidden response and have their School cookies cleared
+when they attempt to log in. This login check does not revoke sessions that
+were already issued; backend permissions still govern individual API actions.
+
 For local UI review without an account, set `SCHOOL_PROTOTYPE_PREVIEW=true`.
 This bypass is accepted only by the development server; production builds still
 require authentication.
@@ -53,6 +58,10 @@ set to this portal's `/reset-password` URL. For dev deployments, use
 For a local backend, use `http://localhost:3000/reset-password`.
 
 ## Quality checks
+
+The browser tab uses the ClassPing three-bar logo from `app/icon.svg`.
+After updating that source, run `npm run icons` to regenerate the 16, 32,
+and 48 pixel variants in `app/favicon.ico`.
 
 ```bash
 npm run lint
