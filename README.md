@@ -54,6 +54,10 @@ For a local backend, use `http://localhost:3000/reset-password`.
 
 ## Quality checks
 
+The browser tab uses the ClassPing three-bar logo from `app/icon.svg`.
+After updating that source, run `npm run icons` to regenerate the 16, 32,
+and 48 pixel variants in `app/favicon.ico`.
+
 ```bash
 npm run lint
 npm run build -- --webpack
