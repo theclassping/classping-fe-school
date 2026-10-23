@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!["ADMIN", "STAFF", "TEACHER"].includes(data.user.role.toUpperCase())) {
+    if (!["STAFF", "TEACHER"].includes(data.user.role.toUpperCase())) {
       const deniedResponse = NextResponse.json(
         { detail: "Akun ini tidak memiliki akses ke portal School." },
         { status: 403, headers: { "Cache-Control": "no-store" } }
