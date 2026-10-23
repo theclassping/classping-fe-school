@@ -42,7 +42,7 @@ const req = (cookie = '', method = 'GET', body) => new NextRequest('https://scho
   method, headers: { cookie, ...(body ? { 'content-type': 'application/json' } : {}) }, body,
 });
 const jwt = (seconds) => `header.${Buffer.from(JSON.stringify({ exp: Math.floor(Date.now()/1000) + seconds })).toString('base64url')}.signature`;
-const user = { id: 1, email: 'admin@example.test', first_name: 'System', last_name: 'Admin', full_name: 'System Admin', role: 'ADMIN', is_active: true, created_at: '2026-09-30T03:05:17Z', updated_at: '2026-09-30T03:05:17Z' };
+const user = { id: 1, email: 'staff@example.test', first_name: 'School', last_name: 'Staff', full_name: 'School Staff', role: 'STAFF', branch_id: 3, is_active: true, created_at: '2026-09-30T03:05:17Z', updated_at: '2026-09-30T03:05:17Z' };
 
 test('login sets School-only HTTP-only cookies with backend token lifetimes', async () => {
   global.fetch = async () => json({ access: jwt(300), refresh: jwt(86400), user });
@@ -62,16 +62,22 @@ test('login sets School-only HTTP-only cookies with backend token lifetimes', as
 });
 
 test('login denies non-school roles before loading a branch and clears existing cookies', async () => {
-  for (const role of ['PARENT', 'STUDENT', 'UNKNOWN']) {
+  for (const role of ['PARENT', 'ADMIN', 'PRINCIPAL', 'STUDENT', 'UNKNOWN']) {
     let calls = 0;
     global.fetch = async () => {
       calls++;
       return json({ access: jwt(300), refresh: jwt(86400), user: { ...user, role } });
     };
-    const response = await login.POST(new NextRequest('https://school.test/api/auth/login', { method: 'POST', body: '{}' }));
+    const response = await login.POST(new NextRequest('https://school.test/api/auth/login', {
+      method: 'POST',
+      headers: { cookie: 'school_access_token=old-school; school_refresh_token=old-refresh; school_user=old-user; access_token=guardian' },
+      body: '{}',
+    }));
     assert.equal(response.status, 403);
     assert.match((await response.json()).detail, /tidak memiliki akses/);
     assert.equal(calls, 1);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(response.cookies.get('access_token'), undefined, 'do not clear the Guardian session');
     for (const name of ['school_access_token', 'school_refresh_token', 'school_user']) {
       assert.equal(response.cookies.get(name).value, '');
       assert.equal(response.cookies.get(name).expires.getTime(), 0);
@@ -80,12 +86,27 @@ test('login denies non-school roles before loading a branch and clears existing 
 });
 
 test('login allows each school role', async () => {
-  for (const role of ['ADMIN', 'STAFF', 'TEACHER']) {
+  for (const role of ['STAFF', 'TEACHER', 'staff', 'teacher']) {
     global.fetch = async () => json({ access: jwt(300), refresh: jwt(86400), user: { ...user, role, branch_id: null } });
     const response = await login.POST(new NextRequest('https://school.test/api/auth/login', { method: 'POST', body: '{}' }));
     assert.equal(response.status, 200);
     assert(response.cookies.get('school_access_token').value);
   }
+});
+
+test('successful staff login resolves the assigned branch when login metadata omits it', async () => {
+  const withoutBranch = { ...user };
+  delete withoutBranch.branch_id;
+  const requested = [];
+  global.fetch = async (url) => {
+    requested.push(String(url));
+    if (String(url).endsWith('/api/auth/login/')) return json({ access: jwt(300), refresh: jwt(86400), user: withoutBranch });
+    return json({ results: [{ user: 1, is_active: true, branch: 7 }], next: null });
+  };
+  const response = await login.POST(new NextRequest('https://school.test/api/auth/login', { method: 'POST', body: '{}' }));
+  assert.equal(response.status, 200);
+  assert.deepEqual((await response.json()).user, { ...withoutBranch, branch_id: 7 });
+  assert.deepEqual(requested, ['https://backend.test/api/auth/login/', 'https://backend.test/api/staffs/?user=1']);
 });
 
 test('login rejects an incomplete user response without setting session cookies', async () => {
@@ -97,11 +118,11 @@ test('login rejects an incomplete user response without setting session cookies'
 
 test('session metadata retains the role across requests and is not cached', async () => {
   const cookie = `school_refresh_token=valid; school_user=${encodeURIComponent(JSON.stringify(user))}`;
-  const response = session.GET(req(cookie));
+  const response = await session.GET(req(cookie));
   assert.deepEqual(await response.json(), { user });
   assert.equal(response.headers.get('cache-control'), 'no-store');
-  assert.equal(session.GET(req(`school_user=${encodeURIComponent(JSON.stringify(user))}`)).status, 401);
-  assert.deepEqual(await session.GET(req('school_access_token=valid; school_user=invalid')).json(), { user: null });
+  assert.equal((await session.GET(req(`school_user=${encodeURIComponent(JSON.stringify(user))}`))).status, 401);
+  assert.deepEqual(await (await session.GET(req('school_access_token=valid; school_user=invalid'))).json(), { user: null });
 });
 
 test('expired access refreshes once and retries PATCH with the same body and query', async () => {
