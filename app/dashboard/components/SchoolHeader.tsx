@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, LogOut, Menu } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { SessionUser } from "@/lib/session";
+import NotificationBell from "./NotificationBell";
 import { loadCurrentBranch, branchUpdatedEvent, type Branch } from "../profile/branchApi";
 import {
   defaultSchoolProfile,
@@ -20,6 +21,7 @@ export default function SchoolHeader({ onMenuClick }: SchoolHeaderProps) {
   const actionsRef = useRef<HTMLDivElement>(null);
   const [profile, setProfile] = useState<SchoolProfile>(defaultSchoolProfile);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [branch, setBranch] = useState<Branch | null>(null);
   const [schoolName, setSchoolName] = useState<string | null>(null);
@@ -112,11 +114,13 @@ export default function SchoolHeader({ onMenuClick }: SchoolHeaderProps) {
     function closeOnOutsideClick(event: MouseEvent) {
       if (!actionsRef.current?.contains(event.target as Node)) {
         setProfileOpen(false);
+        setNotificationsOpen(false);
       }
     }
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setProfileOpen(false);
+        setNotificationsOpen(false);
       }
     }
     document.addEventListener("mousedown", closeOnOutsideClick);
@@ -151,6 +155,11 @@ export default function SchoolHeader({ onMenuClick }: SchoolHeaderProps) {
           </div>
         </div>
         <div className="topbar-actions" ref={actionsRef}>
+          <NotificationBell
+            open={notificationsOpen}
+            onToggle={() => { setNotificationsOpen((value) => !value); setProfileOpen(false); }}
+            onClose={() => setNotificationsOpen(false)}
+          />
           <button
             className="profile profile-button"
             type="button"
@@ -159,6 +168,7 @@ export default function SchoolHeader({ onMenuClick }: SchoolHeaderProps) {
             aria-haspopup="true"
             onClick={() => {
               setProfileOpen((open) => !open);
+              setNotificationsOpen(false);
             }}
           >
             <span className="profile-avatar">{getInitials(profile.name)}</span>

@@ -5,6 +5,7 @@ import { Ban, CircleCheck, FilePlus2, Pencil } from "lucide-react";
 import styles from "../components/TableActions.module.css";
 import ListPagination, { useListPagination } from "../components/ListPagination";
 import { loadList } from "@/lib/loadList";
+import { notifySaved } from "@/lib/notifications";
 import UserForm from "../users/UserForm";
 import SettingsFormDialog, { type Field } from "./SettingsFormDialog";
 import StaffForm from "./StaffForm";
@@ -838,6 +839,7 @@ export default function SettingsPage() {
             const feeTypeName = generatingInvoiceFeeType.name;
             setGeneratingInvoiceFeeType(null);
             setFeeTypeActionMessage(`Tagihan untuk ${feeTypeName} berhasil dibuat.`);
+            notifySaved({ title: "Tagihan dibuat", copy: `Tagihan untuk ${feeTypeName} berhasil dibuat.`, href: "/dashboard/payments" });
           }}
         />
       )}

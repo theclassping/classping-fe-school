@@ -7,6 +7,7 @@ import { ActivityClass, loadActivityClasses } from "../activityClasses";
 import { ActivityStudent, loadActivityStudents } from "../activityStudents";
 import { ActivityTeacher, loadActivityTeachers } from "../activityTeachers";
 import LeaveDraftDialog from "../LeaveDraftDialog";
+import { notifySaved } from "@/lib/notifications";
 
 const ACTIVITY_LIST_HREF = "/dashboard/activities";
 
@@ -218,6 +219,11 @@ export default function AddActivityPage() {
       }
 
       setDirty(false);
+      notifySaved({
+        title: publish ? "Aktivitas dipublikasikan" : "Draft aktivitas tersimpan",
+        copy: `${activityPayload.name || "Aktivitas"} ${publish ? "kini dapat dilihat wali murid." : "disimpan sebagai draft."}`,
+        href: ACTIVITY_LIST_HREF,
+      });
       const destination = pendingHrefRef.current ?? ACTIVITY_LIST_HREF;
       pendingHrefRef.current = null;
       router.push(destination);

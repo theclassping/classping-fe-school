@@ -11,6 +11,7 @@ import {
   type ActivityDetail,
   type ActivityPhoto,
 } from "../activityPhotos";
+import { notifySaved } from "@/lib/notifications";
 import {
   loadActivityStudents,
   type ActivityStudent,
@@ -110,6 +111,11 @@ function PhotoManager({ activityId }: { activityId: string }) {
         );
       }
       setSaved(true);
+      notifySaved({
+        title: "Foto & tag aktivitas tersimpan",
+        copy: `${activity.name || "Aktivitas"} · ${photos.length} foto berhasil disimpan.`,
+        href: `/dashboard/activities/view?activity=${encodeURIComponent(String(activity.id))}`,
+      });
       // Return staff to Laporan Aktivitas once every photo and tag is stored.
       router.push("/dashboard/activities");
       router.refresh();

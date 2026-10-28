@@ -5854,3 +5854,25 @@ html body select:not([multiple]):not([size]) {
 .login-guide span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .login-guide strong { font-size: 13px; }
 .login-guide small { color: var(--muted); font-size: 12px; }
+
+/* Staff notification bell (topbar) */
+.topbar-actions { position: relative; }
+.notification-button { position: relative; display: grid; place-items: center; width: 42px; height: 42px; border: 0; border-radius: 12px; color: var(--muted); background: transparent; cursor: pointer; }
+.notification-button:hover, .notification-button[aria-expanded="true"] { color: var(--green); background: var(--mint); }
+.notification-button svg { width: 20px; height: 20px; }
+.notification-button i { position: absolute; top: 8px; right: 8px; width: 9px; height: 9px; border: 2px solid #fff; border-radius: 50%; background: var(--orange); }
+.notification-menu { position: absolute; top: calc(100% + 12px); right: 0; z-index: 40; width: min(400px, calc(100vw - 32px)); max-height: min(520px, calc(100vh - 120px)); overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow); }
+.notification-menu > header { position: sticky; top: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px; border-bottom: 1px solid var(--line); background: #fff; }
+.notification-menu > header strong, .notification-menu > header small { display: block; }
+.notification-menu > header small { margin-top: 3px; color: var(--muted); font-size: 12px; }
+.notification-menu > header button { border: 0; color: var(--green); background: transparent; font-size: 12px; font-weight: 700; cursor: pointer; }
+.notification-menu > header button:disabled { color: var(--muted); cursor: default; }
+.notification-menu > a { display: grid; grid-template-columns: 38px 1fr 8px; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; }
+.notification-menu > a:hover, .notification-menu > a.fresh { background: #f3faf7; }
+.notification-menu > a > span { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; color: var(--green); background: var(--mint); font-size: 13px; font-weight: 800; }
+.notification-menu > a strong, .notification-menu > a small, .notification-menu > a time { display: block; }
+.notification-menu > a strong { font-size: 13px; }
+.notification-menu > a small { margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.notification-menu > a time { margin-top: 5px; color: #9aa49f; font-size: 11px; }
+.notification-menu > a > i { width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--orange); }
+.notification-empty { margin: 0; padding: 28px 16px; color: var(--muted); font-size: 13px; text-align: center; }

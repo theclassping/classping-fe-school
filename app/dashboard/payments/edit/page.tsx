@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { notifySaved } from "@/lib/notifications";
 
 type Proof = { id: number; image_data: unknown; image_url?: string };
 
@@ -223,6 +224,11 @@ export default function PaymentEditPage() {
       if (!response.ok) {
         throw new Error(await responseError(response, "Gagal menyimpan pembayaran."));
       }
+      notifySaved({
+        title: record.status === "completed" ? "Pembayaran diverifikasi" : record.status === "rejected" ? "Pembayaran ditolak" : "Pembayaran diperbarui",
+        copy: `${record.studentName || "Siswa"}${record.invoiceNo ? ` · ${record.invoiceNo}` : ""} berhasil disimpan.`,
+        href: "/dashboard/payments",
+      });
       router.push("/dashboard/payments");
       router.refresh();
     } catch (submitError) {

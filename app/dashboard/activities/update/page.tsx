@@ -7,6 +7,7 @@ import { activities, type Activity } from "../activityData";
 import { loadActivity } from "../activityApi";
 import { ActivityClass, loadActivityClasses } from "../activityClasses";
 import { ActivityStudent, loadActivityStudents } from "../activityStudents";
+import { notifySaved } from "@/lib/notifications";
 
 export default function UpdateActivityPage() {
   const router = useRouter();
@@ -134,6 +135,11 @@ export default function UpdateActivityPage() {
       }
       if (!response.ok) throw new Error("Failed to update activity.");
       setSaved(true);
+      notifySaved({
+        title: payload.is_publish ? "Aktivitas diperbarui dan dipublikasikan" : "Aktivitas diperbarui",
+        copy: `${payload.name || activity.title} berhasil disimpan.`,
+        href: `/dashboard/activities/view?activity=${encodeURIComponent(activity.slug)}`,
+      });
       // Return staff to Laporan Aktivitas so the refreshed list is the confirmation.
       router.push("/dashboard/activities");
       router.refresh();

@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import type { SessionUser } from "@/lib/session";
+import { notifySaved } from "@/lib/notifications";
 import { loadStaffProfile, saveStaffProfile, type StaffProfile } from "./staffProfileApi";
 import { getInitials } from "../components/school-store";
 
@@ -61,6 +62,7 @@ export default function UserProfilePage() {
       setStaff(updated);
       setEditing(false);
       setMessage("Profil berhasil diperbarui.");
+      notifySaved({ title: "Profil pengguna diperbarui", copy: "Perubahan profil Anda berhasil disimpan.", href: "/dashboard/user-profile" });
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Gagal menyimpan profil.");
     } finally {
