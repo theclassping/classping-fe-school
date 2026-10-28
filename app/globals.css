@@ -5167,6 +5167,26 @@ body.parent-view .sidebar {
   line-height: 1.7;
 }
 
+.activity-leave-dialog {
+  width: calc(100% - 32px);
+  max-width: 560px;
+  margin: auto;
+  border: 0;
+}
+
+.activity-leave-dialog::backdrop {
+  background: rgb(23 35 31 / 45%);
+}
+
+.activity-leave-dialog > p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.activity-leave-dialog .modal-actions {
+  flex-wrap: wrap;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;

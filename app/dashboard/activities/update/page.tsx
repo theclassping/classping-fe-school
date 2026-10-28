@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { activities, type Activity } from "../activityData";
 import { loadActivity } from "../activityApi";
@@ -8,6 +9,7 @@ import { ActivityClass, loadActivityClasses } from "../activityClasses";
 import { ActivityStudent, loadActivityStudents } from "../activityStudents";
 
 export default function UpdateActivityPage() {
+  const router = useRouter();
   const [activity, setActivity] = useState<Activity>(activities[0]);
   const [classes, setClasses] = useState<ActivityClass[]>([]);
   const [classId, setClassId] = useState("");
@@ -132,6 +134,9 @@ export default function UpdateActivityPage() {
       }
       if (!response.ok) throw new Error("Failed to update activity.");
       setSaved(true);
+      // Return staff to Laporan Aktivitas so the refreshed list is the confirmation.
+      router.push("/dashboard/activities");
+      router.refresh();
     } catch (error) {
       console.error(error);
       setActivityError(

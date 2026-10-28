@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   activityPhotos,
   activityRequest,
@@ -17,6 +17,7 @@ import {
 } from "../activityStudents";
 
 function PhotoManager({ activityId }: { activityId: string }) {
+  const router = useRouter();
   const [activity, setActivity] = useState<ActivityDetail | null>(null);
   const [photos, setPhotos] = useState<ActivityPhoto[]>([]);
   const [students, setStudents] = useState<ActivityStudent[]>([]);
@@ -109,6 +110,9 @@ function PhotoManager({ activityId }: { activityId: string }) {
         );
       }
       setSaved(true);
+      // Return staff to Laporan Aktivitas once every photo and tag is stored.
+      router.push("/dashboard/activities");
+      router.refresh();
     } catch (saveError) {
       setError(
         saveError instanceof Error

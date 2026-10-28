@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActivityClass, loadActivityClasses } from "../activityClasses";
 import { ActivityStudent, loadActivityStudents } from "../activityStudents";
 import { ActivityTeacher, loadActivityTeachers } from "../activityTeachers";
+import LeaveDraftDialog from "../LeaveDraftDialog";
+
+const ACTIVITY_LIST_HREF = "/dashboard/activities";
 
 export default function AddActivityPage() {
   const router = useRouter();
@@ -26,6 +29,40 @@ export default function AddActivityPage() {
     Array<{ file: File; url: string }>
   >([]);
   const [submitting, setSubmitting] = useState(false);
+  // True once any field has been touched; drives the "save as draft?" prompt on leave.
+  const [dirty, setDirty] = useState(false);
+  // Where the user was heading when the prompt appeared; null while no prompt is open.
+  const [leaveTarget, setLeaveTarget] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const draftButtonRef = useRef<HTMLButtonElement>(null);
+  const pendingHrefRef = useRef<string | null>(null);
+
+  // Native "leave site?" prompt for reloads and tab closes; browsers do not allow custom wording here.
+  useEffect(() => {
+    if (!dirty || submitting) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty, submitting]);
+
+  // Intercept in-app links (Kembali, Batal, the sidebar) so the draft prompt appears before navigation.
+  useEffect(() => {
+    if (!dirty || submitting) return;
+    const intercept = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const anchor = (event.target as Element | null)?.closest?.("a[href]");
+      if (!(anchor instanceof HTMLAnchorElement) || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+      const destination = new URL(anchor.href, window.location.href);
+      if (destination.origin !== window.location.origin || destination.pathname === window.location.pathname) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setLeaveTarget(`${destination.pathname}${destination.search}`);
+    };
+    document.addEventListener("click", intercept, true);
+    return () => document.removeEventListener("click", intercept, true);
+  }, [dirty, submitting]);
 
   useEffect(() => {
     const previews = selectedPhotos.map((file) => ({
@@ -128,6 +165,8 @@ export default function AddActivityPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const publish = submitter?.getAttribute("value") !== "draft";
     setSubmitting(true);
     setSaved("");
 
@@ -150,7 +189,7 @@ export default function AddActivityPage() {
         name: String(formData.get("name") ?? ""),
         description: String(formData.get("caption") ?? ""),
         activity_date: String(formData.get("activity_date") ?? ""),
-        is_publish: true,
+        is_publish: publish,
         activity_images: imageKeys.map((fileKey) => ({
           image_data: fileKey,
         })),
@@ -174,22 +213,49 @@ export default function AddActivityPage() {
         throw new Error(
           typeof data?.detail === "string"
             ? data.detail
-            : "Failed to publish activity.",
+            : publish ? "Gagal mempublikasikan aktivitas." : "Gagal menyimpan draft.",
         );
       }
 
-      router.push("/dashboard/activities");
+      setDirty(false);
+      const destination = pendingHrefRef.current ?? ACTIVITY_LIST_HREF;
+      pendingHrefRef.current = null;
+      router.push(destination);
     } catch (error) {
       console.error(error);
+      pendingHrefRef.current = null;
       setSaved(
-        error instanceof Error ? error.message : "Failed to publish activity.",
+        error instanceof Error ? error.message : publish ? "Gagal mempublikasikan aktivitas." : "Gagal menyimpan draft.",
       );
     } finally {
       setSubmitting(false);
     }
   }
+  function saveDraftAndLeave() {
+    const href = leaveTarget;
+    setLeaveTarget(null);
+    pendingHrefRef.current = href;
+    // Submit after the dialog closes so any validation message can focus the form field itself.
+    window.setTimeout(() => formRef.current?.requestSubmit(draftButtonRef.current ?? undefined), 0);
+  }
+
+  function discardAndLeave() {
+    const href = leaveTarget ?? ACTIVITY_LIST_HREF;
+    setLeaveTarget(null);
+    setDirty(false);
+    router.push(href);
+  }
+
   return (
     <main>
+      {leaveTarget !== null && (
+        <LeaveDraftDialog
+          saving={submitting}
+          onSaveDraft={saveDraftAndLeave}
+          onDiscard={discardAndLeave}
+          onStay={() => setLeaveTarget(null)}
+        />
+      )}
       <section className="panel student-manage">
         <div className="panel-heading">
           <div>
@@ -200,7 +266,7 @@ export default function AddActivityPage() {
             Kembali
           </Link>
         </div>
-        <form className="student-form" onSubmit={submit}>
+        <form ref={formRef} className="student-form" onSubmit={submit} onChange={() => setDirty(true)}>
           <div className="form-grid">
             <div className="field-group full">
               <label htmlFor="activityTitle">Judul aktivitas</label>
@@ -340,11 +406,23 @@ export default function AddActivityPage() {
               Batal
             </Link>
             <button
-              className="primary-button"
+              ref={draftButtonRef}
+              className="secondary-button"
               type="submit"
+              name="intent"
+              value="draft"
               disabled={submitting}
             >
-              {submitting ? "Mempublikasikan..." : "Publikasikan"}
+              Simpan sebagai draft
+            </button>
+            <button
+              className="primary-button"
+              type="submit"
+              name="intent"
+              value="publish"
+              disabled={submitting}
+            >
+              {submitting ? "Menyimpan..." : "Publikasikan"}
             </button>
           </div>
           {saved && (
