@@ -13,14 +13,20 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { loadList } from "@/lib/loadList";
 import styles from "../components/TableActions.module.css";
+import filterStyles from "./Payments.module.css";
+import PaymentTransfer from "./PaymentTransfer";
 const PAGE_SIZE = 10;
 export type Payment = {
   id?: number;
+  invoice_no: string;
   payment_id?: number;
   student_name: string;
   class_name: string;
   fee_type_name: string;
   invoice_date: string;
+  payment_date: string;
+  payment_method?: string | null;
+  verified_at?: string | null;
   total_amount: string;
   status: string;
   invoice_status: string;
@@ -40,17 +46,24 @@ type StudentInvoice = {
     amount?: string;
     status?: string;
     submitted_at?: string;
+    paid_at?: string | null;
+    payment_method?: string | null;
+    verified_at?: string | null;
   };
 };
 
 function normalizePayment(invoice: StudentInvoice): Payment {
   return {
     id: invoice.id,
+    invoice_no: invoice.invoice_no ?? "",
     payment_id: invoice.payment?.id,
     student_name: invoice.student_name ?? "-",
     class_name: invoice.class_name ?? "-",
     fee_type_name: invoice.fee_type?.name ?? invoice.invoice_no ?? "-",
     invoice_date: invoice.invoice_date ?? "-",
+    payment_date: (invoice.payment?.paid_at || invoice.payment?.submitted_at)?.slice(0, 10) ?? "",
+    payment_method: invoice.payment?.payment_method,
+    verified_at: invoice.payment?.verified_at,
     total_amount: invoice.total_amount ?? invoice.payment?.amount ?? "-",
     status: invoice.payment?.status ?? invoice.status ?? "-",
     invoice_status: invoice.status ?? "-",
@@ -74,6 +87,11 @@ export default function PaymentsPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState("ALL");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [feeTypeFilter, setFeeTypeFilter] = useState("ALL");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [reminder, setReminder] = useState<Payment | null>(null);
   const [toast, setToast] = useState("");
   const [page, setPage] = useState(1);
@@ -118,15 +136,22 @@ export default function PaymentsPage() {
   const classes = Array.from(
     new Set(payments.map((payment) => payment.class_name).filter(Boolean)),
   );
+  const statuses = Array.from(new Set(payments.map((payment) => payment.status)));
+  const feeTypes = Array.from(new Set(payments.map((payment) => payment.fee_type_name)));
+  const activeFilterCount = Number(statusFilter !== "ALL") + Number(feeTypeFilter !== "ALL") + Number(!!(dateFrom || dateTo));
 
   const filteredPayments = useMemo(
     () =>
       payments.filter(
         (payment) =>
           payment.student_name.toLowerCase().includes(search.toLowerCase()) &&
-          (classFilter === "ALL" || payment.class_name === classFilter),
+          (classFilter === "ALL" || payment.class_name === classFilter) &&
+          (statusFilter === "ALL" || payment.status === statusFilter) &&
+          (feeTypeFilter === "ALL" || payment.fee_type_name === feeTypeFilter) &&
+          (!dateFrom || (!!payment.payment_date && payment.payment_date >= dateFrom)) &&
+          (!dateTo || (!!payment.payment_date && payment.payment_date <= dateTo)),
       ),
-    [classFilter, payments, search],
+    [classFilter, payments, search, statusFilter, feeTypeFilter, dateFrom, dateTo],
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredPayments.length / PAGE_SIZE));
@@ -172,7 +197,7 @@ export default function PaymentsPage() {
           </span>
         </div>
 
-        <div className="table-tools">
+        <div className={`table-tools ${filterStyles.toolbar}`}>
           <label className="search">
             <Search aria-hidden="true" />
             <input
@@ -196,12 +221,96 @@ export default function PaymentsPage() {
           </select>
           <button
             type="button"
-            className="filter-button"
-            onClick={() => showToast(`${payments.length} transaksi ditemukan.`)}
+            className={`filter-button ${filtersOpen ? filterStyles.activeToggle : ""}`}
+            aria-expanded={filtersOpen}
+            aria-controls="payment-filters"
+            onClick={() => setFiltersOpen((open) => !open)}
           >
-            <Filter aria-hidden="true" /> Filter
+            <Filter aria-hidden="true" /> Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
           </button>
+          <PaymentTransfer payments={payments} filteredPayments={filteredPayments} disabled={loading || !!error} onImported={loadPayments} />
         </div>
+
+        {filtersOpen && (
+          <div className={filterStyles.panel} id="payment-filters">
+            <div className={filterStyles.heading}>
+              <strong>Filter pembayaran</strong>
+              <span>Daftar diperbarui otomatis saat filter berubah.</span>
+            </div>
+            <div className={filterStyles.fields}>
+            <label className={filterStyles.field}>
+              Tanggal bayar dari
+              <input
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(event) => {
+                  setDateFrom(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+            <label className={filterStyles.field}>
+              Sampai tanggal
+              <input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={(event) => {
+                  setDateTo(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+            <label className={filterStyles.field} htmlFor="payment-fee-type-filter">Jenis pembayaran
+              <select
+                id="payment-fee-type-filter"
+                value={feeTypeFilter}
+                onChange={(event) => {
+                  setFeeTypeFilter(event.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="ALL">Semua Jenis Pembayaran</option>
+                {feeTypes.map((feeType) => (
+                  <option key={feeType} value={feeType}>{feeType}</option>
+                ))}
+              </select>
+            </label>
+            <label className={filterStyles.field} htmlFor="payment-status-filter">Status pembayaran
+            <select
+              id="payment-status-filter"
+              value={statusFilter}
+              onChange={(event) => {
+                setStatusFilter(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="ALL">Semua Status</option>
+              {statuses.map((status) => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+            </label>
+            <button
+              type="button"
+              className={filterStyles.reset}
+              disabled={!dateFrom && !dateTo && statusFilter === "ALL" && feeTypeFilter === "ALL" && classFilter === "ALL" && !search}
+              onClick={() => {
+                setStatusFilter("ALL");
+                setFeeTypeFilter("ALL");
+                setDateFrom("");
+                setDateTo("");
+                setClassFilter("ALL");
+                setSearch("");
+                setPage(1);
+              }}
+            >
+              Reset filter
+            </button>
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <p className="empty-state">Loading payments...</p>
@@ -242,7 +351,7 @@ export default function PaymentsPage() {
                     </td>
                     <td>{payment.class_name}</td>
                     <td>{payment.fee_type_name}</td>
-                    <td>{payment.invoice_date}</td>
+                    <td>{payment.payment_date || "-"}</td>
                     <td>
                       <strong>{payment.total_amount}</strong>
                     </td>
@@ -339,7 +448,7 @@ export default function PaymentsPage() {
         )}
         {!loading && !error && filteredPayments.length === 0 && (
           <p className="empty-state">
-            Tidak ada siswa yang cocok dengan pencarian.
+            Tidak ada pembayaran yang cocok dengan pencarian atau filter.
           </p>
         )}
         {toast && (
