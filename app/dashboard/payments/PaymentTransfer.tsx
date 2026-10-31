@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { Payment } from "./page";
 import styles from "./Payments.module.css";
 
-type ImportRow = { invoice_no: string; student_invoice_id: number; amount: string; payment_method: string; status: string };
+type ImportRow = { invoice_no: string; student_name: string; class_name: string; fee_type_name: string; student_invoice_id: number; amount: string; payment_method: string; status: string };
 
 async function downloadExcel(filename: string, rows: unknown[][]) {
   const { Workbook } = await import("exceljs");
@@ -94,7 +94,7 @@ export default function PaymentTransfer({ payments, filteredPayments, disabled, 
       if (file.size > 2 * 1024 * 1024) throw new Error("Ukuran file maksimal 2 MB.");
       if (!file.name.toLowerCase().endsWith(".xlsx")) throw new Error("Gunakan file Excel .xlsx.");
       const [headers, ...data] = await readExcel(file);
-      const required = ["invoice_no", "amount", "payment_method", "status"];
+      const required = ["invoice_no", "student_name", "class_name", "fee_type_name", "amount", "payment_method", "status"];
       if (!headers || required.some((key) => !headers.includes(key)) || new Set(headers).size !== headers.length) {
         throw new Error("Kolom Excel tidak sesuai. Gunakan template yang tersedia.");
       }
@@ -103,19 +103,27 @@ export default function PaymentTransfer({ payments, filteredPayments, disabled, 
       const parsed = data.map((values, index) => {
         const record = Object.fromEntries(headers.map((key, i) => [key, values[i] ?? ""]));
         const fail = (reason: string): never => { throw new Error(`Baris ${index + 2}: ${reason}`); };
-        const matches = payments.filter((payment) => payment.invoice_no === record.invoice_no);
-        if (!record.invoice_no || !matches.length) fail("Nomor invoice tidak ditemukan di cabang ini.");
-        if (matches.length > 1) fail("Nomor invoice tidak unik di cabang ini.");
-        const invoice = matches[0];
+        const studentName = record.student_name.trim();
+        const className = record.class_name.trim();
+        const feeTypeName = record.fee_type_name.trim();
+        const invoiceNo = record.invoice_no.trim();
+        if (!invoiceNo || !studentName || !className || !feeTypeName) fail("Nomor invoice, nama siswa, kelas, dan jenis pembayaran wajib diisi.");
+        const normalize = (value: string) => value.trim().toLocaleLowerCase();
+        const matches = payments.filter((payment) => normalize(payment.invoice_no) === normalize(invoiceNo) && normalize(payment.student_name) === normalize(studentName) && normalize(payment.class_name) === normalize(className) && normalize(payment.fee_type_name) === normalize(feeTypeName));
+        if (!matches.length) fail("Kombinasi nomor invoice, nama siswa, kelas, dan jenis pembayaran tidak ditemukan di cabang ini.");
+        const eligible = matches.filter((payment) => !payment.payment_id && payment.invoice_status.trim().toLowerCase() !== "paid");
+        if (!eligible.length) fail("Invoice siswa ini sudah memiliki pembayaran atau sudah lunas.");
+        if (eligible.length > 1) fail("Nama siswa dan kelas cocok dengan lebih dari satu invoice yang belum dibayar.");
+        const invoice = eligible[0];
         const id = invoice.id;
         if (!id || !Number.isSafeInteger(id) || id <= 0) fail("Data invoice tidak memiliki ID yang valid.");
-        if (invoice.payment_id || invoice.invoice_status.toLowerCase() === "paid") fail("Invoice sudah memiliki pembayaran atau sudah lunas.");
-        if (seen.has(record.invoice_no)) fail("Nomor invoice duplikat.");
-        seen.add(record.invoice_no);
+        const invoiceKey = normalize(invoiceNo);
+        if (seen.has(invoiceKey)) fail("Nomor invoice tercantum lebih dari sekali.");
+        seen.add(invoiceKey);
         if (!/^\d+(\.\d{1,2})?$/.test(record.amount) || !Number.isFinite(Number(record.amount)) || Number(record.amount) <= 0) fail("Jumlah harus angka positif tanpa pemisah ribuan.");
         if (!["cash", "bank_transfer", "qris"].includes(record.payment_method)) fail("Metode harus cash, bank_transfer, atau qris.");
         if (!["submitted", "completed"].includes(record.status)) fail("Status harus submitted atau completed.");
-        return { invoice_no: record.invoice_no, student_invoice_id: id!, amount: record.amount, payment_method: record.payment_method, status: record.status };
+        return { invoice_no: invoice.invoice_no, student_name: invoice.student_name, class_name: invoice.class_name, fee_type_name: invoice.fee_type_name, student_invoice_id: id!, amount: record.amount, payment_method: record.payment_method, status: record.status };
       });
       setRows(parsed);
     } catch (error) { setMessage(error instanceof Error ? error.message : "Gagal membaca Excel."); }
@@ -133,7 +141,7 @@ export default function PaymentTransfer({ payments, filteredPayments, disabled, 
         });
         if (!response.ok) {
           const body = await response.json().catch(() => null);
-          throw new Error(`Invoice ${row.invoice_no}: ${typeof body?.detail === "string" ? body.detail : `gagal disimpan (HTTP ${response.status})`}`);
+          throw new Error(`Invoice ${row.invoice_no} — ${row.student_name} (${row.class_name}): ${typeof body?.detail === "string" ? body.detail : `gagal disimpan (HTTP ${response.status})`}`);
         }
         count++;
       }
@@ -156,10 +164,10 @@ export default function PaymentTransfer({ payments, filteredPayments, disabled, 
     {open && <div className="modal-overlay"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="import-payment-title" onKeyDown={(event) => { if (event.key === "Escape" && !busy) setOpen(false); }}>
       <div className="modal-header"><div><h2 id="import-payment-title">Import pembayaran</h2><p>Catat pembayaran baru menggunakan file Excel (.xlsx).</p></div><button autoFocus type="button" className="modal-close" aria-label="Tutup import" disabled={busy} onClick={() => setOpen(false)}>×</button></div>
       <div className={styles.importBody}>
-        <p>Isi invoice_no pada template dengan nomor invoice dari Export Excel. Invoice harus berasal dari cabang akun ini dan belum memiliki pembayaran. Jumlah ditulis tanpa pemisah ribuan. Import tidak mengubah tanggal pembayaran.</p>
-        <button type="button" className="filter-button" disabled={busy} onClick={() => void downloadExcel("template-import-pembayaran.xlsx", [["invoice_no", "amount", "payment_method", "status"]]).catch(() => setMessage("Gagal mengunduh template Excel."))}><Download aria-hidden="true" /> Unduh template</button>
+        <p>Isi nomor invoice, nama siswa, kelas, dan jenis pembayaran sesuai data di cabang ini. Semua kolom tersebut harus cocok dengan invoice yang sama dan invoice belum memiliki pembayaran. Seluruh baris divalidasi sebelum pembayaran pertama disimpan. Jumlah ditulis tanpa pemisah ribuan. Import tidak mengubah tanggal pembayaran.</p>
+        <button type="button" className="filter-button" disabled={busy} onClick={() => void downloadExcel("template-import-pembayaran.xlsx", [["invoice_no", "student_name", "class_name", "fee_type_name", "amount", "payment_method", "status"]]).catch(() => setMessage("Gagal mengunduh template Excel."))}><Download aria-hidden="true" /> Unduh template</button>
         <label className={styles.field}>File Excel (.xlsx)<input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy} onChange={(event) => { void readFile(event.target.files?.[0]); event.target.value = ""; }} /></label>
-        {rows.length > 0 && <><p>{rows.length} pembayaran siap diimpor. Periksa data sebelum menyimpan.</p><div className={styles.preview}><table><thead><tr><th>Nomor Invoice</th><th>Jumlah</th><th>Metode</th><th>Status</th></tr></thead><tbody>{rows.map((row) => <tr key={row.invoice_no}><td>{row.invoice_no}</td><td>{row.amount}</td><td>{row.payment_method}</td><td>{row.status}</td></tr>)}</tbody></table></div></>}
+        {rows.length > 0 && <><p>{rows.length} pembayaran siap diimpor. Periksa data sebelum menyimpan.</p><div className={styles.preview}><table><thead><tr><th>Nomor Invoice</th><th>Nama Siswa</th><th>Kelas</th><th>Jenis Pembayaran</th><th>Jumlah</th><th>Metode</th><th>Status</th></tr></thead><tbody>{rows.map((row) => <tr key={row.invoice_no}><td>{row.invoice_no}</td><td>{row.student_name}</td><td>{row.class_name}</td><td>{row.fee_type_name}</td><td>{row.amount}</td><td>{row.payment_method}</td><td>{row.status}</td></tr>)}</tbody></table></div></>}
         {message && <p className={styles.feedback} role="status">{message}</p>}
       </div>
       <div className="modal-actions"><button type="button" className="button-secondary" disabled={busy} onClick={() => setOpen(false)}>Tutup</button><button type="button" className="button-primary" disabled={busy || !rows.length || disabled} onClick={() => void save()}>{busy ? "Mengimpor…" : "Simpan pembayaran"}</button></div>
