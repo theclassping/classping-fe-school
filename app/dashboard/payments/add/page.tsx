@@ -5,6 +5,7 @@ import { loadClassOptions } from "@/lib/classOptions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { resizeImageForUpload } from "@/lib/imageResize";
 import { notifySaved } from "@/lib/notifications";
 
 type SchoolClass = { id: number; name?: string; code?: string };
@@ -130,7 +131,8 @@ export default function AddPaymentPage() {
     if (selected?.amount !== undefined) setAmount(String(selected.amount));
   }
 
-  async function uploadProof(file: File) {
+  async function uploadProof(original: File) {
+    const file = await resizeImageForUpload(original);
     const response = await fetch("/api/proxy/media/presign", {
       method: "POST",
       credentials: "include",

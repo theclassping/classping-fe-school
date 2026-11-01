@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { resizeImageForUpload } from "@/lib/imageResize";
 import { notifySaved } from "@/lib/notifications";
 
 type Proof = { id: number; image_data: unknown; image_url?: string };
@@ -153,7 +154,8 @@ export default function PaymentEditPage() {
     return () => controller.abort();
   }, [router]);
 
-  async function uploadProof(file: File) {
+  async function uploadProof(original: File) {
+    const file = await resizeImageForUpload(original);
     // Keep this flow aligned with activity image uploads: request a presigned
     // URL, upload the file directly, then send the returned file key in the
     // payment payload.

@@ -7,6 +7,7 @@ import { ActivityClass, loadActivityClasses } from "../activityClasses";
 import { ActivityStudent, loadActivityStudents } from "../activityStudents";
 import { ActivityTeacher, loadActivityTeachers } from "../activityTeachers";
 import LeaveDraftDialog from "../LeaveDraftDialog";
+import { resizeImageForUpload } from "@/lib/imageResize";
 import { notifySaved } from "@/lib/notifications";
 
 const ACTIVITY_LIST_HREF = "/dashboard/activities";
@@ -115,7 +116,8 @@ export default function AddActivityPage() {
   async function uploadActivityImages(files: File[]) {
     const fileKeys: string[] = [];
 
-    for (const file of files) {
+    for (const original of files) {
+      const file = await resizeImageForUpload(original);
       const presignResponse = await fetch("/api/proxy/media/presign", {
         method: "POST",
         credentials: "include",
@@ -155,7 +157,7 @@ export default function AddActivityPage() {
       });
 
       if (!uploadResponse.ok) {
-        throw new Error(`Failed to upload ${file.name}.`);
+        throw new Error(`Failed to upload ${original.name}.`);
       }
 
       fileKeys.push(fileKey);
