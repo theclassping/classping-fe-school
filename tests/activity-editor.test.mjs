@@ -17,12 +17,12 @@ function environment() {
   const store = { writeDraft: async value => { stored = structuredClone(value); }, removeDraft: async () => { stored = undefined; } };
   const modules = new Map();
   function load(name) {
-    const filename = path.join(root, 'app/dashboard/activities', `${name}.ts`);
+    const filename = path.isAbsolute(name) ? `${name}.ts` : path.join(root, 'app/dashboard/activities', `${name}.ts`);
     if (name === 'activityDraftStore') return store;
     if (modules.has(filename)) return modules.get(filename).exports;
     const module = { exports: {} }; modules.set(filename, module);
     const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-    vm.runInThisContext(`(function(require,module,exports){${code}\n})`, { filename })(id => id.startsWith('.') ? load(id.slice(2)) : require(id), module, module.exports);
+    vm.runInThisContext(`(function(require,module,exports){${code}\n})`, { filename })(id => id.startsWith('@/') ? load(path.join(root, id.slice(2))) : id.startsWith('.') ? load(id.slice(2)) : require(id), module, module.exports);
     return module.exports;
   }
   const state = load('activityEditorState');

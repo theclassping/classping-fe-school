@@ -1,5 +1,6 @@
 import { canSync, reportIssues, reportPayload, type ReportDraft, type ReportRecord } from "./activityEditorState";
 import { writeDraft, removeDraft, type PendingSave } from "./activityDraftStore";
+import { resizeImageForUpload } from "@/lib/imageResize";
 export class ReportError extends Error { constructor(message: string, public status = 0) { super(message); } }
 export async function reportRequest<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { credentials: "include", cache: "no-store", ...init });
@@ -129,14 +130,15 @@ export class ActivityDraftController {
       const patch = (values: Partial<typeof photo>, content = false) => this.change(d => ({ ...d, photos: d.photos.map(p => p.key === key ? { ...p, ...values } : p) }), content, content);
       patch({ upload: "uploading", error: undefined });
       void (async () => {
+        const file = await resizeImageForUpload(photo.file!);
         let fileKey = photo.uploadKey, uploadUrl = photo.uploadUrl;
         if (!fileKey || !uploadUrl || !photo.uploadExpires || photo.uploadExpires < Date.now()) {
-          const result = await reportRequest<{ file_key: string; presigned_url: string }>("/api/proxy/media/presign/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ filename: photo.file!.name, content_type: photo.file!.type, expires_in: 3600, purpose: "activity" }), signal: this.uploadAbort.signal });
+          const result = await reportRequest<{ file_key: string; presigned_url: string }>("/api/proxy/media/presign/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ filename: file.name, content_type: file.type, expires_in: 3600, purpose: "activity" }), signal: this.uploadAbort.signal });
           fileKey = result.file_key; uploadUrl = result.presigned_url;
           patch({ uploadKey: fileKey, uploadUrl, uploadExpires: Date.now() + 3500000 });
           await this.flushLocal();
         }
-        const response = await fetch(uploadUrl!, { method: "PUT", headers: { "Content-Type": photo.file!.type || "application/octet-stream" }, body: photo.file, signal: this.uploadAbort.signal });
+        const response = await fetch(uploadUrl!, { method: "PUT", headers: { "Content-Type": file.type || "application/octet-stream" }, body: file, signal: this.uploadAbort.signal });
         if (!response.ok) throw new Error("Unggahan gagal. Ketuk Coba lagi.");
         patch({ upload: "complete", uploadKey: fileKey, uploadUrl: undefined, error: undefined }, true);
       })().catch(error => {
