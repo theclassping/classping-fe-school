@@ -404,7 +404,7 @@ export default function PaymentsPage() {
                             <Pencil aria-hidden="true" />
                           </Link>
                         )}
-                        <button
+                        {/* <button
                           className={styles.actionButton}
                           type="button"
                           disabled={isCompletedPayment(payment)}
@@ -421,7 +421,7 @@ export default function PaymentsPage() {
                           }
                         >
                           <BellRing aria-hidden="true" />
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>
