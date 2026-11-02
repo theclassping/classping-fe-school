@@ -152,6 +152,24 @@ test('removing a new photo during its initial save queues deletion of the acknow
   assert(bodies[1].activity_images.some(p => p.id===5 && p._destroy));
   c.dispose();
 });
+test('new photos learn their ids from the file key when the API does not echo client_id, so later saves never recreate them', async () => {
+  const { controller: c } = environment();
+  c.draft.photos = [{ ...photo(null,1), imageData: undefined, uploadKey: 'media/one.jpg' }, { ...photo(null,2), imageData: undefined, uploadKey: 'media/two.jpg' }];
+  const bodies=[];
+  global.fetch = async (url, init) => {
+    bodies.push(JSON.parse(init.body));
+    return Response.json(server({}, {revision:bodies.length, activity_images:[
+      {id:8,image_data:{id:'media/two.jpg',object_key:'media/two.jpg'}},{id:7,image_data:{id:'media/one.jpg',object_key:'media/one.jpg'}},
+    ]}));
+  };
+  await c.sync();
+  assert.deepEqual(c.draft.photos.map(p => p.id), [7,8]);
+  assert.deepEqual(c.draft.removedPhotoIds, []);
+  c.change(d => ({...d, title: 'Paper cutting II'}));
+  await c.sync();
+  assert(bodies[1].activity_images.every(p => p.id && !p.client_id && !p.image_data));
+  c.dispose();
+});
 test('focused editor keeps the selected photo when reordered and restores its position from a saved draft', async () => {
   const {state, controller:c, stored} = environment();
   c.draft.photos=Array.from({length:40},(_,i)=>photo(null,i+1));
@@ -178,4 +196,19 @@ test('removing the focused photo selects its neighbour and preserves other stude
   const empty=state.removeReportPhoto(last,'photo-1');
   assert.equal(state.activePhotoIndex(empty),-1);
   assert.equal(empty.expanded,'');
+});
+test('a draft whose server activity was deleted becomes a fresh report and re-uploads only photos kept on this device', () => {
+  const { state, draft } = environment();
+  const file = { name: 'local.jpg' };
+  const local = { ...photo(null,1), id: 40, file, uploadKey: 'media/old.jpg' };
+  const remoteOnly = { ...photo(null,2), id: 41 };
+  const detached = state.detachDraft({ ...draft, activityId: 17, revision: 4, published: true, photos: [local, remoteOnly], removedPhotoIds: [9], expanded: 'photo-2', syncedVersion: 1 });
+  assert.equal(detached.activityId, undefined);
+  assert.notEqual(detached.clientId, draft.clientId);
+  assert.deepEqual(detached.photos.map(p => [p.key, p.id, p.upload, p.uploadKey]), [['photo-1', undefined, 'pending', undefined]]);
+  assert.deepEqual(detached.removedPhotoIds, []);
+  assert.equal(detached.expanded, 'photo-1');
+  assert.equal(detached.published, false);
+  assert.notEqual(detached.version, detached.syncedVersion);
+  assert.ok('client_id' in state.reportPayload({ ...detached, photos: [] }, false, 'save'));
 });

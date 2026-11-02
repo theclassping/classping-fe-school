@@ -40,6 +40,15 @@ export function draftFromRecord(record: ReportRecord): ReportDraft {
     })),
   };
 }
+// The server copy of a new-report draft was deleted: keep the local work as a fresh report.
+// Photos only on the deleted server copy are dropped; photos still on this device upload again.
+export function detachDraft(draft: ReportDraft): ReportDraft {
+  const photos = draft.photos.filter(photo => photo.file).map(photo => ({ ...photo, id: undefined, imageData: undefined,
+    upload: "pending" as const, uploadKey: undefined, uploadUrl: undefined, uploadExpires: undefined, error: undefined }));
+  return { ...draft, clientId: crypto.randomUUID(), activityId: undefined, revision: undefined, published: false, review: false,
+    photos, removedPhotoIds: [], expanded: photos.some(photo => photo.key === draft.expanded) ? draft.expanded : photos[0]?.key || "",
+    syncedVersion: 0, version: Math.max(draft.version, 1) };
+}
 export function taggedStudents(draft: ReportDraft): string[] {
   return [...new Set(draft.photos.filter(p => p.tagState === "individual" && p.studentId).map(p => p.studentId))];
 }

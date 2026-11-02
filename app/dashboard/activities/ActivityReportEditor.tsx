@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ImagePlus, X, ArrowLeft } from "lucide-react";
 import FocusedActivityPhotos from "./FocusedActivityPhotos";
 import { ActivityDraftController, reportRequest } from "./ActivityDraftController";
-import { draftFromRecord, emptyDraft, reportIssues, taggedStudents, selectReportPhoto, removeReportPhoto, type ReportDraft, type ReportPhoto, type ReportRecord } from "./activityEditorState";
+import { detachDraft, draftFromRecord, emptyDraft, reportIssues, taggedStudents, selectReportPhoto, removeReportPhoto, type ReportDraft, type ReportPhoto, type ReportRecord } from "./activityEditorState";
 import { readDraft, removeDraft } from "./activityDraftStore";
 import { loadActivityClasses, type ActivityClass } from "./activityClasses";
 import { loadActivityStudents, type ActivityStudent } from "./activityStudents";
@@ -71,8 +71,15 @@ export default function ActivityReportEditor({ editing = false }: { editing?: bo
       const activityId = id || stored?.draft.activityId;
       const remote = activityId ? await reportRequest<ReportRecord>(`/api/proxy/activities/${activityId}/`).catch(error => {
         if (stored && (error.status === 0 || !navigator.onLine)) return undefined;
+        if (!editing && error.status === 404) return null;
         throw error;
       }) : undefined;
+      // Tambah aktivitas must not stay blocked by a draft whose activity was deleted elsewhere.
+      if (remote === null && stored) {
+        const unsynced = stored.draft.version !== stored.draft.syncedVersion || !!stored.pending || stored.draft.photos.some(p => p.upload !== "complete");
+        if (unsynced) stored = { key, draft: detachDraft(stored.draft) };
+        else { await removeDraft(key).catch(() => {}); stored = undefined; }
+      }
       const hasUnsynced = !!stored && (stored.draft.version !== stored.draft.syncedVersion || !!stored.pending || stored.draft.photos.some(p => p.upload !== "complete"));
       const oldPublishedNewDraft = !editing && remote?.is_publish && !hasUnsynced;
       let draft = stored && (hasUnsynced || !remote) ? stored.draft : remote ? draftFromRecord(remote) : emptyDraft();
@@ -170,7 +177,7 @@ export default function ActivityReportEditor({ editing = false }: { editing?: bo
     photos: d.photos.map(p => p.key === key ? { ...p, studentId: value === "group" ? "" : value, tagState: value === "group" ? "group" : value ? "individual" : "unreviewed" } : p) }), true);
   const addPhotos = (files: File[]) => {
     if (files.some(f => !f.type.startsWith("image/"))) { setActionError("Pilih file gambar untuk diunggah."); return; }
-    const photos: ReportPhoto[] = files.map(file => { const key = crypto.randomUUID(); const url = URL.createObjectURL(file); objectUrls.current.set(key, url); return { key, file, url, upload: "pending", tagState: "unreviewed", studentId: "", caption: "" }; });
+    const photos: ReportPhoto[] = files.map(file => { const key = crypto.randomUUID(); const url = URL.createObjectURL(file); objectUrls.current.set(key, url); return { key, file, url, upload: "pending", tagState: "group", studentId: "", caption: "" }; });
     change(d => ({ ...d, photos: [...d.photos, ...photos], expanded: d.expanded || photos[0]?.key || "" }), true);
   };
   const removePhoto = (photo: ReportPhoto) => {

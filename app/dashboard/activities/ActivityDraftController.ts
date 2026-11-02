@@ -11,6 +11,19 @@ export async function reportRequest<T>(url: string, init?: RequestInit): Promise
   }
   return body as T;
 }
+type SavedImage = ReportRecord["activity_images"][number];
+function imageFileKey(data: unknown) {
+  if (typeof data === "string") return data;
+  const value = data as { object_key?: unknown; id?: unknown } | null;
+  return typeof value?.object_key === "string" ? value.object_key : typeof value?.id === "string" ? value.id : undefined;
+}
+// APIs that do not echo client_id still return the stored file key, which identifies the new image.
+// Without a match the photo never learns its id and every later save would create it again.
+function isNewImage(clientId: string | undefined, fileKey: unknown, image: SavedImage) {
+  if (image.client_id) return !!clientId && image.client_id === clientId;
+  const key = imageFileKey(fileKey);
+  return !!key && key === imageFileKey(image.image_data);
+}
 export class ActivityDraftController {
   draft: ReportDraft;
   pending?: PendingSave;
@@ -58,18 +71,18 @@ export class ActivityDraftController {
     const result = await reportRequest<ReportRecord>(pending.url, { method: pending.method, headers: { "Content-Type": "application/json" }, body: pending.body });
     // Leave the persisted request replayable if this view closed during the write.
     if (this.disposed) return;
-    const sent = JSON.parse(pending.body).activity_images as { id?: number; client_id?: string; _destroy?: boolean }[];
+    const sent = JSON.parse(pending.body).activity_images as { id?: number; client_id?: string; image_data?: unknown; _destroy?: boolean }[];
     const removed = this.draft.removedPhotoIds.filter(id => !sent.some(photo => photo.id === id && photo._destroy));
     // A new photo may have been removed locally while its initial save was in flight.
     for (const photo of result.activity_images) {
-      const included = sent.some(item => !item._destroy && (item.id === photo.id || (!!item.client_id && item.client_id === photo.client_id)));
-      const retained = this.draft.photos.some(item => item.id === photo.id || (!!photo.client_id && item.key === photo.client_id));
+      const included = sent.some(item => !item._destroy && (item.id === photo.id || (!!item.client_id && isNewImage(item.client_id, item.image_data, photo))));
+      const retained = this.draft.photos.some(item => item.id === photo.id || (!item.id && isNewImage(item.key, item.uploadKey || item.imageData, photo)));
       if (included && !retained) removed.push(photo.id);
     }
     this.draft = { ...this.draft, activityId: result.id, revision: result.revision, workflowVersion: result.workflow_version,
       syncedVersion: pending.version, published: result.is_publish,
       photos: this.draft.photos.map(p => {
-        const saved = result.activity_images.find(item => (p.id && p.id === item.id) || item.client_id === p.key);
+        const saved = result.activity_images.find(item => p.id ? p.id === item.id : p.upload === "complete" && isNewImage(p.key, p.uploadKey || p.imageData, item));
         if (!saved) return p;
         // Presigned URLs are reused server-side and may arrive with only ~10 minutes left, so only keep a recent one.
         const keepPreview = !!p.url && (!!p.file || Date.now() - (p.urlRefreshedAt || 0) < 300000);
