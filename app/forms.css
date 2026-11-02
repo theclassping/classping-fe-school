@@ -23,7 +23,7 @@
   border-radius: 10px;
   background: #fff;
   color: var(--ink);
-  font: 400 14px/1.5 "DM Sans", sans-serif;
+  font: 400 14px/1.5 var(--font-body);
   transition: border-color 150ms, box-shadow 150ms;
 }
 

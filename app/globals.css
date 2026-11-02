@@ -1,6 +1,16 @@
 :root {
-  /* Type: Plus Jakarta Sans for text, Baloo 2 for the wordmark and headings (brand guidelines) */
-  --font-display: "Baloo 2", "Plus Jakarta Sans", system-ui, sans-serif;
+  /* Type: Baloo 2 for the wordmark and headings, Plus Jakarta Sans for running text (brand guidelines).
+     --font-baloo / --font-jakarta come from next/font in app/layout.tsx. */
+  --font-display: var(--font-baloo), system-ui, sans-serif;
+  --font-body: var(--font-jakarta), system-ui, sans-serif;
+  /* Type scale: weight size/line family */
+  --text-display: 800 44px/1.09 var(--font-display);
+  --text-h1: 800 32px/1.25 var(--font-display);
+  --text-h2: 700 24px/1.33 var(--font-display);
+  --text-h3: 700 18px/1.44 var(--font-display);
+  --text-body: 400 16px/1.5 var(--font-body);
+  --text-body-sm: 400 14px/1.43 var(--font-body);
+  --text-caption: 600 12px/1.33 var(--font-body);
   /* Colour tokens from the ClassPing brand guidelines */
   --ink: #3A2F27;
   --muted: #6E5F53;
@@ -49,9 +59,25 @@ body {
   margin: 0;
   background: var(--canvas);
   color: var(--ink);
-  font-family: "DM Sans", sans-serif;
-  font-size: 14px;
+  font: var(--text-body);
 }
+
+/* Form controls don't inherit the page font by default */
+button, input, select, textarea { font-family: inherit; }
+
+h1, .type-h1 { font: var(--text-h1); }
+h2, .type-h2 { font: var(--text-h2); }
+h3, .type-h3 { font: var(--text-h3); }
+.type-display { font: var(--text-display); }
+h1, h2, h3, .type-display, .type-h1, .type-h2, .type-h3 { letter-spacing: -0.01em; }
+.type-body { font: var(--text-body); }
+.type-body-sm { font: var(--text-body-sm); }
+.type-caption { font: var(--text-caption); }
+/* Money and counts: bold with tabular numbers so columns line up */
+.type-number { font-weight: 700; font-variant-numeric: tabular-nums; }
+.home-stat strong, .stat-card > strong, .dashboard-stat-card > strong, .parent-stat strong,
+.student-total-spotlight strong, .insight-row > strong, .activity-kpi-strip strong,
+.assessment-summary strong, .next-bill strong, .worktime-summary strong { font-variant-numeric: tabular-nums; }
 
 .svg-defs {
   position: absolute;
@@ -247,7 +273,7 @@ svg {
   border-radius: 10px;
   background: #E3F1EE;
   color: var(--green);
-  font-family: "Plus Jakarta Sans";
+  font-family: var(--font-body);
   font-weight: 800;
 }
 
@@ -336,7 +362,7 @@ main {
 }
 
 .welcome-row h1 {
-  font: 700 clamp(23px, 2.2vw, 30px)/1.2 "Plus Jakarta Sans";
+  font: 800 clamp(23px, 2.2vw, 30px)/1.2 var(--font-display);
   margin: 0 0 8px;
 }
 
@@ -351,7 +377,7 @@ main {
   border: 0;
   border-radius: 10px;
   padding: 0 17px;
-  font: 700 13px "DM Sans";
+  font: 700 13px var(--font-body);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -471,13 +497,13 @@ main {
 }
 
 .stat-card > strong {
-  font: 700 clamp(20px, 2vw, 26px) "Plus Jakarta Sans";
+  font: 700 clamp(20px, 2vw, 26px) var(--font-body);
   display: block;
   letter-spacing: -0.5px;
 }
 
 .stat-card strong em {
-  font: 600 12px "DM Sans";
+  font: 600 12px var(--font-body);
   font-style: normal;
   color: #6E5F53;
 }
@@ -507,7 +533,7 @@ main {
 }
 
 .panel h2 {
-  font: 700 16px "Plus Jakarta Sans";
+  font: 700 16px/1.25 var(--font-display);
   margin: 0 0 5px;
 }
 
@@ -525,7 +551,7 @@ main {
   min-height: 34px;
   padding: 0 30px 0 11px;
   color: #6E5F53;
-  font: 600 11px "DM Sans";
+  font: 600 11px var(--font-body);
 }
 
 .chart-wrap {
@@ -641,7 +667,7 @@ main {
   border: 0;
   background: transparent;
   color: var(--green);
-  font: 700 10px "DM Sans";
+  font: 700 10px var(--font-body);
   cursor: pointer;
 }
 
@@ -774,7 +800,7 @@ main {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0 12px 0 36px;
-  font: 11px "DM Sans";
+  font: 11px var(--font-body);
   outline: none;
 }
 
@@ -793,7 +819,7 @@ main {
   display: flex;
   align-items: center;
   gap: 6px;
-  font: 600 11px "DM Sans";
+  font: 600 11px var(--font-body);
   cursor: pointer;
 }
 
@@ -928,7 +954,7 @@ dialog form {
 }
 
 .dialog-heading h2 {
-  font: 700 18px "Plus Jakarta Sans";
+  font: 700 18px/1.25 var(--font-display);
   margin: 0 0 3px;
 }
 
@@ -974,7 +1000,7 @@ dialog select {
   border: 1px solid var(--line);
   border-radius: 9px;
   padding: 0 12px;
-  font: 12px "DM Sans";
+  font: 12px var(--font-body);
   outline: none;
 }
 
@@ -1276,7 +1302,7 @@ dialog select:focus {
   border-radius: 9px;
   background: #fff;
   color: #6E5F53;
-  font: 700 16px/1 "DM Sans";
+  font: 700 16px/1 var(--font-body);
   cursor: pointer;
 }
 
@@ -1342,7 +1368,7 @@ dialog select:focus {
   padding: 10px 12px;
   color: #3A2F27;
   text-decoration: none;
-  font: 600 13px/1.4 "DM Sans";
+  font: 600 13px/1.4 var(--font-body);
   border: 0;
   border-bottom: 1px solid #FBF8F3;
   background: #fff;
@@ -1393,7 +1419,7 @@ dialog select:focus {
   border-radius: 9px;
   background: #fff;
   color: #6E5F53;
-  font: 700 11px/1 "DM Sans";
+  font: 700 11px/1 var(--font-body);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1443,7 +1469,7 @@ dialog select:focus {
 }
 
 .student-form h3 {
-  font: 700 13px "Plus Jakarta Sans";
+  font: 700 13px/1.25 var(--font-display);
   margin: 18px 0 12px;
 }
 
@@ -1476,7 +1502,7 @@ dialog select:focus {
   background: #fff;
   border-radius: 10px;
   padding: 11px 12px;
-  font: 500 13px "DM Sans";
+  font: 500 13px var(--font-body);
   color: var(--ink);
 }
 
@@ -1514,7 +1540,7 @@ dialog select:focus {
   padding: 0 16px;
   background: #fff;
   color: var(--ink);
-  font: 700 12px "DM Sans";
+  font: 700 12px var(--font-body);
   cursor: pointer;
   text-decoration: none;
   display: inline-flex;
@@ -1554,7 +1580,7 @@ dialog select:focus {
 
 .detail-meta h2 {
   margin: 0 0 5px;
-  font: 700 22px "Plus Jakarta Sans";
+  font: 700 22px/1.25 var(--font-display);
 }
 
 .detail-meta p {
@@ -1641,7 +1667,7 @@ dialog select:focus {
 
 .info-card h3 {
   margin: 0 0 10px;
-  font: 700 13px "Plus Jakarta Sans";
+  font: 700 13px/1.25 var(--font-display);
 }
 
 .info-list {
@@ -1670,7 +1696,7 @@ dialog select:focus {
 
 .warning-box h3 {
   margin: 0 0 6px;
-  font: 700 13px "Plus Jakarta Sans";
+  font: 700 13px/1.25 var(--font-display);
   color: #8A5300;
 }
 
@@ -1696,7 +1722,7 @@ dialog select:focus {
 
 .profile-hero__info h1 {
   margin: 8px 0;
-  font: 800 30px/1.15 "Plus Jakarta Sans";
+  font: 800 30px/1.15 var(--font-display);
 }
 
 .profile-hero__info p {
@@ -1870,7 +1896,7 @@ dialog select:focus {
   background: #fff;
   border-radius: 999px;
   padding: 8px 12px;
-  font: 700 11px "DM Sans";
+  font: 700 11px var(--font-body);
   color: #6E5F53;
   cursor: pointer;
 }
@@ -1907,7 +1933,7 @@ dialog select:focus {
 
 .setting-card__header h3 {
   margin: 0;
-  font: 700 16px "Plus Jakarta Sans";
+  font: 700 16px/1.25 var(--font-display);
 }
 
 .setting-form {
@@ -1953,7 +1979,7 @@ dialog select:focus {
 
 .class-subsection h4 {
   margin: 0 0 10px;
-  font: 700 13px "Plus Jakarta Sans";
+  font: 700 13px var(--font-body);
 }
 
 .report-layout-grid {
@@ -1971,7 +1997,7 @@ dialog select:focus {
 
 .report-setting-block h4 {
   margin: 0 0 12px;
-  font: 700 13px "Plus Jakarta Sans";
+  font: 700 13px var(--font-body);
 }
 
 @media (max-width: 760px) {
@@ -2042,7 +2068,7 @@ dialog select:focus {
   display: flex;
   align-items: center;
   gap: 7px;
-  font: 700 10px "DM Sans";
+  font: 700 10px var(--font-body);
   cursor: pointer;
 }
 
@@ -2058,7 +2084,7 @@ dialog select:focus {
 }
 
 .section-heading h2 {
-  font: 700 21px "Plus Jakarta Sans";
+  font: 700 21px/1.25 var(--font-display);
   margin: 0 0 5px;
 }
 
@@ -2270,7 +2296,7 @@ dialog select:focus {
 
 .activity-body h3,
 .parent-activity h3 {
-  font: 700 15px "Plus Jakarta Sans";
+  font: 700 15px/1.25 var(--font-display);
   margin: 9px 0 6px;
 }
 
@@ -2342,7 +2368,7 @@ dialog select:focus {
   color: var(--green);
   border-radius: 8px;
   margin-top: 12px;
-  font: 700 10px "DM Sans";
+  font: 700 10px var(--font-body);
   cursor: pointer;
 }
 
@@ -2380,7 +2406,7 @@ dialog select:focus {
 
 .assessment-summary strong {
   display: block;
-  font: 700 18px "Plus Jakarta Sans";
+  font: 700 18px var(--font-body);
   margin: 6px 0;
 }
 
@@ -2392,7 +2418,7 @@ dialog select:focus {
   border: 1px solid var(--line);
   border-radius: 9px;
   padding: 10px 12px;
-  font: 12px "DM Sans";
+  font: 12px var(--font-body);
   resize: vertical;
 }
 
@@ -2532,7 +2558,7 @@ body.parent-view .sidebar {
 }
 
 .parent-hero h1 {
-  font: 700 25px "Plus Jakarta Sans";
+  font: 800 25px/1.25 var(--font-display);
   margin: 0 0 7px;
 }
 
@@ -2649,7 +2675,7 @@ body.parent-view .sidebar {
 }
 
 .parent-stat strong {
-  font: 700 14px "Plus Jakarta Sans";
+  font: 700 14px var(--font-body);
   margin: 4px 0;
 }
 
@@ -2793,7 +2819,7 @@ body.parent-view .sidebar {
 }
 
 .next-bill strong {
-  font: 700 20px "Plus Jakarta Sans";
+  font: 700 20px var(--font-body);
   margin: 5px 0;
 }
 
@@ -3013,7 +3039,7 @@ body.parent-view .sidebar {
 }
 
 .worktime-summary strong {
-  font: 700 25px "Plus Jakarta Sans";
+  font: 700 25px var(--font-body);
 }
 
 .worktime-summary div > span {
@@ -3276,7 +3302,7 @@ body.parent-view .sidebar {
   background: transparent;
   padding: 1px 0 0;
   color: var(--ink);
-  font: 700 11px "DM Sans";
+  font: 700 11px var(--font-body);
   cursor: pointer;
   outline: none;
 }
@@ -3551,7 +3577,7 @@ body.parent-view .sidebar {
 }
 
 .activity-empty h3 {
-  font: 700 14px "Plus Jakarta Sans";
+  font: 700 14px/1.25 var(--font-display);
   margin: 9px 0 5px;
 }
 
@@ -3565,7 +3591,7 @@ body.parent-view .sidebar {
   border: 0;
   background: transparent;
   color: #8A5300;
-  font: 700 9px "DM Sans";
+  font: 700 9px var(--font-body);
   padding: 8px 0 0;
   display: flex;
   align-items: center;
@@ -3584,7 +3610,7 @@ body.parent-view .sidebar {
 }
 
 .whatsapp-icon {
-  font: 800 10px "DM Sans";
+  font: 800 10px var(--font-body);
   background: #E3F1EE;
   color: #00735F;
 }
@@ -3683,7 +3709,7 @@ body.parent-view .sidebar {
   border: 1px solid var(--line);
   border-radius: 9px;
   padding: 11px 12px;
-  font: 10px/1.55 "DM Sans";
+  font: 10px/1.55 var(--font-body);
   resize: vertical;
 }
 
@@ -3816,7 +3842,7 @@ body.parent-view .sidebar {
   display: flex;
   align-items: center;
   gap: 10px;
-  font: 800 25px/1 var(--font-display), sans-serif;
+  font: 800 25px/1 var(--font-display);
 }
 
 .login-brand .brand-word { color: var(--canvas); }
@@ -3840,7 +3866,7 @@ body.parent-view .sidebar {
 }
 
 .showcase-copy h1 {
-  font: 800 clamp(34px, 4.2vw, 58px)/1.12 "Plus Jakarta Sans";
+  font: 800 clamp(34px, 4.2vw, 58px)/1.12 var(--font-display);
   letter-spacing: -1.8px;
   margin: 20px 0 17px;
 }
@@ -3915,7 +3941,7 @@ body.parent-view .sidebar {
 }
 
 .preview-note > strong {
-  font: 700 13px "Plus Jakarta Sans";
+  font: 700 13px var(--font-body);
   margin: 7px 0;
 }
 
@@ -3971,7 +3997,7 @@ body.parent-view .sidebar {
 .mobile-login-brand .brand-word { color: var(--green); }
 
 .login-card > h2 {
-  font: 800 clamp(25px, 3vw, 33px) "Plus Jakarta Sans";
+  font: 700 clamp(25px, 3vw, 33px)/1.25 var(--font-display);
   letter-spacing: -0.6px;
   margin: 0 0 9px;
 }
@@ -4017,7 +4043,7 @@ body.parent-view .sidebar {
   border: 0;
   background: transparent;
   padding: 0 12px;
-  font: 12px "DM Sans";
+  font: 12px var(--font-body);
   outline: 0;
 }
 
@@ -4058,7 +4084,7 @@ body.parent-view .sidebar {
   border: 0;
   background: transparent;
   color: var(--green);
-  font: 700 9px "DM Sans";
+  font: 700 9px var(--font-body);
   cursor: pointer;
 }
 
@@ -4255,7 +4281,7 @@ body.parent-view .sidebar {
 .dashboard-stat-card > strong {
   display: block;
   margin-top: 12px;
-  font: 800 28px/1 "Plus Jakarta Sans";
+  font: 800 28px/1 var(--font-body);
   color: var(--ink);
 }
 
@@ -5294,6 +5320,7 @@ body.parent-view .sidebar {
   border-radius: 8px;
   padding: 10px 16px;
   font: inherit;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -5461,7 +5488,7 @@ body.parent-view .sidebar {
 
 .payment-proofs h3 {
   margin: 0 0 12px;
-  font: 700 15px "Plus Jakarta Sans";
+  font: 700 15px/1.25 var(--font-display);
 }
 
 .payment-proof {
@@ -5662,7 +5689,7 @@ html body select:not([multiple]):not([size]) {
 }
 
 .contact-modal .modal-header h2 {
-  font: 700 22px "Plus Jakarta Sans";
+  font: 700 22px/1.25 var(--font-display);
 }
 
 .contact-modal .modal-header p {
@@ -5733,7 +5760,7 @@ html body select:not([multiple]):not([size]) {
   padding: 12px 13px;
   background: #fff;
   color: var(--ink);
-  font: 500 14px "DM Sans";
+  font: 500 14px var(--font-body);
 }
 
 .contact-field textarea {
@@ -5793,10 +5820,10 @@ html body select:not([multiple]):not([size]) {
 
 .reset-page { min-height: 100svh; display: grid; place-items: center; padding: 24px; background: #FBF8F3; }
 .reset-card { width: min(460px, 100%); padding: clamp(24px, 5vw, 42px); border: 1px solid #E5DED3; border-radius: 18px; background: #fff; box-shadow: 0 12px 36px rgba(58,47,39, .07); }
-.reset-brand { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 38px; color: #3A2F27; font: 800 25px/1 var(--font-display), sans-serif; color: var(--green); text-decoration: none; }
+.reset-brand { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 38px; color: #3A2F27; font: 800 25px/1 var(--font-display); color: var(--green); text-decoration: none; }
 .reset-brand .brand-word { color: var(--green); }
 .reset-eyebrow { margin: 0 0 9px; color: #00735F; font-size: 11px; font-weight: 800; letter-spacing: 1.3px; }
-.reset-card h1 { margin: 0 0 10px; color: #3A2F27; font: 800 clamp(25px, 5vw, 31px)/1.2 "Plus Jakarta Sans", sans-serif; letter-spacing: -.7px; }
+.reset-card h1 { margin: 0 0 10px; color: #3A2F27; font: 800 clamp(25px, 5vw, 31px)/1.2 var(--font-display); letter-spacing: -.7px; }
 .reset-copy { margin: 0 0 25px; color: #6E5F53; line-height: 1.6; }
 .reset-card form > label { display: block; margin: 18px 0 8px; color: #3A2F27; font-size: 12px; font-weight: 800; }
 .reset-input { height: 50px; display: flex; align-items: center; border: 1px solid #E5DED3; border-radius: 11px; background: #fff; }
