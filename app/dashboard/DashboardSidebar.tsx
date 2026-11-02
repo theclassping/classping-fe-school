@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import LogoutButton from "./LogoutButton";
+import BrandLogo from "../components/BrandLogo";
 
 type DashboardSidebarProps = {
   open?: boolean;
@@ -125,8 +126,7 @@ export default function DashboardSidebar({ open = false, onNavigate }: Dashboard
     <>
     <aside className={`sidebar ${open ? "open" : ""}`}>
       <Link href="/dashboard/profile" className="brand" aria-label="ClassPing home" onClick={onNavigate}>
-        <span className="brand-mark" aria-hidden="true"><span /><span /><span /></span>
-        <span>class<span>ping</span></span>
+        <BrandLogo />
       </Link>
 
       <nav className="main-nav admin-nav" aria-label="Main navigation">

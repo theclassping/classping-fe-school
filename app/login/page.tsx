@@ -3,6 +3,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { Download, Eye, EyeOff, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
+import BrandLogo from "../components/BrandLogo";
 
 export default function LoginPage() {
 const router = useRouter();
@@ -52,15 +53,7 @@ try {
     <main className="login-page">
       <section className="login-showcase">
         <div className="login-brand">
-          <span className="brand-mark" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-          </span>
-
-          <span>
-            class<span>ping</span>
-          </span>
+          <BrandLogo inverse />
         </div>
 
         <div className="showcase-copy">

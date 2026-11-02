@@ -4,6 +4,7 @@ import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import BrandLogo from "../components/BrandLogo";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -55,8 +56,7 @@ function ResetPasswordForm() {
     <main className="reset-page">
       <section className="reset-card">
         <Link className="reset-brand" href="/login" aria-label="ClassPing, kembali ke masuk">
-          <span className="reset-brand-mark" aria-hidden="true"><span /><span /><span /></span>
-          <span>class<span>ping</span></span>
+          <BrandLogo />
         </Link>
         {complete ? (
           <>

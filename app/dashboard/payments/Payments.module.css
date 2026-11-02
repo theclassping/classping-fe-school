@@ -2,7 +2,7 @@
   padding: 20px 22px;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
-  background: #fafcfb;
+  background: #FBF8F3;
 }
 
 .heading {
@@ -14,12 +14,12 @@
 }
 
 .heading strong {
-  color: #26322d;
+  color: #3A2F27;
   font-size: 13px;
 }
 
 .heading span {
-  color: #66736d;
+  color: #6E5F53;
   font-size: 12px;
 }
 
@@ -35,7 +35,7 @@
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  color: #5c6a64;
+  color: #6E5F53;
   font-size: 12px;
   font-weight: 600;
 }
@@ -50,7 +50,7 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
-  color: #26322d;
+  color: #3A2F27;
   font: inherit;
   color-scheme: light;
 }
