@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState, type SyntheticEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ImagePlus, X, ArrowLeft } from "lucide-react";
 import FocusedActivityPhotos from "./FocusedActivityPhotos";
@@ -12,15 +12,16 @@ import { loadActivityClasses, type ActivityClass } from "./activityClasses";
 import { loadActivityStudents, type ActivityStudent } from "./activityStudents";
 import { loadActivityTeachers, type ActivityTeacher } from "./activityTeachers";
 import { notifySaved } from "@/lib/notifications";
+import { useImageRefresh } from "@/lib/useImageRefresh";
 import "./activityEditor.css";
 
-function PhotoPreview({ photo, close }: { photo: ReportPhoto; close: () => void }) {
+function PhotoPreview({ photo, close, onImageError }: { photo: ReportPhoto; close: () => void; onImageError: (event: SyntheticEvent<HTMLImageElement>) => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { dialog.current?.showModal(); }, []);
   return <dialog ref={dialog} className="report-photo-dialog" aria-label="Pratinjau foto aktivitas" onCancel={close} onClick={event => { if (event.target === event.currentTarget) close(); }}>
     <button type="button" onClick={close} aria-label="Tutup pratinjau"><X size={22} /></button>
     {/* eslint-disable-next-line @next/next/no-img-element */}
-    <img src={photo.url} alt="Pratinjau foto kegiatan" />
+    <img src={photo.url} alt="Pratinjau foto kegiatan" onError={onImageError} />
   </dialog>;
 }
 
@@ -139,6 +140,17 @@ export default function ActivityReportEditor({ editing = false }: { editing?: bo
     return () => { window.removeEventListener("beforeunload", beforeUnload); window.removeEventListener("online", online); window.removeEventListener("offline", offline); document.removeEventListener("visibilitychange", hidden); document.removeEventListener("click", intercept, true); };
   }, [ready, c, router]);
 
+  const onImageError = useImageRefresh(useCallback(async () => {
+    const activityId = controller?.draft.activityId;
+    if (!controller || !activityId || !navigator.onLine) return;
+    const remote = await reportRequest<ReportRecord>(`/api/proxy/activities/${activityId}/`);
+    controller.change(d => ({ ...d, photos: d.photos.map(photo => {
+      if (photo.file) return photo;
+      const current = remote.activity_images.find(p => p.id === photo.id || p.client_id === photo.key);
+      return current?.image_url ? { ...photo, url: current.image_url, urlRefreshedAt: Date.now() } : photo;
+    }) }), false, false);
+  }, [controller]));
+
   if (loadError) return <main><section className="panel report-editor"><h2>Aktivitas belum dapat dibuka</h2><p role="alert">{loadError}</p><button className="secondary-button" onClick={() => setRetryLoad(n => n + 1)}>Coba lagi</button> <Link href="/login">Masuk kembali</Link> · <Link href="/dashboard/activities">Daftar aktivitas</Link></section></main>;
   if (!draft || !c) return <main><p role="status">Memuat laporan aktivitas…</p></main>;
   const tagged = taggedStudents(draft);
@@ -209,7 +221,7 @@ export default function ActivityReportEditor({ editing = false }: { editing?: bo
     {draft.review ? <section className="report-review"><h3 ref={reviewHeading} tabIndex={-1}>Pratinjau laporan</h3><p className="report-preview-hint">Belum dipublikasikan. Periksa laporan sebelum menekan Publikasikan.</p><h4>{draft.title}</h4><p>{classes.find(k => k.id === draft.classId)?.label} · {draft.date}</p><p className="report-description">{draft.description}</p><p>{draft.photos.length} foto · {tagged.length} siswa · {draft.photos.filter(p => p.tagState === "group").length} foto bersama</p>
       <div className="report-review-photos">{draft.photos.map((photo, i) => <button type="button" key={photo.key} onClick={() => setPreview(photo.key)} aria-label={`Pratinjau foto ${i + 1}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={photo.url} alt={`Foto ${i + 1}`} /><span>{photo.tagState === "group" ? "Foto bersama" : photo.tagState === "legacy" ? "Foto lama" : names.get(photo.studentId) || "Siswa"}</span>
+        <img src={photo.url} alt={`Foto ${i + 1}`} onError={onImageError} /><span>{photo.tagState === "group" ? "Foto bersama" : photo.tagState === "legacy" ? "Foto lama" : names.get(photo.studentId) || "Siswa"}</span>
       </button>)}</div>
       {tagged.map(id => <div className="report-review-note" key={id}><strong>Catatan untuk {names.get(id) || "siswa"}</strong><p>{draft.remarks[id]}</p></div>)}
       <p className="report-privacy">Foto individual dan catatan hanya untuk wali siswa terkait. Foto bersama dibagikan kepada wali peserta kegiatan.</p>
@@ -231,11 +243,11 @@ export default function ActivityReportEditor({ editing = false }: { editing?: bo
         onRemarkChange={(studentId, value) => change(d => ({ ...d, remarks: { ...d.remarks, [studentId]: value } }))}
         onBlur={() => c.schedule(true)}
         onRetry={key => change(d => ({ ...d, photos: d.photos.map(photo => photo.key === key ? { ...photo, upload: "pending", error: undefined } : photo) }), true)}
-        onPreview={photo => setPreview(photo.key)} onRemove={removePhoto} onMove={reorder} />
+        onPreview={photo => setPreview(photo.key)} onRemove={removePhoto} onMove={reorder} onImageError={onImageError} />
       <details className="report-participants"><summary>Peserta kegiatan <span>{new Set([...draft.participants, ...tagged]).size} siswa</span></summary><p>Siswa yang ditandai otomatis menjadi peserta. Tambahkan peserta lain untuk menerima laporan dan foto bersama.</p><div>{students.map(s => <label key={s.id}><input type="checkbox" checked={draft.participants.includes(s.id) || tagged.includes(s.id)} disabled={tagged.includes(s.id)} onChange={e => change(d => ({ ...d, participants: e.target.checked ? [...d.participants, s.id] : d.participants.filter(id => id !== s.id) }), true)} /><span>{s.name}{tagged.includes(s.id) && <small>Ditandai di foto</small>}</span></label>)}</div></details>
     </>}
     </fieldset>
     <footer className="report-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => void saveDraft(true)}>Simpan &amp; tutup</button>{draft.review ? <button className="primary-button" disabled={busy || c.conflict || issues.length > 0} onClick={() => void publish()}>{busy ? "Mempublikasikan…" : "Publikasikan"}</button> : <button className="primary-button" disabled={busy || c.conflict} onClick={review}>Pratinjau laporan</button>}</footer>
-    {previewPhoto && <PhotoPreview key={previewPhoto.key} photo={previewPhoto} close={() => setPreview(undefined)} />}
+    {previewPhoto && <PhotoPreview key={previewPhoto.key} photo={previewPhoto} close={() => setPreview(undefined)} onImageError={onImageError} />}
   </section></main>;
 }

@@ -71,7 +71,8 @@ export class ActivityDraftController {
       photos: this.draft.photos.map(p => {
         const saved = result.activity_images.find(item => (p.id && p.id === item.id) || item.client_id === p.key);
         if (!saved) return p;
-        const keepPreview = !!p.url && (!!p.file || Date.now() - (p.urlRefreshedAt || 0) < 3000000);
+        // Presigned URLs are reused server-side and may arrive with only ~10 minutes left, so only keep a recent one.
+        const keepPreview = !!p.url && (!!p.file || Date.now() - (p.urlRefreshedAt || 0) < 300000);
         return { ...p, id: saved.id, imageData: saved.image_data, url: keepPreview ? p.url : saved.image_url || p.url,
           urlRefreshedAt: keepPreview ? p.urlRefreshedAt : Date.now() };
       }),

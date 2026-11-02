@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { resizeImageForUpload } from "@/lib/imageResize";
 import { notifySaved } from "@/lib/notifications";
+import { useImageRefresh } from "@/lib/useImageRefresh";
 
 type Proof = { id: number; image_data: unknown; image_url?: string };
 
@@ -79,6 +80,14 @@ export default function PaymentEditPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const paymentId = record?.paymentId;
+  const onImageError = useImageRefresh(useCallback(async () => {
+    if (!paymentId) return;
+    const response = await fetch(`/api/proxy/payments/${paymentId}/`, { credentials: "include", cache: "no-store" });
+    if (!response.ok) return;
+    const payment = unwrap<PaymentDetail>(await response.json());
+    setRecord((current) => current && { ...current, proofs: payment.proofs ?? [] });
+  }, [paymentId]));
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -346,7 +355,7 @@ export default function PaymentEditPage() {
                   <div className="payment-proof" key={proof.id}>
                     {proofImageData(proof).startsWith("http") ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={proofImageData(proof)} alt={`Bukti pembayaran ${proof.id}`} />
+                      <img src={proofImageData(proof)} alt={`Bukti pembayaran ${proof.id}`} onError={onImageError} />
                     ) : <span>{proofImageData(proof)}</span>}
                   </div>
                 ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import {
   ArrowDown, ArrowUp, Check, ChevronLeft, ChevronRight,
   Grid2X2, Maximize2, MoreHorizontal, Users, X,
@@ -23,6 +23,7 @@ type Props = {
   onPreview: (photo: ReportPhoto) => void;
   onRemove: (photo: ReportPhoto) => void;
   onMove: (index: number, offset: number) => void;
+  onImageError: (event: SyntheticEvent<HTMLImageElement>) => void;
 };
 
 function photoStatus(photo: ReportPhoto, remarks: Record<string, string>) {
@@ -32,11 +33,12 @@ function photoStatus(photo: ReportPhoto, remarks: Record<string, string>) {
   return remarks[photo.studentId]?.trim() ? "Lengkap" : "Perlu catatan";
 }
 
-function PhotoOverview({ draft, students, close, select }: {
+function PhotoOverview({ draft, students, close, select, onImageError }: {
   draft: ReportDraft;
   students: ActivityStudent[];
   close: () => void;
   select: (index: number) => void;
+  onImageError: (event: SyntheticEvent<HTMLImageElement>) => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const names = new Map(students.map(student => [student.id, student.name]));
@@ -57,7 +59,7 @@ function PhotoOverview({ draft, students, close, select }: {
           onClick={() => { select(index); close(); }}>
           <span className="focus-overview-image">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photo.url} alt={`Foto kegiatan ${index + 1}`} loading="lazy" />
+            <img src={photo.url} alt={`Foto kegiatan ${index + 1}`} loading="lazy" onError={onImageError} />
             <span>{index + 1}</span>
           </span>
           <strong>{name}</strong>
@@ -70,7 +72,7 @@ function PhotoOverview({ draft, students, close, select }: {
 
 export default function FocusedActivityPhotos(props: Props) {
   const { draft, students, rosterLoading, rosterError, showIssues, onSelect, onStudentChange,
-    onRemarkChange, onBlur, onRetry, onPreview, onRemove, onMove } = props;
+    onRemarkChange, onBlur, onRetry, onPreview, onRemove, onMove, onImageError } = props;
   const [overview, setOverview] = useState(false);
   const editor = useRef<HTMLElement>(null);
   const strip = useRef<HTMLDivElement>(null);
@@ -121,7 +123,7 @@ export default function FocusedActivityPhotos(props: Props) {
         <button type="button" className="focus-picture" disabled={!photo.url}
           onClick={() => onPreview(photo)} aria-label={`Perbesar foto ${index + 1}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photo.url} alt={`Foto kegiatan ${index + 1}`} />
+          <img src={photo.url} alt={`Foto kegiatan ${index + 1}`} onError={onImageError} />
           <span className="focus-zoom"><Maximize2 size={15} /> Perbesar</span>
         </button>
         {photo.upload !== "complete" && <p className="report-upload-status" role="status">
@@ -180,7 +182,7 @@ export default function FocusedActivityPhotos(props: Props) {
             onClick={() => selectFromGallery(position)}>
             <span className="focus-filmstrip-image">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={item.url} alt="" loading="lazy" />
+              <img src={item.url} alt="" loading="lazy" onError={onImageError} />
               <span className="focus-filmstrip-number">{position + 1}</span>
               {done && <span className="focus-filmstrip-done"><Check size={11} aria-hidden="true" /></span>}
             </span>
@@ -189,6 +191,6 @@ export default function FocusedActivityPhotos(props: Props) {
         })}
       </div>
     </div>
-    {overview && <PhotoOverview draft={draft} students={students} close={() => setOverview(false)} select={selectFromGallery} />}
+    {overview && <PhotoOverview draft={draft} students={students} close={() => setOverview(false)} select={selectFromGallery} onImageError={onImageError} />}
   </section>;
 }
