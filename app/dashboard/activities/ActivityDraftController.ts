@@ -1,3 +1,4 @@
+import { randomId } from "@/lib/uuid";
 import { canSync, reportIssues, reportPayload, type ReportDraft, type ReportRecord } from "./activityEditorState";
 import { writeDraft, removeDraft, type PendingSave } from "./activityDraftStore";
 import { resizeImageForUpload } from "@/lib/imageResize";
@@ -113,7 +114,7 @@ export class ActivityDraftController {
       if (this.draft.version === this.draft.syncedVersion && !publish) return;
       const snapshot = this.draft;
       this.pending = { url: snapshot.activityId ? `/api/proxy/activities/${snapshot.activityId}/` : "/api/proxy/activities/", method: snapshot.activityId ? "PATCH" : "POST",
-        body: JSON.stringify(reportPayload(snapshot, publish, crypto.randomUUID())), version: snapshot.version };
+        body: JSON.stringify(reportPayload(snapshot, publish, randomId())), version: snapshot.version };
       // Persist the exact request before sending, so an ambiguous success can be replayed safely.
       await this.flushLocal();
       if (this.disposed) return;

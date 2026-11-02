@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { removeDraftsForActivity } from "./activityDraftStore";
 
 export default function DeleteActivityDialog({ activity, onCancel, onDeleted }: {
   activity: { id: string | number; title: string };
@@ -30,6 +31,8 @@ export default function DeleteActivityDialog({ activity, onCancel, onDeleted }: 
         return;
       }
       if (!response.ok) throw new Error("Gagal menghapus aktivitas. Silakan coba lagi.");
+      // Otherwise Tambah aktivitas would reopen the deleted report from this device's draft.
+      await removeDraftsForActivity(Number(activity.id)).catch(() => {});
       onDeleted();
     } catch {
       setError("Gagal menghapus aktivitas. Silakan coba lagi.");

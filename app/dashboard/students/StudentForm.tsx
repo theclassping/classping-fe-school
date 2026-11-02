@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { loadClassOptions } from "@/lib/classOptions";
+import { randomId } from "@/lib/uuid";
 
 type Location = {
     id: number;
@@ -796,7 +797,7 @@ export default function StudentForm({
                         </fieldset>
                     ))}
                     <button type="button" className="button-secondary" disabled={loading} onClick={() => setAdditionalGuardians((current) => [...current, {
-                        key: crypto.randomUUID(), name: "", relationship: "", phone: "", email: "",
+                        key: randomId(), name: "", relationship: "", phone: "", email: "",
                     }])}>+ Tambah Wali</button>
 
                     <div className="modal-actions">

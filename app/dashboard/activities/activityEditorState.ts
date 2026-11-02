@@ -1,3 +1,4 @@
+import { randomId } from "@/lib/uuid";
 export type PhotoState = "unreviewed" | "individual" | "group" | "legacy";
 export type ReportPhoto = {
   key: string; id?: number; file?: File; url?: string; imageData?: unknown;
@@ -24,30 +25,21 @@ export type ReportRecord = {
   activity_images: { id: number; client_id?: string; image_url?: string; image_data?: unknown; student_id?: number | null; tag_state?: PhotoState; caption?: string; position?: number }[];
 };
 export function emptyDraft(): ReportDraft {
-  return { clientId: crypto.randomUUID(), workflowVersion: 2, title: "", classId: "", teacherId: "",
+  return { clientId: randomId(), workflowVersion: 2, title: "", classId: "", teacherId: "",
     date: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()),
     description: "", participants: [], remarks: {}, photos: [], removedPhotoIds: [], expanded: "",
     version: 0, syncedVersion: 0, published: false, updatedAt: Date.now() };
 }
 export function draftFromRecord(record: ReportRecord): ReportDraft {
-  return { ...emptyDraft(), clientId: record.client_id || crypto.randomUUID(), activityId: record.id, revision: record.revision,
+  return { ...emptyDraft(), clientId: record.client_id || randomId(), activityId: record.id, revision: record.revision,
     workflowVersion: record.workflow_version, title: record.name, classId: String(record.class_id), teacherId: String(record.class_teacher_id),
     date: record.activity_date, description: record.description, participants: record.activity_students.map(s => String(s.id)),
     remarks: Object.fromEntries((record.student_remarks || []).map(r => [String(r.student_id), r.remark])), published: record.is_publish,
     photos: [...record.activity_images].sort((a,b) => (a.position || 0) - (b.position || 0)).map(p => ({
-      key: p.client_id || crypto.randomUUID(), id: p.id, url: p.image_url, imageData: p.image_data, urlRefreshedAt: Date.now(),
+      key: p.client_id || randomId(), id: p.id, url: p.image_url, imageData: p.image_data, urlRefreshedAt: Date.now(),
       upload: "complete", tagState: p.tag_state || (p.student_id ? "individual" : "legacy"), studentId: p.student_id ? String(p.student_id) : "", caption: p.caption || "",
     })),
   };
-}
-// The server copy of a new-report draft was deleted: keep the local work as a fresh report.
-// Photos only on the deleted server copy are dropped; photos still on this device upload again.
-export function detachDraft(draft: ReportDraft): ReportDraft {
-  const photos = draft.photos.filter(photo => photo.file).map(photo => ({ ...photo, id: undefined, imageData: undefined,
-    upload: "pending" as const, uploadKey: undefined, uploadUrl: undefined, uploadExpires: undefined, error: undefined }));
-  return { ...draft, clientId: crypto.randomUUID(), activityId: undefined, revision: undefined, published: false, review: false,
-    photos, removedPhotoIds: [], expanded: photos.some(photo => photo.key === draft.expanded) ? draft.expanded : photos[0]?.key || "",
-    syncedVersion: 0, version: Math.max(draft.version, 1) };
 }
 export function taggedStudents(draft: ReportDraft): string[] {
   return [...new Set(draft.photos.filter(p => p.tagState === "individual" && p.studentId).map(p => p.studentId))];
