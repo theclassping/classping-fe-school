@@ -39,7 +39,7 @@ try {
     return;
   }
 
-  router.push("/dashboard/profile");
+  router.push("/dashboard");
   router.refresh();
 } catch {
   setError("Unable to connect to server");
