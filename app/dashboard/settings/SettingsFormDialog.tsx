@@ -40,13 +40,13 @@ export default function SettingsFormDialog({
 
     return (
         <div className="modal-overlay">
-            <div className="modal">
+            <div className="modal app-form-modal">
                 <div className="modal-header">
                     <div>
                         <h2>{title}</h2>
                     </div>
 
-                    <button type="button" className="modal-close" onClick={onCancel}>
+                    <button type="button" className="modal-close" aria-label="Tutup formulir" onClick={onCancel}>
                         ×
                     </button>
                 </div>

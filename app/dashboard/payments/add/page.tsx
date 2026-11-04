@@ -1,8 +1,12 @@
 "use client";
 
+import { loadClassOptions } from "@/lib/classOptions";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { resizeImageForUpload } from "@/lib/imageResize";
+import { notifySaved } from "@/lib/notifications";
 
 type SchoolClass = { id: number; name?: string; code?: string };
 type Student = {
@@ -51,11 +55,7 @@ export default function AddPaymentPage() {
     async function loadOptions() {
       try {
         const [classesResponse, feeTypesResponse] = await Promise.all([
-          fetch("/api/proxy/classes/", {
-            credentials: "include",
-            cache: "no-store",
-            signal: controller.signal,
-          }),
+          loadClassOptions(),
           fetch("/api/proxy/fee-types/", {
             credentials: "include",
             cache: "no-store",
@@ -63,19 +63,19 @@ export default function AddPaymentPage() {
           }),
         ]);
 
-        if (classesResponse.status === 401 || feeTypesResponse.status === 401) {
+        if (feeTypesResponse.status === 401) {
           router.push("/login");
           return;
         }
-        if (!classesResponse.ok || !feeTypesResponse.ok) {
+        if (!feeTypesResponse.ok) {
           throw new Error("Gagal memuat pilihan pembayaran.");
         }
 
         const [classData, feeTypeData] = await Promise.all([
-          classesResponse.json(),
+          classesResponse,
           feeTypesResponse.json(),
         ]);
-        setClasses(recordsFrom(classData) as SchoolClass[]);
+        setClasses(classData);
         setFeeTypes(recordsFrom(feeTypeData) as FeeType[]);
       } catch (loadError) {
         if (loadError instanceof DOMException && loadError.name === "AbortError") return;
@@ -131,7 +131,8 @@ export default function AddPaymentPage() {
     if (selected?.amount !== undefined) setAmount(String(selected.amount));
   }
 
-  async function uploadProof(file: File) {
+  async function uploadProof(original: File) {
+    const file = await resizeImageForUpload(original);
     const response = await fetch("/api/proxy/media/presign", {
       method: "POST",
       credentials: "include",
@@ -194,6 +195,11 @@ export default function AddPaymentPage() {
           typeof data?.detail === "string" ? data.detail : "Gagal menyimpan pembayaran.",
         );
       }
+      notifySaved({
+        title: "Pembayaran tersimpan",
+        copy: `Pembayaran dengan status ${payload.status || "submitted"} berhasil dicatat.`,
+        href: "/dashboard/payments",
+      });
       router.push("/dashboard/payments");
       router.refresh();
     } catch (submitError) {

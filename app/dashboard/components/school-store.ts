@@ -2,7 +2,7 @@ export type SchoolProfile = {
   name: string;
   email: string;
   phone: string;
-  role: "Guru" | "Administrator";
+  role: string;
 };
 
 export type SchoolNotification = {
@@ -17,10 +17,10 @@ export type SchoolNotification = {
 
 export const schoolStoreEvent = "classping-school-store-updated";
 export const defaultSchoolProfile: SchoolProfile = {
-  name: "Nia Ramadhani",
-  email: "nia@classping.id",
-  phone: "0812-3456-7801",
-  role: "Guru",
+  name: "Pengguna",
+  email: "",
+  phone: "",
+  role: "",
 };
 
 const profileKey = "classping-react-school-profile";

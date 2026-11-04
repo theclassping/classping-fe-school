@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { loadClassOptions } from "@/lib/classOptions";
 
 type Location = {
     id: number;
@@ -28,6 +29,12 @@ type Student = {
     nickname?: string;
     student_number?: string;
     class_name?: string;
+    class_students?: Array<{
+        id: number;
+        class_id?: number;
+        class_name?: string;
+        is_current?: boolean;
+    }>;
     date_of_birth?: string;
     gender?: string;
     address?: string;
@@ -35,10 +42,36 @@ type Student = {
     location?: StudentLocation;
     status?: string;
     enroll_date?: string;
+    student_guardians?: Array<{
+        id?: number;
+        guardian_id?: number;
+        guardian_name?: string;
+        guardian_phone_number?: string;
+        guardian_email?: string;
+        relationship?: string;
+        is_primary?: boolean;
+    }>;
     guardian_name?: string;
     guardian_relation?: string;
     guardian_phone?: string;
     guardian_email?: string;
+};
+
+type AdditionalGuardian = {
+    key: string;
+    id?: number;
+    guardian_id?: number;
+    name: string;
+    relationship: string;
+    phone: string;
+    email: string;
+};
+
+type Guardian = {
+    id: number;
+    name: string;
+    email?: string;
+    phone_number?: string;
 };
 
 type SchoolClass = {
@@ -58,6 +91,11 @@ export default function StudentForm({
     onCancel,
 }: StudentFormProps) {
     const isEdit = !!student;
+    const currentClass = student?.class_students?.find((assignment) => assignment.is_current)
+        ?? student?.class_students?.[0];
+
+    const currentGuardian = student?.student_guardians?.find((guardian) => guardian.is_primary)
+        ?? student?.student_guardians?.[0];
 
     const [form, setForm] = useState({
         first_name: student?.first_name ?? "",
@@ -65,7 +103,7 @@ export default function StudentForm({
         last_name: student?.last_name ?? "",
         nickname: student?.nickname ?? "",
         student_number: student?.student_number ?? "",
-        class_name: student?.class_name ?? "",
+        class_name: currentClass?.class_id != null ? String(currentClass.class_id) : "",
         location_id: "",
         date_of_birth: student?.date_of_birth ?? "",
         gender: student?.gender ?? "",
@@ -79,6 +117,27 @@ export default function StudentForm({
         guardian_password: "",
     });
 
+    const [additionalGuardians, setAdditionalGuardians] = useState<AdditionalGuardian[]>(() =>
+        (student?.student_guardians ?? []).filter((guardian) => guardian !== currentGuardian).map((guardian, index) => ({
+            key: `saved-${guardian.id ?? index}`,
+            id: guardian.id,
+            guardian_id: guardian.guardian_id,
+            name: guardian.guardian_name ?? "",
+            relationship: guardian.relationship ?? "",
+            phone: guardian.guardian_phone_number ?? "",
+            email: guardian.guardian_email ?? "",
+        }))
+    );
+    function updateAdditionalGuardian(key: string, values: Partial<AdditionalGuardian>) {
+        setAdditionalGuardians((current) => current.map((guardian) => guardian.key === key ? { ...guardian, ...values } : guardian));
+    }
+
+    const [guardianMode, setGuardianMode] = useState("new");
+    const [guardianSearch, setGuardianSearch] = useState("");
+    const [guardianId, setGuardianId] = useState("");
+    const [guardians, setGuardians] = useState<Guardian[]>([]);
+    const [guardiansLoading, setGuardiansLoading] = useState(false);
+    const [guardiansError, setGuardiansError] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [locations, setLocations] = useState<Record<string, Location[]>>({});
@@ -87,33 +146,54 @@ export default function StudentForm({
     const [classes, setClasses] = useState<SchoolClass[]>([]);
     const [classesLoading, setClassesLoading] = useState(false);
 
+    useEffect(() => {
+        if (isEdit || guardianMode !== "existing") return;
+
+        const controller = new AbortController();
+        const timer = setTimeout(async () => {
+            setGuardiansLoading(true);
+            setGuardiansError("");
+            try {
+                const params = new URLSearchParams({ search: guardianSearch.trim() });
+                const response = await fetch(`/api/proxy/guardians/?${params}`, {
+                    credentials: "include",
+                    cache: "no-store",
+                    signal: controller.signal,
+                });
+                if (response.status === 401) {
+                    window.location.href = "/login";
+                    return;
+                }
+                if (!response.ok) throw new Error("Gagal memuat data wali. Coba cari kembali.");
+                const data = await response.json();
+                if (controller.signal.aborted) return;
+                setGuardians(Array.isArray(data) ? data : data.results ?? data.data ?? []);
+            } catch (err) {
+                if (!controller.signal.aborted) {
+                    setGuardians([]);
+                    setGuardiansError(err instanceof Error ? err.message : "Gagal memuat data wali.");
+                }
+            } finally {
+                if (!controller.signal.aborted) setGuardiansLoading(false);
+            }
+        }, 300);
+
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [guardianMode, guardianSearch, isEdit]);
+
     async function loadClasses() {
-        const response = await fetch("/api/proxy/classes/", {
-            credentials: "include",
-            cache: "no-store",
-        });
-
-        if (response.status === 401) {
-            window.location.href = "/login";
-            return;
-        }
-
-        if (!response.ok) {
-            throw new Error("Gagal memuat kelas");
-        }
-
-        const data = await response.json();
-
-        const records = Array.isArray(data)
-            ? data
-            : Array.isArray(data.results)
-                ? data.results
-                : Array.isArray(data.data)
-                    ? data.data
-                    : [];
-
-        setClasses(records);
+        setClasses(await loadClassOptions());
     }
+
+    // Some student list responses include the class name without class_id.
+    // Resolve that name against the options while keeping explicit user changes.
+    const savedClassName = currentClass?.class_name ?? student?.class_name;
+    const selectedClassId = form.class_name || String(
+        classes.find((schoolClass) => schoolClass.name === savedClassName)?.id ?? ""
+    );
 
     async function loadLocations(type: string, parentId?: string) {
         const params = new URLSearchParams({ type });
@@ -279,6 +359,11 @@ export default function StudentForm({
     async function handleSubmit(event: FormEvent) {
         event.preventDefault();
 
+        if (!isEdit && guardianMode === "existing" && !guardianId) {
+            setError("Pilih wali yang sudah ada terlebih dahulu.");
+            return;
+        }
+
         setLoading(true);
         setError("");
 
@@ -304,10 +389,26 @@ export default function StudentForm({
                     status: form.status.toLowerCase(),
                     enroll_date: form.enroll_date,
 
-                    // Keep the current class assignment
+                    student_guardians: [
+                        {
+                            ...(currentGuardian?.id != null ? { id: currentGuardian.id } : {}),
+                            ...(currentGuardian?.guardian_id != null ? { guardian_id: currentGuardian.guardian_id } : {}),
+                            relationship: form.guardian_relation.toLowerCase(),
+                            is_primary: true,
+                            user: {
+                                first_name: guardianFirstName,
+                                last_name: guardianLastName,
+                                email: form.guardian_email,
+                                phone_number: form.guardian_phone,
+                            },
+                        },
+                    ],
+
+                    // Update the existing assignment rather than creating a duplicate.
                     class_students: [
                         {
-                            class_id: Number(form.class_name),
+                            ...(currentClass ? { id: currentClass.id } : {}),
+                            class_id: Number(selectedClassId),
                             is_current: true,
                         },
                     ],
@@ -329,31 +430,45 @@ export default function StudentForm({
                         {
                             relationship: form.guardian_relation.toLowerCase(),
                             is_primary: true,
-                            user: {
-                                email: form.guardian_email,
-                                password: form.guardian_password,
-                                first_name: guardianFirstName,
-                                last_name: guardianLastName,
-                                phone_number: form.guardian_phone,
-                                image_data: null,
-                            },
+                            ...(guardianMode === "existing" ? {
+                                guardian_id: Number(guardianId),
+                            } : {
+                                user: {
+                                    email: form.guardian_email,
+                                    password: form.guardian_password,
+                                    first_name: guardianFirstName,
+                                    last_name: guardianLastName,
+                                    phone_number: form.guardian_phone,
+                                    image_data: null,
+                                }
+                            }),
                         },
                     ],
 
                     class_students: [
                         {
-                            class_id: Number(form.class_name),
+                            class_id: Number(selectedClassId),
                             is_current: true,
                         },
                     ],
                 };
 
-            console.log(
-                isEdit
-                    ? "UPDATE STUDENT SUBMIT:"
-                    : "CREATE STUDENT SUBMIT:",
-                body
-            );
+            const additionalGuardianPayload = additionalGuardians.map((guardian) => {
+                const [firstName, ...lastName] = guardian.name.trim().split(/\s+/);
+                return {
+                    ...(guardian.id != null ? { id: guardian.id } : {}),
+                    ...(guardian.guardian_id != null ? { guardian_id: guardian.guardian_id } : {}),
+                    relationship: guardian.relationship,
+                    is_primary: false,
+                    user: {
+                        first_name: firstName,
+                        last_name: lastName.join(" ") || firstName,
+                        email: guardian.email,
+                        phone_number: guardian.phone,
+                        ...(guardian.id == null && guardian.guardian_id == null ? { password: "", image_data: null } : {}),
+                    },
+                };
+            });
 
             const response = await fetch(url, {
                 method,
@@ -361,7 +476,7 @@ export default function StudentForm({
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(body),
+                body: JSON.stringify({ ...body, student_guardians: [...body.student_guardians, ...additionalGuardianPayload] }),
             });
 
             const data = await response.json();
@@ -421,7 +536,7 @@ export default function StudentForm({
 
     return (
         <div className="modal-overlay">
-            <div className="modal">
+            <div className="modal app-form-modal">
                 <div className="modal-header">
                     <div>
                         <h2>
@@ -438,6 +553,7 @@ export default function StudentForm({
                     <button
                         type="button"
                         className="modal-close"
+                        aria-label="Tutup formulir"
                         onClick={onCancel}
                     >
                         ×
@@ -454,7 +570,7 @@ export default function StudentForm({
                     <h3>Detail Siswa</h3>
 
                     <div className="form-grid">
-                        <div className="form-field full">
+                        <div className="form-field">
                             <label htmlFor="first_name">Nama depan</label>
                             <input id="first_name" name="first_name" value={form.first_name} onChange={handleChange} required />
                         </div>
@@ -476,7 +592,7 @@ export default function StudentForm({
 
                         <div className="form-field">
                             <label htmlFor="student_number">Nomor Induk Siswa (NIS)</label>
-                            <input id="student_number" name="student_number" value={form.student_number} onChange={handleChange} placeholder="26009" required />
+                            <input id="student_number" name="student_number" value={form.student_number} onChange={handleChange} placeholder="26009"/>
                         </div>
 
                         <div className="form-field">
@@ -484,7 +600,7 @@ export default function StudentForm({
                             <select
                                 id="class_name"
                                 name="class_name"
-                                value={form.class_name}
+                                value={selectedClassId}
                                 onChange={handleChange}
                                 disabled={classesLoading}
                                 required
@@ -492,6 +608,10 @@ export default function StudentForm({
                                 <option value="">
                                     {classesLoading ? "Memuat kelas..." : "Pilih kelas"}
                                 </option>
+
+                                {selectedClassId && !classes.some((schoolClass) => String(schoolClass.id) === selectedClassId) && (
+                                    <option value={selectedClassId}>{savedClassName || `Kelas ${selectedClassId}`}</option>
+                                )}
 
                                 {classes.map((schoolClass) => (
                                     <option
@@ -577,10 +697,51 @@ export default function StudentForm({
                     <h3>Detail Wali</h3>
 
                     <div className="form-grid">
-                        <div className="form-field">
+                        {!isEdit && (
+                            <div className="form-field full">
+                                <label htmlFor="guardian_mode">Data wali</label>
+                                <select id="guardian_mode" value={guardianMode} onChange={(event) => {
+                                    setGuardianMode(event.target.value);
+                                    setGuardianId("");
+                                    setGuardianSearch("");
+                                    setGuardians([]);
+                                    setGuardiansError("");
+                                    setGuardiansLoading(event.target.value === "existing");
+                                }}>
+                                    <option value="new">Buat data wali baru</option>
+                                    <option value="existing">Ada data wali yang sudah ada</option>
+                                </select>
+                            </div>
+                        )}
+
+                        {!isEdit && guardianMode === "existing" && (
+                            <div className="form-field full">
+                                <label htmlFor="guardian_search">Cari wali</label>
+                                <input id="guardian_search" type="search" value={guardianSearch} placeholder="Cari nama, email, atau nomor telepon" onChange={(event) => {
+                                    setGuardianSearch(event.target.value);
+                                    setGuardianId("");
+                                    setGuardians([]);
+                                    setGuardiansLoading(true);
+                                }} />
+                                <label htmlFor="guardian_id">Pilih wali</label>
+                                <select id="guardian_id" value={guardianId} onChange={(event) => setGuardianId(event.target.value)} disabled={guardiansLoading || Boolean(guardiansError)} required>
+                                    <option value="">{guardiansLoading ? "Mencari wali..." : "Pilih wali"}</option>
+                                    {guardians.map((guardian) => (
+                                        <option key={guardian.id} value={guardian.id}>
+                                            {[guardian.name, guardian.email, guardian.phone_number].filter(Boolean).join(" — ")}
+                                        </option>
+                                    ))}
+                                </select>
+                                <p role="status">
+                                    {guardiansError || (!guardiansLoading && guardians.length === 0 ? "Tidak ada wali ditemukan. Coba kata pencarian lain atau buat data wali baru." : "")}
+                                </p>
+                            </div>
+                        )}
+
+                        {(isEdit || guardianMode === "new") && <div className="form-field">
                             <label htmlFor="guardian_name">Nama wali</label>
                             <input id="guardian_name" name="guardian_name" value={form.guardian_name} onChange={handleChange} required />
-                        </div>
+                        </div>}
 
                         <div className="form-field">
                             <label htmlFor="guardian_relation">Hubungan</label>
@@ -592,23 +753,51 @@ export default function StudentForm({
                             </select>
                         </div>
 
-                        <div className="form-field">
-                            <label htmlFor="guardian_phone">Nomor WhatsApp</label>
-                            <input id="guardian_phone" name="guardian_phone" type="tel" value={form.guardian_phone} onChange={handleChange} placeholder="0812-3456-7890" required />
-                        </div>
-
-                        <div className="form-field">
-                            <label htmlFor="guardian_email">Email</label>
-                            <input id="guardian_email" name="guardian_email" type="email" value={form.guardian_email} onChange={handleChange} placeholder="guardian@email.com" required={!isEdit} />
-                        </div>
-
-                        {!isEdit && (
+                        {(isEdit || guardianMode === "new") && <>
                             <div className="form-field">
-                                <label htmlFor="guardian_password">Kata sandi wali</label>
-                                <input id="guardian_password" name="guardian_password" type="password" value={form.guardian_password} onChange={handleChange} minLength={8} required />
+                                <label htmlFor="guardian_phone">Nomor WhatsApp</label>
+                                <input id="guardian_phone" name="guardian_phone" type="tel" value={form.guardian_phone} onChange={handleChange} placeholder="0812-3456-7890" required />
                             </div>
-                        )}
+
+                            <div className="form-field">
+                                <label htmlFor="guardian_email">Email</label>
+                                <input id="guardian_email" name="guardian_email" type="email" value={form.guardian_email} onChange={handleChange} placeholder="guardian@email.com" required={!isEdit} />
+                            </div>
+                        </>}
                     </div>
+
+                    {additionalGuardians.map((guardian, index) => (
+                        <fieldset key={guardian.key} className="guardian-form-section">
+                            <legend>Wali {index + 2}</legend>
+                            <div className="form-grid">
+                                <div className="form-field">
+                                    <label htmlFor={`${guardian.key}-name`}>Nama wali</label>
+                                    <input id={`${guardian.key}-name`} value={guardian.name} onChange={(event) => updateAdditionalGuardian(guardian.key, { name: event.target.value })} required />
+                                </div>
+                                <div className="form-field">
+                                    <label htmlFor={`${guardian.key}-relationship`}>Hubungan</label>
+                                    <select id={`${guardian.key}-relationship`} value={guardian.relationship} onChange={(event) => updateAdditionalGuardian(guardian.key, { relationship: event.target.value })} required>
+                                        <option value="">Pilih hubungan</option>
+                                        <option value="mother">Ibu</option><option value="father">Ayah</option><option value="guardian">Wali</option>
+                                    </select>
+                                </div>
+                                <div className="form-field">
+                                    <label htmlFor={`${guardian.key}-phone`}>Nomor WhatsApp</label>
+                                    <input id={`${guardian.key}-phone`} type="tel" value={guardian.phone} onChange={(event) => updateAdditionalGuardian(guardian.key, { phone: event.target.value })} required />
+                                </div>
+                                <div className="form-field">
+                                    <label htmlFor={`${guardian.key}-email`}>Email</label>
+                                    <input id={`${guardian.key}-email`} type="email" value={guardian.email} onChange={(event) => updateAdditionalGuardian(guardian.key, { email: event.target.value })} required />
+                                </div>
+                            </div>
+                            {guardian.id == null && guardian.guardian_id == null && <button type="button" className="button-secondary" disabled={loading} onClick={() => {
+                                setAdditionalGuardians((current) => current.filter((item) => item.key !== guardian.key));
+                            }}>Hapus wali tambahan</button>}
+                        </fieldset>
+                    ))}
+                    <button type="button" className="button-secondary" disabled={loading} onClick={() => setAdditionalGuardians((current) => [...current, {
+                        key: crypto.randomUUID(), name: "", relationship: "", phone: "", email: "",
+                    }])}>+ Tambah Wali</button>
 
                     <div className="modal-actions">
                         <button
@@ -623,7 +812,7 @@ export default function StudentForm({
                         <button
                             type="submit"
                             className="button-primary"
-                            disabled={loading}
+                            disabled={loading || (!isEdit && guardianMode === "existing" && (guardiansLoading || !guardianId))}
                         >
                             {loading
                                 ? isEdit

@@ -2,18 +2,21 @@
 
 import Link from "next/link";
 import { Eye, Pencil, Trash2, UsersRound } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type SyntheticEvent } from "react";
+import { useImageRefresh } from "@/lib/useImageRefresh";
 import styles from "../components/TableActions.module.css";
+import ListPagination, { useListPagination } from "../components/ListPagination";
 import { loadActivities } from "./activityApi";
 import type { Activity } from "./activityData";
+import DeleteActivityDialog from "./DeleteActivityDialog";
 
-function ActivityCover({ activity }: { activity: Activity }) {
+function ActivityCover({ activity, onImageError }: { activity: Activity; onImageError: (event: SyntheticEvent<HTMLImageElement>) => void }) {
   const [index, setIndex] = useState(0);
   const images = activity.imageUrls?.length ? activity.imageUrls : activity.imageUrl ? [activity.imageUrl] : [];
   const image = images[index] ?? images[0];
   return (
     <div className={`activity-cover art-${activity.slug === "melukis-dengan-jari" ? "paint" : activity.slug === "menanam-kacang-hijau" ? "garden" : "music"}`}>
-      {image ? <img className="activity-cover-image" src={image} alt={activity.title} /> : <span>{activity.avatar}</span>}
+      {image ? <img className="activity-cover-image" src={image} alt={activity.title} onError={onImageError} /> : <span>{activity.avatar}</span>}
       {images.length > 1 && (
         <>
           <button type="button" className="activity-cover-arrow previous" aria-label="Foto sebelumnya" onClick={() => setIndex((index - 1 + images.length) % images.length)}>‹</button>
@@ -32,6 +35,7 @@ export default function ActivitiesPage() {
   const [error, setError] = useState("");
   const [date, setDate] = useState("");
   const [classFilter, setClassFilter] = useState("all");
+  const [deletingActivity, setDeletingActivity] = useState<Activity | null>(null);
   useEffect(() => {
     async function fetchActivities() {
       try {
@@ -48,6 +52,7 @@ export default function ActivitiesPage() {
 
     void fetchActivities();
   }, []);
+  const onImageError = useImageRefresh(useCallback(async () => { setActivities(await loadActivities()); }, []));
 
   const classOptions = useMemo(
     () => Array.from(new Set(activities.map((activity) => activity.className))),
@@ -62,6 +67,8 @@ export default function ActivitiesPage() {
       ),
     [activities, classFilter, date],
   );
+
+  const pagination = useListPagination(filtered);
 
   return (
     <main>
@@ -86,14 +93,14 @@ export default function ActivitiesPage() {
               <input
                 type="date"
                 value={date}
-                onChange={(event) => setDate(event.target.value)}
+                onChange={(event) => { setDate(event.target.value); pagination.reset(); }}
               />
             </span>
           </label>
           <select
             aria-label="Filter kelas aktivitas"
             value={classFilter}
-            onChange={(event) => setClassFilter(event.target.value)}
+            onChange={(event) => { setClassFilter(event.target.value); pagination.reset(); }}
           >
             <option value="all">Semua Kelas</option>
             {classOptions.map((className) => (
@@ -125,9 +132,9 @@ export default function ActivitiesPage() {
           ) : filtered.length === 0 ? (
             <p className="empty-state">No activities found.</p>
           ) : (
-            filtered.map((activity) => (
+            pagination.items.map((activity) => (
               <article className="activity-card panel" key={activity.slug}>
-                <ActivityCover activity={activity} />
+                <ActivityCover activity={activity} onImageError={onImageError} />
                 <div className="activity-body">
                   <div className="activity-meta">
                     <span>{activity.time}</span>
@@ -174,14 +181,15 @@ export default function ActivitiesPage() {
                       >
                         <Pencil aria-hidden="true" />
                       </Link>
-                      <Link
+                      <button
                         className={`${styles.actionButton} ${styles.dangerButton}`}
-                        href={`/dashboard/activities/delete?activity=${activity.slug}`}
+                        type="button"
+                        onClick={() => setDeletingActivity(activity)}
                         aria-label={`Hapus ${activity.title}`}
                         title="Hapus aktivitas"
                       >
                         <Trash2 aria-hidden="true" />
-                      </Link>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -189,7 +197,16 @@ export default function ActivitiesPage() {
             ))
           )}
         </div>
+        {!loading && !error && <ListPagination {...pagination.controls} noun="aktivitas" />}
       </section>
+      {deletingActivity && <DeleteActivityDialog
+        activity={{ id: deletingActivity.slug, title: deletingActivity.title }}
+        onCancel={() => setDeletingActivity(null)}
+        onDeleted={() => {
+          setActivities((current) => current.filter((activity) => activity.slug !== deletingActivity.slug));
+          setDeletingActivity(null);
+        }}
+      />}
     </main>
   );
 }

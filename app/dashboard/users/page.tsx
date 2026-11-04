@@ -1,5 +1,7 @@
 "use client";
 
+import { loadList } from "@/lib/loadList";
+
 import { useEffect, useState } from "react";
 import UserForm from "./UserForm";
 
@@ -24,6 +26,8 @@ const roles = ["ALL", "ADMIN", "STAFF", "TEACHER", "STUDENT", "PARENT"];
 export default function UsersPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [roleLoading, setRoleLoading] = useState(true);
+    const [signedInRole, setSignedInRole] = useState<string | null>(null);
     const [error, setError] = useState("");
 
     const [search, setSearch] = useState("");
@@ -39,30 +43,7 @@ export default function UsersPage() {
             setLoading(true);
             setError("");
 
-            const response = await fetch("/api/proxy/users", {
-                method: "GET",
-                credentials: "include",
-                cache: "no-store",
-            });
-
-            if (response.status === 401) {
-                window.location.href = "/login";
-                return;
-            }
-
-            if (!response.ok) {
-                throw new Error("Failed to load users");
-            }
-
-            const data = await response.json();
-
-            setUsers(
-                Array.isArray(data)
-                    ? data
-                    : Array.isArray(data.results)
-                        ? data.results
-                        : []
-            );
+            setUsers(await loadList<User>("/api/proxy/users/"));
         } catch (err) {
             console.error(err);
             setError("Failed to load users.");
@@ -71,12 +52,39 @@ export default function UsersPage() {
         }
     }
 
+    async function loadSignedInRole() {
+        try {
+            const response = await fetch("/api/auth/session", {
+                credentials: "include",
+                cache: "no-store",
+            });
+            if (!response.ok) return;
+            const data = await response.json();
+            setSignedInRole(
+                typeof data.user?.role === "string"
+                    ? data.user.role.toUpperCase()
+                    : null
+            );
+        } catch (err) {
+            console.error("Failed to load signed-in user role", err);
+        } finally {
+            setRoleLoading(false);
+        }
+    }
+
     useEffect(() => {
-        const timer = window.setTimeout(() => void loadUsers(), 0);
+        const timer = window.setTimeout(() => {
+            void loadUsers();
+            void loadSignedInRole();
+        }, 0);
         return () => window.clearTimeout(timer);
     }, []);
 
-    const filteredUsers = users.filter((user) => {
+    const visibleUsers = users.filter((user) =>
+        signedInRole === "ADMIN" || user.role.toUpperCase() !== "ADMIN"
+    );
+
+    const filteredUsers = visibleUsers.filter((user) => {
         const fullName =
             `${user.first_name} ${user.last_name}`.toLowerCase();
 
@@ -160,7 +168,7 @@ export default function UsersPage() {
                 </div>
 
                 {/* Results */}
-                {loading ? (
+                {loading || roleLoading ? (
                     <div className="users-state">
                         <p>Loading users...</p>
                     </div>
@@ -257,7 +265,7 @@ export default function UsersPage() {
                         <div className="users-footer">
                             <span>
                                 Showing {filteredUsers.length} of{" "}
-                                {users.length} users
+                                {visibleUsers.length} users
                             </span>
 
                             <div className="pagination">

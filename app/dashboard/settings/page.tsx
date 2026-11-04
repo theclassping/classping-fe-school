@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Ban, FilePlus2, Pencil } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Ban, CircleCheck, FilePlus2, Pencil } from "lucide-react";
 import styles from "../components/TableActions.module.css";
+import ListPagination, { useListPagination } from "../components/ListPagination";
+import { loadList } from "@/lib/loadList";
+import { notifySaved } from "@/lib/notifications";
 import UserForm from "../users/UserForm";
 import SettingsFormDialog, { type Field } from "./SettingsFormDialog";
 import StaffForm from "./StaffForm";
@@ -59,15 +62,15 @@ type SettingsSection = {
 };
 
 const sections: SettingsSection[] = [
-  {
-    id: "user",
-    label: "Pengguna",
-    title: "Pengguna",
-    addLabel: "+ Pengguna",
-    fields: [],
-    headings: ["Nama", "Email", "Peran", "Status"],
-    rows: [],
-  },
+  // {
+  //   id: "user",
+  //   label: "Pengguna",
+  //   title: "Pengguna",
+  //   addLabel: "+ Pengguna",
+  //   fields: [],
+  //   headings: ["Nama", "Email", "Peran", "Status"],
+  //   rows: [],
+  // },
   {
     id: "teacher-staff",
     label: "Guru/Staf",
@@ -149,7 +152,13 @@ function formatStatus(active: boolean) {
 }
 
 export default function SettingsPage() {
-  const [activeSection, setActiveSection] = useState(sections[0].id);
+  const [requestedSection, setActiveSection] = useState(sections[0].id);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const canManageSettings = userRole === "STAFF" || userRole === "ADMIN";
+  const visibleSections = sections;
+  const section = visibleSections.find((item) => item.id === requestedSection) ?? visibleSections[0];
+  const activeSection = section.id;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [savedSection, setSavedSection] = useState("");
   const [users, setUsers] = useState<User[]>([]);
@@ -186,30 +195,27 @@ export default function SettingsPage() {
   const [feeTypeActionError, setFeeTypeActionError] = useState("");
   const [feeTypeActionMessage, setFeeTypeActionMessage] = useState("");
 
+  const sessionBranchId = useRef<number | null>(null);
+
+  function loadBranchList<T>(endpoint: string) {
+    const branchId = sessionBranchId.current;
+    if (branchId === null) {
+      throw new Error("Tidak ada cabang sekolah yang terhubung dengan akun Anda.");
+    }
+    return loadList<T>(`${endpoint}?branch_id=${branchId}`);
+  }
+
   async function loadUsers() {
     try {
       setUsersLoading(true);
       setUsersError("");
 
-      const response = await fetch("/api/proxy/users", {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal memuat pengguna");
-      }
-
-      const data = await response.json();
-      setUsers(Array.isArray(data) ? data : (data.results ?? []));
+      setUsers(await loadBranchList<User>("/api/proxy/users/"));
     } catch (error) {
       console.error(error);
-      setUsersError("Gagal memuat pengguna.");
+      setUsersError(sessionBranchId.current === null
+        ? "Tidak ada cabang sekolah yang terhubung dengan akun Anda."
+        : "Gagal memuat pengguna.");
     } finally {
       setUsersLoading(false);
     }
@@ -220,33 +226,12 @@ export default function SettingsPage() {
       setStaffsLoading(true);
       setStaffsError("");
 
-      const response = await fetch("/api/proxy/staffs", {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal memuat data staf");
-      }
-
-      const data = await response.json();
-      setStaffs(
-        Array.isArray(data)
-          ? data
-          : Array.isArray(data.results)
-            ? data.results
-            : Array.isArray(data.data)
-              ? data.data
-              : [],
-      );
+      setStaffs(await loadBranchList<Staff>("/api/proxy/staffs/"));
     } catch (error) {
       console.error(error);
-      setStaffsError("Gagal memuat data staf.");
+      setStaffsError(sessionBranchId.current === null
+        ? "Tidak ada cabang sekolah yang terhubung dengan akun Anda."
+        : "Gagal memuat data staf.");
     } finally {
       setStaffsLoading(false);
     }
@@ -257,25 +242,12 @@ export default function SettingsPage() {
       setClassesLoading(true);
       setClassesError("");
 
-      const response = await fetch("/api/proxy/class-teachers", {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal memuat kelas");
-      }
-
-      const data = await response.json();
-      setClasses(Array.isArray(data) ? data : (data.results ?? []));
+      setClasses(await loadBranchList<Class>("/api/proxy/class-teachers/"));
     } catch (error) {
       console.error(error);
-      setClassesError("Gagal memuat kelas.");
+      setClassesError(sessionBranchId.current === null
+        ? "Tidak ada cabang sekolah yang terhubung dengan akun Anda."
+        : "Gagal memuat kelas.");
     } finally {
       setClassesLoading(false);
     }
@@ -286,33 +258,12 @@ export default function SettingsPage() {
       setFeeTypesLoading(true);
       setFeeTypesError("");
 
-      const response = await fetch("/api/proxy/fee-types", {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Gagal memuat jenis biaya");
-      }
-
-      const data = await response.json();
-      setFeeTypes(
-        Array.isArray(data)
-          ? data
-          : Array.isArray(data.results)
-            ? data.results
-            : Array.isArray(data.data)
-              ? data.data
-              : [],
-      );
+      setFeeTypes(await loadBranchList<FeeType>("/api/proxy/fee-types/"));
     } catch (error) {
       console.error(error);
-      setFeeTypesError("Gagal memuat jenis biaya.");
+      setFeeTypesError(sessionBranchId.current === null
+        ? "Tidak ada cabang sekolah yang terhubung dengan akun Anda."
+        : "Gagal memuat jenis biaya.");
     } finally {
       setFeeTypesLoading(false);
     }
@@ -358,20 +309,75 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
+    const controller = new AbortController();
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/auth/session", {
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (controller.signal.aborted) return;
+        const role = data.user?.role ?? null;
+        const branchId = data.user?.branch_id;
+        sessionBranchId.current = Number.isInteger(branchId) && branchId > 0 ? branchId : null;
+        setUserRole(role);
+        if (role === "STAFF" || role === "ADMIN") {
+          void loadUsers();
+          void loadFeeTypes();
+          void loadStaffs();
+          void loadClasses();
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) console.error("Gagal memuat sesi pengguna", error);
+      } finally {
+        if (!controller.signal.aborted) setSessionLoading(false);
+      }
+    }
     const timer = window.setTimeout(() => {
-      void loadUsers();
-      void loadStaffs();
-      void loadClasses();
-      void loadFeeTypes();
+      void loadSession();
     }, 0);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
   }, []);
 
-  const section =
-    sections.find((item) => item.id === activeSection) ?? sections[0];
   const staffUsers = users.filter((user) =>
-    ["ADMIN", "STAFF", "TEACHER", "PARENT"].includes(user.role),
-  ); //Admin will remove
+    ["ADMIN", "STAFF", "TEACHER", "PARENT"].includes(user.role) &&
+      (userRole?.toUpperCase() === "ADMIN" || user.role.toUpperCase() !== "ADMIN"),
+  );
+
+  const userPagination = useListPagination(staffUsers);
+  const staffPagination = useListPagination(staffs);
+  const classPagination = useListPagination(classes);
+  const feePagination = useListPagination(feeTypes);
+  const rowPagination = useListPagination(section.rows);
+  const activePagination = activeSection === "user" ? userPagination
+    : activeSection === "teacher-staff" ? staffPagination
+    : activeSection === "class" ? classPagination
+    : activeSection === "fee-type" ? feePagination : rowPagination;
+  const listLoading = activeSection === "user" ? usersLoading
+    : activeSection === "teacher-staff" ? staffsLoading
+    : activeSection === "class" ? classesLoading
+    : activeSection === "fee-type" ? feeTypesLoading : false;
+  const listError = activeSection === "user" ? usersError
+    : activeSection === "teacher-staff" ? staffsError
+    : activeSection === "class" ? classesError
+    : activeSection === "fee-type" ? feeTypesError : "";
+
+  if (sessionLoading || !canManageSettings) {
+    return (
+      <main>
+        <section className="settings-page panel">
+          <h2>Pengaturan</h2>
+          <p role="status">{sessionLoading ? "Memuat pengaturan..." : "Pengaturan hanya tersedia untuk Admin dan Staf."}</p>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main>
@@ -388,7 +394,7 @@ export default function SettingsPage() {
           role="tablist"
           aria-label="Bagian pengaturan"
         >
-          {sections.map((item) => (
+          {visibleSections.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -466,7 +472,7 @@ export default function SettingsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {staffUsers.map((user) => (
+                      {userPagination.items.map((user) => (
                         <tr key={user.id}>
                           <td>
                             {user.first_name} {user.last_name}
@@ -518,7 +524,7 @@ export default function SettingsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {staffs.map((staff) => (
+                      {staffPagination.items.map((staff) => (
                         <tr key={staff.id}>
                           <td>
                             {staff.first_name} {staff.last_name}
@@ -573,7 +579,7 @@ export default function SettingsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {classes.map((cls) => (
+                      {classPagination.items.map((cls) => (
                         <tr key={cls.id}>
                           <td>{cls.class_name}</td>
                           <td>{cls.academic_year_name}</td>
@@ -622,7 +628,7 @@ export default function SettingsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {feeTypes.map((feeType) => (
+                      {feePagination.items.map((feeType) => (
                         <tr key={feeType.id}>
                           <td>{feeType.name}</td>
                           <td>{feeType.description}</td>
@@ -650,7 +656,7 @@ export default function SettingsPage() {
                                   setFeeTypeActionError("");
                                   setDeactivatingFeeType(feeType);
                                 }}
-                              ><Ban aria-hidden="true" /></button>
+                              >{feeType.is_active ? <Ban aria-hidden="true" /> : <CircleCheck aria-hidden="true" />}</button>
                               <button
                                 className={styles.actionButton}
                                 type="button"
@@ -681,7 +687,7 @@ export default function SettingsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {section.rows.map((row) => (
+                    {rowPagination.items.map((row) => (
                       <tr key={row.join("-")}>
                         {row.map((cell) => (
                           <td key={cell}>{cell}</td>
@@ -697,6 +703,7 @@ export default function SettingsPage() {
                 </table>
               )}
             </div>
+            {!listLoading && !listError && <ListPagination {...activePagination.controls} noun="data" />}
             {feeTypeActionMessage && activeSection === "fee-type" && (
               <p className="settings-save-message" role="status">
                 {feeTypeActionMessage}
@@ -717,7 +724,7 @@ export default function SettingsPage() {
           }}
         />
       )}
-      {userFormOpen && (
+      {canManageSettings && userFormOpen && (
         <UserForm
           user={editingUser ?? undefined}
           onCancel={() => {
@@ -759,7 +766,7 @@ export default function SettingsPage() {
           }}
         />
       )}
-      {feeTypeFormOpen && (
+      {canManageSettings && feeTypeFormOpen && (
         <FeeTypeForm
           feeType={editingFeeType ?? undefined}
           onCancel={() => {
@@ -773,7 +780,7 @@ export default function SettingsPage() {
           }}
         />
       )}
-      {deactivatingFeeType && (
+      {canManageSettings && deactivatingFeeType && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
@@ -823,7 +830,7 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
-      {generatingInvoiceFeeType && (
+      {canManageSettings && generatingInvoiceFeeType && (
         <GenerateInvoiceForm
           feeType={generatingInvoiceFeeType}
           classes={classes}
@@ -832,6 +839,7 @@ export default function SettingsPage() {
             const feeTypeName = generatingInvoiceFeeType.name;
             setGeneratingInvoiceFeeType(null);
             setFeeTypeActionMessage(`Tagihan untuk ${feeTypeName} berhasil dibuat.`);
+            notifySaved({ title: "Tagihan dibuat", copy: `Tagihan untuk ${feeTypeName} berhasil dibuat.`, href: "/dashboard/payments" });
           }}
         />
       )}
