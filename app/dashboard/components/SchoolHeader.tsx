@@ -20,6 +20,8 @@ export default function SchoolHeader({ onMenuClick }: SchoolHeaderProps) {
   const router = useRouter();
   const actionsRef = useRef<HTMLDivElement>(null);
   const [profile, setProfile] = useState<SchoolProfile>(defaultSchoolProfile);
+  // Raw session role for role-aware widgets; null until the session has been checked.
+  const [role, setRole] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -81,6 +83,7 @@ export default function SchoolHeader({ onMenuClick }: SchoolHeaderProps) {
         name: user.full_name.trim() || [user.first_name, user.last_name].filter(Boolean).join(" ") || user.email,
         email: user.email, phone: "", role: roleLabels[user.role] ?? user.role,
       });
+      setRole(user.role);
     }
     let updated = false;
     const onUserUpdated = (event: Event) => {
@@ -95,12 +98,15 @@ export default function SchoolHeader({ onMenuClick }: SchoolHeaderProps) {
           cache: "no-store",
           signal: controller.signal,
         });
-        if (!response.ok) return;
+        if (!response.ok) { setRole(""); return; }
         const { user }: { user: SessionUser | null } = await response.json();
-        if (!user || controller.signal.aborted) return;
+        if (controller.signal.aborted) return;
+        if (!user) { setRole(""); return; }
         if (!updated) updateProfile(user);
       } catch (error) {
-        if (!controller.signal.aborted) console.error("Gagal memuat profil pengguna", error);
+        if (controller.signal.aborted) return;
+        setRole("");
+        console.error("Gagal memuat profil pengguna", error);
       }
     }
     void loadProfile();
@@ -156,6 +162,7 @@ export default function SchoolHeader({ onMenuClick }: SchoolHeaderProps) {
         </div>
         <div className="topbar-actions" ref={actionsRef}>
           <NotificationBell
+            role={role}
             open={notificationsOpen}
             onToggle={() => { setNotificationsOpen((value) => !value); setProfileOpen(false); }}
             onClose={() => setNotificationsOpen(false)}
