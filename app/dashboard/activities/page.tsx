@@ -158,12 +158,6 @@ export default function ActivitiesPage() {
                     </strong>
                   </div>
                   <div className="activity-card-actions">
-                    <Link
-                      className="outline-button"
-                      href={`/dashboard/activities/manage?activity=${activity.slug}`}
-                    >
-                      Kelola foto & tag
-                    </Link>
                     <div className={styles.actions} role="group" aria-label={`Aksi untuk ${activity.title}`}>
                       <Link
                         className={styles.actionButton}
