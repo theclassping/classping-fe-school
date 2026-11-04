@@ -197,18 +197,3 @@ test('removing the focused photo selects its neighbour and preserves other stude
   assert.equal(state.activePhotoIndex(empty),-1);
   assert.equal(empty.expanded,'');
 });
-test('a draft whose server activity was deleted becomes a fresh report and re-uploads only photos kept on this device', () => {
-  const { state, draft } = environment();
-  const file = { name: 'local.jpg' };
-  const local = { ...photo(null,1), id: 40, file, uploadKey: 'media/old.jpg' };
-  const remoteOnly = { ...photo(null,2), id: 41 };
-  const detached = state.detachDraft({ ...draft, activityId: 17, revision: 4, published: true, photos: [local, remoteOnly], removedPhotoIds: [9], expanded: 'photo-2', syncedVersion: 1 });
-  assert.equal(detached.activityId, undefined);
-  assert.notEqual(detached.clientId, draft.clientId);
-  assert.deepEqual(detached.photos.map(p => [p.key, p.id, p.upload, p.uploadKey]), [['photo-1', undefined, 'pending', undefined]]);
-  assert.deepEqual(detached.removedPhotoIds, []);
-  assert.equal(detached.expanded, 'photo-1');
-  assert.equal(detached.published, false);
-  assert.notEqual(detached.version, detached.syncedVersion);
-  assert.ok('client_id' in state.reportPayload({ ...detached, photos: [] }, false, 'save'));
-});

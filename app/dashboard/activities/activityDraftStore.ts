@@ -72,3 +72,15 @@ export async function removeDraft(key: string): Promise<void> {
     tx.onerror = tx.onabort = () => reject(tx.error);
   });
 }
+/** Forget every local draft of a deleted activity, including the Tambah aktivitas draft that created it. */
+export async function removeDraftsForActivity(activityId: number): Promise<void> {
+  const database = await db();
+  const keys = await new Promise<string[]>((resolve, reject) => {
+    const tx = database.transaction("drafts", "readonly");
+    const request = tx.objectStore("drafts").getAll();
+    tx.oncomplete = () => resolve((request.result as StoredDraft[])
+      .filter(entry => entry.draft.activityId === activityId || entry.key.endsWith(`:${activityId}`)).map(entry => entry.key));
+    tx.onerror = tx.onabort = () => reject(tx.error || request.error);
+  });
+  for (const key of keys) await removeDraft(key);
+}
