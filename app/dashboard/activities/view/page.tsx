@@ -64,6 +64,15 @@ export default function ViewActivityPage() {
         );
     }
 
+    // Teacher's note per child, so the card reads as the remarks guardians receive, not the activity description.
+    const remarks = (activity?.student_remarks ?? [])
+        .filter((entry) => entry.remark.trim())
+        .map((entry) => {
+            const student = activity?.activity_students.find((s) => s.id === entry.student_id);
+            const name = student ? (student.nickname || [student.first_name, student.last_name].filter(Boolean).join(" ")) : `Siswa #${entry.student_id}`;
+            return { studentId: entry.student_id, name, remark: entry.remark.trim() };
+        });
+
     if (error || !activity) {
         return (
             <main>
@@ -251,10 +260,14 @@ export default function ViewActivityPage() {
                             </div>
                         </div>
 
-                        {activity.description && (
+                        {remarks.length > 0 && (
                             <div className="warning-box">
                                 <h3>Catatan</h3>
-                                <p>{activity.description}</p>
+                                {remarks.map(({ studentId, name, remark }) => (
+                                    <p key={studentId}>
+                                        <strong>{name}</strong>: {remark}
+                                    </p>
+                                ))}
                             </div>
                         )}
                     </div>

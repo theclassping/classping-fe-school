@@ -19,7 +19,7 @@ function load(relative) {
   return loadedModule.exports;
 }
 
-const { buildRemoteNotifications, mergeNotifications, formatNotificationDate } = load('lib/notifications.ts');
+const { buildRemoteNotifications, mergeNotifications, formatNotificationDate, showsPaymentNotifications } = load('lib/notifications.ts');
 
 test('turns submitted payments and published activities into staff notifications, newest first', () => {
   const items = buildRemoteNotifications(
@@ -63,4 +63,16 @@ test('formats recent timestamps relatively and tolerates bad input', () => {
   assert.equal(formatNotificationDate('not a date'), '');
   assert.equal(formatNotificationDate(new Date().toISOString()), 'Baru saja');
   assert.match(formatNotificationDate(new Date(Date.now() - 5 * 60_000).toISOString()), /^5 menit lalu$/);
+});
+
+test('teachers never receive payment-proof notifications; other roles do', () => {
+  const payments = { results: [{ id: 7, status: 'submitted', student_name: 'Joshua', submitted_at: '2026-10-28T02:00:00Z' }] };
+  const activities = [{ id: 3, name: 'Bermain balok', is_publish: true, updated_at: '2026-10-28T01:00:00Z' }];
+  assert.deepEqual(buildRemoteNotifications(payments, activities, 'TEACHER').map((item) => item.kind), ['activity']);
+  assert.deepEqual(buildRemoteNotifications(payments, activities, 'teacher ').map((item) => item.kind), ['activity']);
+  assert.deepEqual(buildRemoteNotifications(payments, activities, 'STAFF').map((item) => item.kind), ['payment', 'activity']);
+  assert.deepEqual(buildRemoteNotifications(payments, activities, 'ADMIN').map((item) => item.kind), ['payment', 'activity']);
+  assert.deepEqual(buildRemoteNotifications(payments, activities, undefined).map((item) => item.kind), ['payment', 'activity']);
+  assert.equal(showsPaymentNotifications('TEACHER'), false);
+  assert.equal(showsPaymentNotifications(''), true);
 });

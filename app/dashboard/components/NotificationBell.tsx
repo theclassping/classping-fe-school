@@ -18,10 +18,12 @@ import {
 
 const POLL_INTERVAL_MS = 30_000;
 
-export default function NotificationBell({ open, onToggle, onClose }: {
+export default function NotificationBell({ open, onToggle, onClose, role }: {
   open: boolean;
   onToggle: () => void;
   onClose: () => void;
+  /** Session role; `null` while it is still loading, so the first poll never flashes items the role should not see. */
+  role?: string | null;
 }) {
   const [remote, setRemote] = useState<SchoolNotification[]>([]);
   const [local, setLocal] = useState<SchoolNotification[]>([]);
@@ -48,10 +50,11 @@ export default function NotificationBell({ open, onToggle, onClose }: {
 
   // Poll the backend; also refresh when the tab becomes visible again or a save completes.
   useEffect(() => {
+    if (role === null) return;
     const controller = new AbortController();
     const refresh = async () => {
       try {
-        const latest = await loadRemoteNotifications(controller.signal);
+        const latest = await loadRemoteNotifications(controller.signal, role);
         if (controller.signal.aborted) return;
         if (knownIds.current) {
           const fresh = latest.filter((item) => !knownIds.current?.has(item.id));
@@ -75,7 +78,7 @@ export default function NotificationBell({ open, onToggle, onClose }: {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener(notificationEvent, onSaved);
     };
-  }, []);
+  }, [role]);
 
   function markOneRead(id: string) {
     setReadIds((current) => markRead([id], current));

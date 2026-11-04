@@ -57,9 +57,17 @@ function rupiah(value?: string | number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount);
 }
 
+/**
+ * Teachers publish activities but never verify payments, so a new payment proof is noise for them.
+ * Unknown roles keep seeing everything so a failed session lookup never hides work from staff.
+ */
+export function showsPaymentNotifications(role?: string | null) {
+  return (role || "").trim().toUpperCase() !== "TEACHER";
+}
+
 /** Pure mapping from backend records to notifications, so the shape is testable without a browser. */
-export function buildRemoteNotifications(payments: unknown, activities: unknown): SchoolNotification[] {
-  const paymentItems = records<PaymentRecord>(payments)
+export function buildRemoteNotifications(payments: unknown, activities: unknown, role?: string | null): SchoolNotification[] {
+  const paymentItems = records<PaymentRecord>(showsPaymentNotifications(role) ? payments : [])
     .filter((item) => item.id != null && (item.status || "").toLowerCase() === "submitted")
     .map((item): SchoolNotification => {
       const occurredAt = item.submitted_at || item.created_at;
@@ -106,12 +114,14 @@ async function fetchJson(url: string, signal?: AbortSignal): Promise<unknown> {
 }
 
 /** Pulls the newest payment proofs and published activities. Each source fails independently; the bell keeps whatever loaded. */
-export async function loadRemoteNotifications(signal?: AbortSignal): Promise<SchoolNotification[]> {
+export async function loadRemoteNotifications(signal?: AbortSignal, role?: string | null): Promise<SchoolNotification[]> {
   const [payments, activities] = await Promise.all([
-    fetchJson("/api/proxy/payments/?status=submitted&ordering=-submitted_at&page_size=20", signal).catch(() => []),
+    showsPaymentNotifications(role)
+      ? fetchJson("/api/proxy/payments/?status=submitted&ordering=-submitted_at&page_size=20", signal).catch(() => [])
+      : Promise.resolve([]),
     fetchJson("/api/proxy/activities/?is_publish=true&ordering=-updated_at&page_size=20", signal).catch(() => []),
   ]);
-  return buildRemoteNotifications(payments, activities);
+  return buildRemoteNotifications(payments, activities, role);
 }
 
 function readStorage<T>(key: string, fallback: T): T {
