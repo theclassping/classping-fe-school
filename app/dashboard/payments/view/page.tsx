@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
+import { useImageRefresh } from "@/lib/useImageRefresh";
 
 type PaymentProof = {
   id: number;
@@ -89,7 +90,7 @@ export default function PaymentViewPage() {
   const [payment, setPayment] = useState<PaymentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedProof, setSelectedProof] = useState<{ src: string; alt: string } | null>(null);
+  const [selectedProof, setSelectedProof] = useState<{ id: number; alt: string } | null>(null);
   const [proofZoom, setProofZoom] = useState(1);
 
   useEffect(() => {
@@ -106,6 +107,16 @@ export default function PaymentViewPage() {
     };
   }, [selectedProof]);
   const [notFound, setNotFound] = useState(false);
+  const paymentId = payment?.id;
+  const onImageError = useImageRefresh(useCallback(async () => {
+    if (!paymentId) return;
+    const response = await fetch(`/api/proxy/payments/${paymentId}/`, { credentials: "include", cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    setPayment(data.data ?? data);
+  }, [paymentId]));
+  const selectedProofRecord = selectedProof && payment?.proofs.find((proof) => proof.id === selectedProof.id);
+  const selectedProofSrc = selectedProofRecord ? proofImageData(selectedProofRecord) : "";
 
   useEffect(() => {
     const paymentId = new URLSearchParams(window.location.search).get(
@@ -257,12 +268,12 @@ export default function PaymentViewPage() {
                           type="button"
                           aria-label={`View payment proof ${proof.id} larger`}
                           onClick={() => {
-                            setSelectedProof({ src: image, alt: `Payment proof ${proof.id}` });
+                            setSelectedProof({ id: proof.id, alt: `Payment proof ${proof.id}` });
                             setProofZoom(1);
                           }}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={image} alt={`Payment proof ${proof.id}`} />
+                          <img src={image} alt={`Payment proof ${proof.id}`} onError={onImageError} />
                           <span>Click to enlarge</span>
                         </button>
                         )}
@@ -281,7 +292,7 @@ export default function PaymentViewPage() {
         ) : null}
       </section>
     </main>
-    {selectedProof && (
+    {selectedProof && selectedProofSrc && (
       <div
         className="payment-proof-lightbox"
         role="dialog"
@@ -312,8 +323,9 @@ export default function PaymentViewPage() {
         <div className="payment-proof-lightbox__viewport">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={selectedProof.src}
+            src={selectedProofSrc}
             alt={selectedProof.alt}
+            onError={onImageError}
             style={{ transform: `scale(${proofZoom})` }}
           />
         </div>

@@ -30,6 +30,10 @@ export interface ActivityStudent {
 
 export interface ActivityDetail {
   id: number;
+  revision: number;
+  workflow_version: number;
+  client_id?: string;
+  student_remarks?: {student_id: number; remark: string}[];
   class_teacher_id: number;
   class_id: number;
   class_name: string;

@@ -3,6 +3,7 @@
 import { Pencil, X } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { notifySaved } from "@/lib/notifications";
 
 import styles from "./SchoolProfile.module.css";
 
@@ -97,6 +98,7 @@ export default function SchoolProfilePage() {
       setProfile(updated);
       setEditing(false);
       setToast("Profil sekolah berhasil diperbarui.");
+      notifySaved({ title: "Profil sekolah diperbarui", copy: "Perubahan profil sekolah berhasil disimpan.", href: "/dashboard/profile" });
       window.setTimeout(() => setToast(""), 3000);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Gagal menyimpan profil sekolah.");

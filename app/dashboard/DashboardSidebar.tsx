@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
+  LayoutDashboard,
   School,
   GraduationCap,
   CreditCard,
@@ -13,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import LogoutButton from "./LogoutButton";
+import BrandLogo from "../components/BrandLogo";
 
 type DashboardSidebarProps = {
   open?: boolean;
@@ -20,11 +22,12 @@ type DashboardSidebarProps = {
 };
 
 const menuItems = [
-  // {
-  //   label: "Dashboard",
-  //   href: "/dashboard",
-  //   icon: LayoutDashboard,
-  // },
+  {
+    label: "Beranda",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    exact: true,
+  },
   // {
   //   label: "Users",
   //   href: "/dashboard/users",
@@ -124,9 +127,8 @@ export default function DashboardSidebar({ open = false, onNavigate }: Dashboard
   return (
     <>
     <aside className={`sidebar ${open ? "open" : ""}`}>
-      <Link href="/dashboard/profile" className="brand" aria-label="ClassPing home" onClick={onNavigate}>
-        <span className="brand-mark" aria-hidden="true"><span /><span /><span /></span>
-        <span>class<span>ping</span></span>
+      <Link href="/dashboard" className="brand" aria-label="ClassPing home" onClick={onNavigate}>
+        <BrandLogo />
       </Link>
 
       <nav className="main-nav admin-nav" aria-label="Main navigation">
@@ -138,7 +140,8 @@ export default function DashboardSidebar({ open = false, onNavigate }: Dashboard
 
           const active =
             pathname === item.href ||
-            (item.href !== "/dashboard/profile" &&
+            (!("exact" in item && item.exact) &&
+              item.href !== "/dashboard/profile" &&
               pathname.startsWith(`${item.href}/`));
 
           return (

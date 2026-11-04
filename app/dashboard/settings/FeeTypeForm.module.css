@@ -29,7 +29,7 @@
 .setting { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 0; cursor: pointer; }
 .setting strong { display: block; font-size: 13px; }
 .setting small { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.5; }
-.setting input { appearance: none; flex-shrink: 0; width: 38px; height: 22px; margin: 0; padding: 3px; border: 0; border-radius: 20px; background: #cdd6d1; cursor: pointer; }
+.setting input { appearance: none; flex-shrink: 0; width: 38px; height: 22px; margin: 0; padding: 3px; border: 0; border-radius: 20px; background: #E5DED3; cursor: pointer; }
 .setting input::before { content: ""; display: block; width: 16px; height: 16px; border-radius: 50%; background: white; transition: transform 150ms; }
 .setting input:checked { background: var(--green); }
 .setting input:checked::before { transform: translateX(16px); }
