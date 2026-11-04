@@ -21,7 +21,6 @@ export type ReportRecord = {
   name: string; class_id: number; class_teacher_id: number; activity_date: string;
   description: string; is_publish: boolean;
   activity_students: { id: number }[];
-  student_remarks?: { student_id: number; remark: string }[];
   activity_images: { id: number; client_id?: string; image_url?: string; image_data?: unknown; student_id?: number | null; tag_state?: PhotoState; caption?: string; position?: number }[];
 };
 export function emptyDraft(): ReportDraft {
@@ -31,10 +30,16 @@ export function emptyDraft(): ReportDraft {
     version: 0, syncedVersion: 0, published: false, updatedAt: Date.now() };
 }
 export function draftFromRecord(record: ReportRecord): ReportDraft {
+  const remarks = new Map<string, string>();
+  for (const photo of record.activity_images) {
+    if (photo.student_id != null && photo.caption?.trim()) {
+      remarks.set(String(photo.student_id), photo.caption.trim());
+    }
+  }
   return { ...emptyDraft(), clientId: record.client_id || randomId(), activityId: record.id, revision: record.revision,
     workflowVersion: record.workflow_version, title: record.name, classId: String(record.class_id), teacherId: String(record.class_teacher_id),
     date: record.activity_date, description: record.description, participants: record.activity_students.map(s => String(s.id)),
-    remarks: Object.fromEntries((record.student_remarks || []).map(r => [String(r.student_id), r.remark])), published: record.is_publish,
+    remarks: Object.fromEntries(remarks), published: record.is_publish,
     photos: [...record.activity_images].sort((a,b) => (a.position || 0) - (b.position || 0)).map(p => ({
       key: p.client_id || randomId(), id: p.id, url: p.image_url, imageData: p.image_data, urlRefreshedAt: Date.now(),
       upload: "complete", tagState: p.tag_state || (p.student_id ? "individual" : "legacy"), studentId: p.student_id ? String(p.student_id) : "", caption: p.caption || "",
@@ -81,13 +86,16 @@ export function reportPayload(draft: ReportDraft, publish: boolean, saveId: stri
     client_save_id: saveId, class_id: Number(draft.classId), class_teacher_id: Number(draft.teacherId),
     name: draft.title, description: draft.description, activity_date: draft.date, is_publish: publish,
     student_ids: participants.map(Number),
-    student_remarks: participants.map(id => ({ student_id: Number(id), remark: draft.remarks[id] || "" })),
     activity_images: [
       ...draft.photos.filter(p => p.upload === "complete").map((p, position) => ({
         ...(p.id ? { id: p.id } : { client_id: p.key }),
         // Leave historical untagged photos unchanged until explicitly reviewed.
         ...(p.tagState !== "legacy" ? { tag_state: p.tagState, student_id: p.studentId ? Number(p.studentId) : null } : {}),
-        ...(!p.id ? { image_data: p.uploadKey || p.imageData } : {}), caption: p.caption, position,
+        ...(!p.id ? { image_data: p.uploadKey || p.imageData } : {}),
+        caption: p.tagState === "individual" && p.studentId
+          ? draft.remarks[p.studentId]?.trim() || p.caption
+          : p.caption,
+        position,
       })),
       ...draft.removedPhotoIds.map(id => ({ id, _destroy: true })),
     ],

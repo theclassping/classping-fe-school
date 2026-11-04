@@ -64,15 +64,6 @@ export default function ViewActivityPage() {
         );
     }
 
-    // Teacher's note per child, so the card reads as the remarks guardians receive, not the activity description.
-    const remarks = (activity?.student_remarks ?? [])
-        .filter((entry) => entry.remark.trim())
-        .map((entry) => {
-            const student = activity?.activity_students.find((s) => s.id === entry.student_id);
-            const name = student ? (student.nickname || [student.first_name, student.last_name].filter(Boolean).join(" ")) : `Siswa #${entry.student_id}`;
-            return { studentId: entry.student_id, name, remark: entry.remark.trim() };
-        });
-
     if (error || !activity) {
         return (
             <main>
@@ -117,8 +108,7 @@ export default function ViewActivityPage() {
                 </div>
 
                 <div
-                    className="student-detail-layout"
-                    style={{ padding: "0 22px 20px" }}
+                    className="activity-detail-layout"
                 >
                     <div className="panel detail-panel">
                         <div className="detail-header">
@@ -179,7 +169,6 @@ export default function ViewActivityPage() {
                             </div>
                         </div>
 
-                        {/* Photos
                         <div className="participant-section">
                             <div className="participant-heading">
                                 <h3>Foto Aktivitas</h3>
@@ -190,19 +179,21 @@ export default function ViewActivityPage() {
                             </div>
 
                             <div className="activity-photo-grid">
-                                {activity.activity_images.map((image) => (
-                                    <div
-                                        key={image.id}
-                                        className="activity-photo"
-                                    >
-                                        <img
-                                            src={image.image_url}
-                                            alt={image.caption || activity.name}
-                                        />
-                                    </div>
-                                ))}
+                                {activity.activity_images.map((image) => {
+                                    const caption = image.caption?.trim() || "";
+
+                                    return (
+                                        <figure key={image.id} className="activity-photo">
+                                            <img
+                                                src={image.image_url}
+                                                alt={caption || activity.name}
+                                            />
+                                            {caption && <figcaption>{caption}</figcaption>}
+                                        </figure>
+                                    );
+                                })}
                             </div>
-                        </div> */}
+                        </div>
 
                         {/* Participants */}
                         <div className="participant-section">
@@ -260,16 +251,6 @@ export default function ViewActivityPage() {
                             </div>
                         </div>
 
-                        {remarks.length > 0 && (
-                            <div className="warning-box">
-                                <h3>Catatan</h3>
-                                {remarks.map(({ studentId, name, remark }) => (
-                                    <p key={studentId}>
-                                        <strong>{name}</strong>: {remark}
-                                    </p>
-                                ))}
-                            </div>
-                        )}
                     </div>
                 </div>
             </section>
