@@ -8,6 +8,7 @@ import {
   School,
   GraduationCap,
   CreditCard,
+  Wallet,
   ClipboardList,
   Settings,
   Mail,
@@ -68,6 +69,11 @@ const menuItems = [
     href: "/dashboard/payments",
     icon: CreditCard,
   },
+  {
+    label: "E-Wallet",
+    href: "/dashboard/e-wallet",
+    icon: Wallet,
+  },
 ];
 
 export default function DashboardSidebar({ open = false, onNavigate }: DashboardSidebarProps) {
@@ -98,6 +104,7 @@ export default function DashboardSidebar({ open = false, onNavigate }: Dashboard
     window.location.href = `mailto:the.class.ping@gmail.com?subject=${subject}&body=${body}`;
   }
   const [canViewPayments, setCanViewPayments] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -111,7 +118,9 @@ export default function DashboardSidebar({ open = false, onNavigate }: Dashboard
         if (!response.ok) return;
         const data = await response.json();
         if (!controller.signal.aborted) {
-          setCanManageSettings(data.user?.role === "STAFF" || data.user?.role === "ADMIN");
+          const role = typeof data.user?.role === "string" ? data.user.role.toUpperCase() : "";
+          setCanManageSettings(role === "STAFF" || role === "ADMIN");
+          setIsStaff(role === "STAFF");
           setCanViewPayments(["ADMIN", "STAFF", "OFFICER", "PRINCIPAL"].includes(
             typeof data.user?.role === "string" ? data.user.role.toUpperCase() : "",
           ));
@@ -136,6 +145,7 @@ export default function DashboardSidebar({ open = false, onNavigate }: Dashboard
 
         {menuItems.map((item) => {
           if (item.href === "/dashboard/payments" && !canViewPayments) return null;
+          if (item.href === "/dashboard/e-wallet" && !isStaff) return null;
           const Icon = item.icon;
 
           const active =
