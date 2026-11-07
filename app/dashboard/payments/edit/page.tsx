@@ -175,6 +175,7 @@ export default function PaymentEditPage() {
       body: JSON.stringify({
         filename: file.name,
         content_type: file.type,
+        size: file.size,
         expires_in: 3600,
       }),
     });

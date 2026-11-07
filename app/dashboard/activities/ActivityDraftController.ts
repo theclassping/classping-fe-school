@@ -148,7 +148,7 @@ export class ActivityDraftController {
         const file = await resizeImageForUpload(photo.file!);
         let fileKey = photo.uploadKey, uploadUrl = photo.uploadUrl;
         if (!fileKey || !uploadUrl || !photo.uploadExpires || photo.uploadExpires < Date.now()) {
-          const result = await reportRequest<{ file_key: string; presigned_url: string }>("/api/proxy/media/presign/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ filename: file.name, content_type: file.type, expires_in: 3600, purpose: "activity" }), signal: this.uploadAbort.signal });
+          const result = await reportRequest<{ file_key: string; presigned_url: string }>("/api/proxy/media/presign/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ filename: file.name, content_type: file.type, size: file.size, expires_in: 3600, purpose: "activity" }), signal: this.uploadAbort.signal });
           fileKey = result.file_key; uploadUrl = result.presigned_url;
           patch({ uploadKey: fileKey, uploadUrl, uploadExpires: Date.now() + 3500000 });
           await this.flushLocal();

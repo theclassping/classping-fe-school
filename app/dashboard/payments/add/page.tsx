@@ -140,6 +140,7 @@ export default function AddPaymentPage() {
       body: JSON.stringify({
         filename: file.name,
         content_type: file.type,
+        size: file.size,
         expires_in: 3600,
       }),
     });
