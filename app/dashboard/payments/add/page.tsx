@@ -41,6 +41,7 @@ export default function AddPaymentPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [feeTypes, setFeeTypes] = useState<FeeType[]>([]);
   const [classId, setClassId] = useState("");
+  const [branchId, setBranchId] = useState<number>();
   const [studentId, setStudentId] = useState("");
   const [feeTypeId, setFeeTypeId] = useState("");
   const [amount, setAmount] = useState("");
@@ -54,13 +55,14 @@ export default function AddPaymentPage() {
 
     async function loadOptions() {
       try {
-        const [classesResponse, feeTypesResponse] = await Promise.all([
+        const [classesResponse, feeTypesResponse, sessionResponse] = await Promise.all([
           loadClassOptions(),
           fetch("/api/proxy/fee-types/", {
             credentials: "include",
             cache: "no-store",
             signal: controller.signal,
           }),
+          fetch("/api/auth/session", { credentials: "include", cache: "no-store", signal: controller.signal }),
         ]);
 
         if (feeTypesResponse.status === 401) {
@@ -70,11 +72,16 @@ export default function AddPaymentPage() {
         if (!feeTypesResponse.ok) {
           throw new Error("Gagal memuat pilihan pembayaran.");
         }
+        if (!sessionResponse.ok) throw new Error("Sesi tidak tersedia. Silakan masuk kembali.");
 
-        const [classData, feeTypeData] = await Promise.all([
+        const [classData, feeTypeData, session] = await Promise.all([
           classesResponse,
           feeTypesResponse.json(),
+          sessionResponse.json(),
         ]);
+        const userBranchId = session.user?.branch_id;
+        if (!Number.isInteger(userBranchId) || userBranchId <= 0) throw new Error("Cabang sekolah tidak tersedia.");
+        setBranchId(userBranchId);
         setClasses(classData);
         setFeeTypes(recordsFrom(feeTypeData) as FeeType[]);
       } catch (loadError) {
@@ -132,6 +139,7 @@ export default function AddPaymentPage() {
   }
 
   async function uploadProof(original: File) {
+    if (!classId || !branchId) throw new Error("Pilih kelas dan pastikan cabang sekolah tersedia.");
     const file = await resizeImageForUpload(original);
     const response = await fetch("/api/proxy/media/presign", {
       method: "POST",
@@ -141,7 +149,10 @@ export default function AddPaymentPage() {
         filename: file.name,
         content_type: file.type,
         size: file.size,
+        class_id: Number(classId),
+        branch_id: branchId,
         expires_in: 3600,
+        purpose: "payment",
       }),
     });
     if (!response.ok) throw new Error("Gagal menyiapkan unggahan bukti pembayaran.");

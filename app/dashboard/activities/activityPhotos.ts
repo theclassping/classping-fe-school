@@ -48,13 +48,13 @@ export function activityPhotos(detail: ActivityDetail): ActivityPhoto[] {
     }));
 }
 
-export async function saveActivityPhoto(activityId: number, photo: ActivityPhoto, position: number) {
+export async function saveActivityPhoto(activityId: number, photo: ActivityPhoto, position: number, classId: number, branchId: number) {
   let fileKey: string | undefined;
   if (photo.file) {
     const file = await resizeImageForUpload(photo.file);
     const upload = await activityRequest<{ file_key: string; presigned_url: string }>("/api/proxy/media/presign/", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename: file.name, content_type: file.type, size: file.size, expires_in: 3600 }),
+      body: JSON.stringify({ filename: file.name, content_type: file.type, size: file.size, class_id: classId, branch_id: branchId, expires_in: 3600 }),
     });
     if (!upload.file_key || !upload.presigned_url) throw new Error("Alamat unggah foto tidak tersedia.");
     const response = await fetch(upload.presigned_url, { method: "PUT", headers: { "Content-Type": file.type || "application/octet-stream" }, body: file });

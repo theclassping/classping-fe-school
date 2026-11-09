@@ -43,6 +43,7 @@ type PaymentDetail = {
 };
 type InvoiceDetail = {
   id: number;
+  class_id?: number;
   invoice_no: string;
   student_name: string;
   class_name: string;
@@ -52,6 +53,7 @@ type InvoiceDetail = {
 type EditRecord = {
   paymentId: number | null;
   invoiceId: number;
+  classId?: number;
   invoiceNo: string;
   studentName: string;
   className: string;
@@ -108,9 +110,17 @@ export default function PaymentEditPage() {
             throw new Error(await responseError(response, "Gagal memuat pembayaran."));
           }
           const payment = unwrap<PaymentDetail>(await response.json());
+          const invoiceResponse = await fetch(`/api/proxy/student-invoices/${payment.student_invoice_id}/`, {
+            credentials: "include",
+            cache: "no-store",
+            signal: controller.signal,
+          });
+          if (!invoiceResponse.ok) throw new Error(await responseError(invoiceResponse, "Gagal memuat kelas invoice."));
+          const invoice = unwrap<InvoiceDetail>(await invoiceResponse.json());
           setRecord({
             paymentId: payment.id,
             invoiceId: payment.student_invoice_id,
+            classId: invoice.class_id,
             invoiceNo: payment.invoice_no,
             studentName: payment.student_name,
             className: "-",
@@ -138,6 +148,7 @@ export default function PaymentEditPage() {
           setRecord({
             paymentId: null,
             invoiceId: invoice.id,
+            classId: invoice.class_id,
             invoiceNo: invoice.invoice_no,
             studentName: invoice.student_name,
             className: invoice.class_name,
@@ -164,6 +175,12 @@ export default function PaymentEditPage() {
   }, [router]);
 
   async function uploadProof(original: File) {
+    if (!record?.classId) throw new Error("Kelas invoice tidak tersedia.");
+    const sessionResponse = await fetch("/api/auth/session", { credentials: "include", cache: "no-store" });
+    if (!sessionResponse.ok) throw new Error("Sesi tidak tersedia. Silakan masuk kembali.");
+    const session = await sessionResponse.json();
+    const branchId = session.user?.branch_id;
+    if (!Number.isInteger(branchId) || branchId <= 0) throw new Error("Cabang sekolah tidak tersedia.");
     const file = await resizeImageForUpload(original);
     // Keep this flow aligned with activity image uploads: request a presigned
     // URL, upload the file directly, then send the returned file key in the
@@ -176,7 +193,10 @@ export default function PaymentEditPage() {
         filename: file.name,
         content_type: file.type,
         size: file.size,
+        class_id: record.classId,
+        branch_id: branchId,
         expires_in: 3600,
+        purpose: "payment",
       }),
     });
     if (!response.ok) throw new Error("Gagal menyiapkan unggahan bukti pembayaran.");
