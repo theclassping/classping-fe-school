@@ -21,11 +21,25 @@ export type LedgerEntry = {
   invoiceNo: string;
   paymentId?: number;
   paymentMethod?: string | null;
+  /** Set on withdrawal debits: where the money went and how the fee was applied. */
+  withdrawal?: WithdrawalDetail;
+};
+
+export type WithdrawalDetail = {
+  bankName: string;
+  /** Masked, e.g. "****4567". */
+  accountNumber: string;
+  accountHolderName: string;
+  fee: number;
+  transferAmount: number;
+  status: "processing" | "success" | "failed";
 };
 
 export type WalletSummary = {
   floating: number;
   real: number;
+  /** floating + real: everything the school has collected but not yet withdrawn. */
+  total: number;
   /** Total of all debits (successful withdrawals). */
   withdrawn: number;
   pendingCount: number;
@@ -126,6 +140,7 @@ export function summarize(ledger: readonly LedgerEntry[], now = new Date()): Wal
   return {
     floating,
     real,
+    total: floating + real,
     withdrawn,
     pendingCount,
     withdrawalCount,
@@ -173,4 +188,53 @@ export function rupiah(value: number) {
 export function methodLabel(method?: string | null) {
   if (!method) return "-";
   return method === "bank_transfer" ? "Transfer Bank" : method === "cash" ? "Tunai" : method.replace(/_/g, " ");
+}
+
+// Withdrawals (proposal §3.2): the school asks for an amount, a flat fee is
+// taken out of it, and the rest is transferred to the branch's bank account.
+export const WITHDRAWAL_FEE = 2500;
+export const MIN_WITHDRAWAL = 10000;
+
+export const BANKS = ["BCA", "BNI", "BRI", "MANDIRI", "CIMB", "PERMATA", "BSI", "BNC", "JAGO", "SEABANK"] as const;
+
+export type PayoutAccount = {
+  bankName: string;
+  accountNumber: string;
+  accountHolderName: string;
+};
+
+export type WithdrawalRequest = PayoutAccount & { amount: number };
+
+/** Digits only; bank account numbers never carry separators when submitted. */
+export function normalizeAccountNumber(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+export function maskAccountNumber(value: string) {
+  const digits = normalizeAccountNumber(value);
+  return digits.length <= 4 ? digits : `****${digits.slice(-4)}`;
+}
+
+/** Parses "1.500.000", "1500000", or "Rp 1.500.000" into a number; NaN when empty or invalid. */
+export function parseAmount(value: string) {
+  const digits = value.replace(/[^\d]/g, "");
+  return digits ? Number(digits) : NaN;
+}
+
+export function withdrawalPreview(amount: number) {
+  return { amount, fee: WITHDRAWAL_FEE, transferAmount: Math.max(0, amount - WITHDRAWAL_FEE) };
+}
+
+/** Field-level validation; empty object when the request can be submitted. */
+export function validateWithdrawal(request: WithdrawalRequest, available: number): Partial<Record<keyof WithdrawalRequest, string>> {
+  const errors: Partial<Record<keyof WithdrawalRequest, string>> = {};
+  if (!request.accountHolderName.trim()) errors.accountHolderName = "Nama pemilik rekening wajib diisi.";
+  if (!request.bankName.trim()) errors.bankName = "Pilih bank tujuan.";
+  const digits = normalizeAccountNumber(request.accountNumber);
+  if (!digits) errors.accountNumber = "Nomor rekening wajib diisi.";
+  else if (digits.length < 8 || digits.length > 20) errors.accountNumber = "Nomor rekening harus 8–20 digit angka.";
+  if (!Number.isFinite(request.amount) || request.amount <= 0) errors.amount = "Masukkan jumlah penarikan.";
+  else if (request.amount < MIN_WITHDRAWAL) errors.amount = `Jumlah penarikan minimal ${rupiah(MIN_WITHDRAWAL)}.`;
+  else if (request.amount > available) errors.amount = `Jumlah melebihi saldo riil yang dapat ditarik (${rupiah(available)}).`;
+  return errors;
 }

@@ -1,6 +1,12 @@
 // Temporary dummy ledger while the backend e-wallet API is being prepared.
 // Replace `loadDummyLedger` with the API loader once endpoints exist.
-import { buildLedger, type CompletedPayment, type LedgerEntry } from "./walletData";
+import { buildLedger, maskAccountNumber, type CompletedPayment, type LedgerEntry, type PayoutAccount, type WithdrawalRequest } from "./walletData";
+
+export const dummyPayoutAccount: PayoutAccount = {
+  bankName: "BCA",
+  accountNumber: "5271234567",
+  accountHolderName: "YAYASAN PENDIDIKAN CLASSPING",
+};
 
 const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
 const daysAgo = (days: number) => hoursAgo(days * 24);
@@ -28,6 +34,7 @@ function withdrawal(id: number, amount: number, settledAt: string, bank: string)
     availableAt: settledAt,
     amount,
     description: `Penarikan ke ${bank}`,
+    withdrawal: { bankName: bank.split(" ")[0], accountNumber: maskAccountNumber(bank), accountHolderName: dummyPayoutAccount.accountHolderName, fee: 2500, transferAmount: amount - 2500, status: "success" },
     reference: `WD-${settledAt.slice(0, 10).replace(/-/g, "")}-${String(id).padStart(2, "0")}`,
     studentName: "-",
     invoiceNo: "-",
@@ -66,5 +73,46 @@ export function dummyLedger(): LedgerEntry[] {
 
 export async function loadDummyLedger(): Promise<LedgerEntry[]> {
   await new Promise((resolve) => window.setTimeout(resolve, 300));
-  return dummyLedger();
+  return [...readSessionWithdrawals(), ...dummyLedger()].sort((a, b) => Date.parse(b.settledAt) - Date.parse(a.settledAt));
+}
+
+// Dummy payout account and withdrawals submitted in this browser session.
+// Replace with GET /api/wallet (payout_account) and POST /api/withdrawals.
+
+const SESSION_KEY = "classping.wallet.dummyWithdrawals";
+
+
+function readSessionWithdrawals(): LedgerEntry[] {
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as LedgerEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Records a withdrawal as a ledger debit of the full requested amount (transfer + fee). */
+export async function submitDummyWithdrawal(request: WithdrawalRequest): Promise<LedgerEntry> {
+  await new Promise((resolve) => window.setTimeout(resolve, 600));
+  const existing = readSessionWithdrawals();
+  const settledAt = new Date().toISOString();
+  const entry: LedgerEntry = {
+    id: `withdraw-session-${existing.length + 1}`,
+    type: "debit",
+    settledAt,
+    availableAt: settledAt,
+    amount: request.amount,
+    description: `Penarikan ke ${request.bankName} ${maskAccountNumber(request.accountNumber)}`,
+    withdrawal: { bankName: request.bankName, accountNumber: maskAccountNumber(request.accountNumber), accountHolderName: request.accountHolderName, fee: 2500, transferAmount: request.amount - 2500, status: "processing" },
+    reference: `WD-${settledAt.slice(0, 10).replace(/-/g, "")}-${String(withdrawals.length + existing.length + 1).padStart(2, "0")}`,
+    studentName: "-",
+    invoiceNo: "-",
+    paymentMethod: "bank_transfer",
+  };
+  try {
+    window.sessionStorage.setItem(SESSION_KEY, JSON.stringify([entry, ...existing]));
+  } catch {
+    /* sessionStorage unavailable: the entry still shows until reload */
+  }
+  return entry;
 }

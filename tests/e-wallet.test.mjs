@@ -62,3 +62,35 @@ test('summary totals withdrawals and month helpers group entries by settlement m
   assert.equal(wallet.filterByMonth(ledger, '').length, 3);
   assert.equal(wallet.monthLabel('2026-10'), 'Oktober 2026');
 });
+
+test('total balance is floating plus real, net of withdrawals', () => {
+  const now = new Date('2026-11-09T10:00:00+07:00');
+  const ledger = wallet.buildLedger([
+    completed(1, '250000', '2026-11-09T08:00:00+07:00'),
+    completed(2, '300000', '2026-11-05T08:00:00+07:00'),
+  ]);
+  ledger.push({ id: 'wd', type: 'debit', settledAt: '2026-11-06T08:00:00+07:00', availableAt: '2026-11-06T08:00:00+07:00', amount: 100000, description: 'Penarikan', reference: 'WD-1', studentName: '-', invoiceNo: '-' });
+  const summary = wallet.summarize(ledger, now);
+  assert.equal(summary.floating, 250000);
+  assert.equal(summary.real, 200000);
+  assert.equal(summary.total, 450000);
+});
+
+test('withdrawal validation caps the amount at the real balance and checks the account', () => {
+  const account = { accountHolderName: 'YAYASAN CLASSPING', bankName: 'BCA', accountNumber: '5271234567' };
+  assert.deepEqual(wallet.validateWithdrawal({ ...account, amount: 200000 }, 200000), {});
+  assert.match(wallet.validateWithdrawal({ ...account, amount: 200001 }, 200000).amount, /melebihi saldo riil/);
+  assert.match(wallet.validateWithdrawal({ ...account, amount: 5000 }, 200000).amount, /minimal/);
+  assert.match(wallet.validateWithdrawal({ ...account, amount: NaN }, 200000).amount, /Masukkan jumlah/);
+  assert.match(wallet.validateWithdrawal({ ...account, accountNumber: '12-34', amount: 50000 }, 200000).accountNumber, /8–20 digit/);
+  assert.match(wallet.validateWithdrawal({ ...account, accountHolderName: ' ', amount: 50000 }, 200000).accountHolderName, /wajib/);
+  assert.match(wallet.validateWithdrawal({ ...account, bankName: '', amount: 50000 }, 200000).bankName, /Pilih bank/);
+});
+
+test('withdrawal preview deducts the flat fee and amounts parse from formatted input', () => {
+  assert.deepEqual(wallet.withdrawalPreview(1500000), { amount: 1500000, fee: 2500, transferAmount: 1497500 });
+  assert.equal(wallet.parseAmount('Rp 1.500.000'), 1500000);
+  assert.equal(Number.isNaN(wallet.parseAmount('')), true);
+  assert.equal(wallet.maskAccountNumber('5271234567'), '****4567');
+  assert.equal(wallet.normalizeAccountNumber('527-123-4567'), '5271234567');
+});

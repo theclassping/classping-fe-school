@@ -1,22 +1,23 @@
 "use client";
 
-import { ArrowUpFromLine, CalendarDays, Clock3, Hourglass, RefreshCw, Search, Wallet } from "lucide-react";
-import Link from "next/link";
+import { ArrowUpFromLine, CalendarDays, Clock3, Eye, Hourglass, Landmark, RefreshCw, Search, Wallet } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ListPagination, { useListPagination } from "../components/ListPagination";
 import styles from "./EWallet.module.css";
+import LedgerDetailDialog from "./LedgerDetailDialog";
+import WithdrawDialog from "./WithdrawDialog";
 import {
   availableMonths,
   filterByMonth,
   isFloating,
-  methodLabel,
   monthLabel,
   rupiah,
   summarize,
   withRunningBalance,
   type LedgerEntry,
+  type WithdrawalRequest,
 } from "./walletData";
-import { loadDummyLedger } from "./walletDummy";
+import { dummyPayoutAccount, loadDummyLedger, submitDummyWithdrawal } from "./walletDummy";
 
 type EntryFilter = "ALL" | "floating" | "available" | "debit";
 
@@ -40,6 +41,8 @@ export default function EWalletPage() {
   const [filter, setFilter] = useState<EntryFilter>("ALL");
   const [month, setMonth] = useState("");
   const [now, setNow] = useState(() => new Date());
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [detail, setDetail] = useState<(LedgerEntry & { balanceAfter: number }) | null>(null);
 
   async function loadWallet() {
     try {
@@ -104,6 +107,15 @@ export default function EWalletPage() {
   }
 
   const periodLabel = month ? monthLabel(month) : "Semua periode";
+  const canWithdraw = !loading && !error && summary.real > 0;
+
+  async function submitWithdrawal(request: WithdrawalRequest) {
+    // TODO: replace with POST /api/withdrawals/preview + OTP + POST /api/withdrawals.
+    const entry = await submitDummyWithdrawal(request);
+    setLedger((current) => [entry, ...current]);
+    setNow(new Date());
+    return entry;
+  }
 
   return (
     <main id="main">
@@ -113,9 +125,23 @@ export default function EWalletPage() {
           <h1>E-Wallet</h1>
           <p>Saldo dana pembayaran sekolah dan riwayat pergerakan dana.</p>
         </div>
+        <div className={styles.headingActions}>
+          <button type="button" className={`primary-button ${styles.withdrawButton}`} onClick={() => setWithdrawOpen(true)} disabled={!canWithdraw}>
+            <ArrowUpFromLine aria-hidden="true" /> Tarik Dana
+          </button>
+        </div>
       </section>
 
       <section className={styles.balanceGrid} aria-label="Ringkasan saldo">
+        <article className={`stat-card ${styles.balanceCard} ${styles.total}`} aria-labelledby="total-balance-title">
+          <div className="stat-top">
+            <span className="stat-icon"><Landmark aria-hidden="true" /></span>
+          </div>
+          <p id="total-balance-title">Total Saldo</p>
+          <strong>{loading ? "…" : error ? "—" : rupiah(summary.total)}</strong>
+          <small className={styles.balanceNote}>Saldo mengambang + saldo riil yang belum ditarik.</small>
+        </article>
+
         <article className={`stat-card ${styles.balanceCard} ${styles.floating}`} aria-labelledby="floating-balance-title">
           <div className="stat-top">
             <span className="stat-icon"><Hourglass aria-hidden="true" /></span>
@@ -207,12 +233,10 @@ export default function EWalletPage() {
                 <tr>
                   <th>Tanggal</th>
                   <th>Keterangan</th>
-                  <th>Referensi</th>
-                  <th>Metode</th>
-                  <th className={styles.numeric}>Masuk</th>
-                  <th className={styles.numeric}>Keluar</th>
+                  <th className={styles.numeric}>Jumlah</th>
                   <th className={styles.numeric}>Saldo</th>
                   <th>Status</th>
+                  <th><span className={styles.srOnly}>Aksi</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -224,29 +248,26 @@ export default function EWalletPage() {
                       <td>
                         <div className={styles.ledgerDescription}>
                           <strong>{row.description}</strong>
-                          {row.paymentId && (
-                            <small>
-                              <Link href={`/dashboard/payments/view?payment=${encodeURIComponent(String(row.paymentId))}`}>Lihat pembayaran</Link>
-                            </small>
-                          )}
+                          <small>{row.reference}</small>
                         </div>
                       </td>
-                      <td className={styles.nowrap}>{row.reference}</td>
-                      <td className={styles.nowrap}>{methodLabel(row.paymentMethod)}</td>
-                      <td className={styles.numeric}>{row.type === "credit" ? <strong className={styles.amountCredit}>+{rupiah(row.amount)}</strong> : "-"}</td>
-                      <td className={styles.numeric}>{row.type === "debit" ? <strong className={styles.amountDebit}>-{rupiah(row.amount)}</strong> : "-"}</td>
+                      <td className={styles.numeric}>
+                        <strong className={row.type === "credit" ? styles.amountCredit : styles.amountDebit}>{row.type === "credit" ? "+" : "-"}{rupiah(row.amount)}</strong>
+                      </td>
                       <td className={styles.numeric}><strong>{rupiah(row.balanceAfter)}</strong></td>
                       <td>
                         {status === "floating" ? (
-                          <>
-                            <span className="status-pending">Mengambang</span>
-                            <span className={styles.availableAt}>Tersedia {formatDateTime(row.availableAt)}</span>
-                          </>
+                          <span className="status-pending">Mengambang</span>
                         ) : status === "debit" ? (
                           <span className="status-badge muted">Penarikan</span>
                         ) : (
                           <span className="status-pill">Tersedia</span>
                         )}
+                      </td>
+                      <td className={styles.numeric}>
+                        <button type="button" className={styles.detailButton} onClick={() => setDetail(row)} aria-label={`Lihat detail ${row.description}`}>
+                          <Eye aria-hidden="true" /> Detail
+                        </button>
                       </td>
                     </tr>
                   );
@@ -262,6 +283,8 @@ export default function EWalletPage() {
           </p>
         )}
       </section>
+      <LedgerDetailDialog entry={detail} now={now} onClose={() => setDetail(null)} />
+      <WithdrawDialog open={withdrawOpen} available={summary.real} account={dummyPayoutAccount} onClose={() => setWithdrawOpen(false)} onSubmit={submitWithdrawal} />
     </main>
   );
 }
