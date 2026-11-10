@@ -91,7 +91,7 @@ export default function ActivityReportEditor({ editing = false }: { editing?: bo
         if (photo.file) { const url = URL.createObjectURL(photo.file); urls.set(photo.key, url); return { ...photo, url, upload: photo.upload === "uploading" ? "pending" : photo.upload }; }
         return { ...photo, url: current?.image_url || photo.url, urlRefreshedAt: current?.image_url ? Date.now() : photo.urlRefreshedAt };
       }) };
-      const c = new ActivityDraftController(key, draft, render, stored && !oldPublishedNewDraft ? stored.pending : undefined);
+      const c = new ActivityDraftController(key, draft, render, stored && !oldPublishedNewDraft ? stored.pending : undefined, session.user.branch_id);
       // A replay of an ambiguous committed request must reach the server before deciding it conflicts.
       if (hasUnsynced && remote && stored?.draft.revision !== remote.revision && !stored?.pending) {
         c.conflict = true; c.error = "Versi server telah berubah. Perubahan di perangkat ini tetap tersimpan.";

@@ -40,7 +40,7 @@ export class ActivityDraftController {
   private deadline?: ReturnType<typeof setTimeout>;
   private uploading = new Set<string>();
   private uploadAbort = new AbortController();
-  constructor(public key: string, draft: ReportDraft, private changed: () => void, pending?: PendingSave) { this.draft = draft; this.pending = pending; }
+  constructor(public key: string, draft: ReportDraft, private changed: () => void, pending?: PendingSave, private branchId?: number) { this.draft = draft; this.pending = pending; }
   private emit() { if (!this.disposed) this.changed(); }
   change(update: (draft: ReportDraft) => ReportDraft, urgent = false, content = true) {
     if (this.disposed) return;
@@ -139,7 +139,7 @@ export class ActivityDraftController {
     if (this.disposed || !navigator.onLine) return;
     for (const photo of this.draft.photos) {
       if (this.uploading.size >= 2) break;
-      if (!photo.file || photo.upload !== "pending" || this.uploading.has(photo.key)) continue;
+      if (!photo.file || photo.upload !== "pending" || this.uploading.has(photo.key) || !this.draft.classId || !Number.isInteger(Number(this.draft.classId)) || !Number.isInteger(this.branchId)) continue;
       this.uploading.add(photo.key);
       const key = photo.key;
       const patch = (values: Partial<typeof photo>, content = false) => this.change(d => ({ ...d, photos: d.photos.map(p => p.key === key ? { ...p, ...values } : p) }), content, content);
@@ -148,7 +148,7 @@ export class ActivityDraftController {
         const file = await resizeImageForUpload(photo.file!);
         let fileKey = photo.uploadKey, uploadUrl = photo.uploadUrl;
         if (!fileKey || !uploadUrl || !photo.uploadExpires || photo.uploadExpires < Date.now()) {
-          const result = await reportRequest<{ file_key: string; presigned_url: string }>("/api/proxy/media/presign/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ filename: file.name, content_type: file.type, expires_in: 3600, purpose: "activity" }), signal: this.uploadAbort.signal });
+          const result = await reportRequest<{ file_key: string; presigned_url: string }>("/api/proxy/media/presign/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ filename: file.name, content_type: file.type, size: file.size, class_id: Number(this.draft.classId), branch_id: this.branchId, expires_in: 3600, purpose: "activity" }), signal: this.uploadAbort.signal });
           fileKey = result.file_key; uploadUrl = result.presigned_url;
           patch({ uploadKey: fileKey, uploadUrl, uploadExpires: Date.now() + 3500000 });
           await this.flushLocal();

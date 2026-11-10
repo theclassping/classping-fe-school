@@ -19,6 +19,7 @@ import type { SessionUser } from "@/lib/session";
 import { loadList } from "@/lib/loadList";
 import { loadActivities } from "../activities/activityApi";
 import type { Activity } from "../activities/activityData";
+import StorageMonitoring from "./StorageMonitoring";
 
 type SubmittedPayment = {
   id?: number | string;
@@ -128,6 +129,7 @@ export default function DashboardHome() {
   const firstName = user?.first_name?.trim() || user?.full_name?.trim().split(" ")[0] || "";
   const today = new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
   const staffOnly = view.payments && !view.teacher;
+  const canMonitorStorage = ["ADMIN", "STAFF"].includes((user?.role || "").toUpperCase());
 
   return (
     <main id="main" className={`home ${staffOnly ? "home-staff" : "home-teacher"}`}>
@@ -268,6 +270,7 @@ export default function DashboardHome() {
             )}
           </article>
 
+          {canMonitorStorage && <StorageMonitoring />}
           <nav className="panel home-shortcuts" aria-label="Pintasan">
             <h2>Pintasan</h2>
             <Link href="/dashboard/students"><span className="mint"><GraduationCap aria-hidden="true" /></span><strong>Data siswa</strong><small>Profil dan wali murid</small></Link>
