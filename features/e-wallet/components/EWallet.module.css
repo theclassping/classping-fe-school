@@ -116,6 +116,13 @@
   gap: 8px;
 }
 
+/* globals.css has no disabled state for .primary-button; scoped here so other pages are unaffected. */
+.withdrawButton:disabled,
+.withdrawDialog :global(.primary-button):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .withdrawButton svg {
   width: 16px;
   height: 16px;

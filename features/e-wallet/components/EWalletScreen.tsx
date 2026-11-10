@@ -53,7 +53,7 @@ export default function EWalletScreen() {
   return (
     <main id="main">
       <PageHeading>
-        <button type="button" className={`primary-button ${styles.withdrawButton}`} onClick={() => setWithdrawOpen(true)} disabled={!canWithdraw}>
+        <button type="button" className={`primary-button ${styles.withdrawButton}`} onClick={() => setWithdrawOpen(true)} disabled={!canWithdraw} title={canWithdraw ? undefined : "Saldo riil belum cukup untuk ditarik."}>
           <ArrowUpFromLine aria-hidden="true" /> Tarik Dana
         </button>
       </PageHeading>
