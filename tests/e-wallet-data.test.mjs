@@ -81,6 +81,13 @@ test('withdrawal form validation mirrors the backend rules', () => {
   assert.match(rules.validateWithdrawalForm({ ...fresh, accountHolderName: ' ' }, limits).accountHolderName, /wajib/);
 });
 
+test('wallet error messages are Indonesian and show the OTP attempts left', () => {
+  const { ApiError } = loadTs('lib/api/errors.ts');
+  assert.equal(rules.walletErrorMessage(new ApiError('x', 400, 'OTP_INVALID', { remaining_attempts: 2 }), 'fallback'), 'Kode OTP salah. Sisa percobaan: 2.');
+  assert.match(rules.walletErrorMessage(new ApiError('x', 400, 'INSUFFICIENT_BALANCE', {}), 'fallback'), /melebihi saldo riil/);
+  assert.equal(rules.walletErrorMessage(new ApiError('x', 400, null, {}), 'fallback'), 'fallback');
+});
+
 test('input helpers parse amounts, account numbers and OTPs', () => {
   assert.equal(rules.parseAmount('Rp 1.500.000'), 1500000);
   assert.equal(Number.isNaN(rules.parseAmount('')), true);

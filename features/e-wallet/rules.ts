@@ -1,7 +1,7 @@
 // Withdrawal rules shown to the user before anything is sent. The backend
 // re-checks every rule; these only give faster, field-level feedback.
 
-import type { ErrorMessages } from "@/lib/api/errors";
+import { ApiError, errorMessage, type ErrorMessages } from "@/lib/api/errors";
 import { formatRupiah } from "@/lib/format";
 import type { WithdrawalForm } from "./types";
 
@@ -113,3 +113,13 @@ export const WALLET_ERROR_MESSAGES: ErrorMessages = {
   PROVIDER_BALANCE_INSUFFICIENT: "Penarikan sementara tidak tersedia. Saldo telah dikembalikan.",
   PROVIDER_UNAVAILABLE: "Penyedia pembayaran sedang tidak dapat dihubungi. Silakan coba lagi.",
 };
+
+/** User-facing message for any wallet API error, with the attempts left after a wrong OTP. */
+export function walletErrorMessage(error: unknown, fallback: string): string {
+  const message = errorMessage(error, fallback, WALLET_ERROR_MESSAGES);
+  const remaining = error instanceof ApiError ? error.body.remaining_attempts : undefined;
+  return typeof remaining === "number" ? `${message} Sisa percobaan: ${remaining}.` : message;
+}
+
+/** Shown wherever pending ("mengambang") funds are explained. */
+export const PENDING_FUNDS_NOTE = "Dana masih di penyedia pembayaran dan masuk ke saldo riil setelah diselesaikan.";

@@ -2,14 +2,14 @@
 
 import { ArrowDownToLine, ArrowUpFromLine, X } from "lucide-react";
 import { useCallback } from "react";
-import { errorMessage } from "@/lib/api/errors";
-import { formatDateTime, formatRupiah, formatSignedRupiah } from "@/lib/format";
+import { formatDateTime, formatRupiah } from "@/lib/format";
 import { useModalDialog } from "@/lib/useModalDialog";
 import { useResource } from "@/lib/useResource";
 import { getLedgerEntry } from "../api";
-import { WALLET_ERROR_MESSAGES } from "../rules";
+import { PENDING_FUNDS_NOTE, walletErrorMessage } from "../rules";
 import type { LedgerDetail, LedgerRow } from "../types";
 import LedgerBadge from "./LedgerBadge";
+import SignedAmount from "./SignedAmount";
 import styles from "./EWallet.module.css";
 
 type Props = {
@@ -47,7 +47,7 @@ export default function LedgerDetailDialog({ row, onClose }: Props) {
           </div>
 
           <div className={styles.detailAmount}>
-            <strong className={row.amount < 0 ? styles.amountDebit : styles.amountCredit}>{formatSignedRupiah(row.amount)}</strong>
+            <SignedAmount amount={row.amount} />
             <LedgerBadge badge={row.badge} />
           </div>
 
@@ -60,14 +60,14 @@ export default function LedgerDetailDialog({ row, onClose }: Props) {
 
           {!loaded && (detail.error ? (
             <p className={styles.fieldError} role="alert">
-              {errorMessage(detail.error, "Detail transaksi belum dapat dimuat.", WALLET_ERROR_MESSAGES)}{" "}
+              {walletErrorMessage(detail.error, "Detail transaksi belum dapat dimuat.")}{" "}
               <button type="button" className="text-button" onClick={detail.reload}>Coba lagi</button>
             </p>
           ) : (
             <p className={styles.fieldHelp}>Memuat detail transaksi…</p>
           ))}
 
-          {row.pending && <p className={styles.fieldHelp}>Dana masih di penyedia pembayaran dan masuk ke saldo riil setelah diselesaikan.</p>}
+          {row.pending && <p className={styles.fieldHelp}>{PENDING_FUNDS_NOTE}</p>}
 
           <div className="dialog-actions">
             <button className="primary-button" type="button" onClick={onClose}>Tutup</button>

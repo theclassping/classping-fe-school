@@ -1,5 +1,6 @@
 import { ArrowUpFromLine, Clock3, Hourglass, Landmark, Wallet } from "lucide-react";
 import { formatRupiah } from "@/lib/format";
+import { PENDING_FUNDS_NOTE } from "../rules";
 import type { WalletSummary } from "../types";
 import styles from "./EWallet.module.css";
 
@@ -33,7 +34,7 @@ export default function BalanceCards({ summary, failed }: Props) {
         <strong>{money(summary?.pending)}</strong>
         <small className={styles.balanceNote}>
           <Clock3 aria-hidden="true" />
-          Dana masih di penyedia pembayaran dan masuk ke saldo riil setelah diselesaikan.
+          {PENDING_FUNDS_NOTE}
         </small>
       </article>
 

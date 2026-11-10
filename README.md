@@ -36,6 +36,8 @@ require authentication.
 - `/dashboard/activities` — prototype activity workflow
 - `/dashboard/assessment` — prototype assessment workflow
 - `/dashboard/payments` — backend-connected payment list plus recording dialog
+- `/dashboard/e-wallet` — backend-connected branch balances, ledger, and
+  withdrawals with email OTP (branch principal / officer only)
 - `/dashboard/profile` — editable school profile prototype
 - `/dashboard/settings` — backend-connected staff, class, and user settings
 
@@ -43,6 +45,28 @@ Profile settings, notifications, prototype activities, assessment entries, and
 weekly worktime are currently persisted in browser storage. They are structured
 as React components so each can be replaced with its matching backend endpoint
 without another UI rewrite.
+
+## Code structure
+
+```
+app/          routing only: page.tsx files and app/api/* route handlers
+features/     one folder per domain (types, api, mappers, rules, hooks, components)
+lib/          shared non-UI code: lib/api (client, errors), format, hooks
+tests/        node:test suites; tests/helpers/loadTs.mjs loads .ts files
+```
+
+- **New code goes in `features/<domain>/`.** Existing domains still live in
+  `app/dashboard/<route>/` and move to `features/` one PR at a time, when
+  someone next works on them. `features/e-wallet` is the reference example.
+- **Browser requests use `lib/api/client.ts`** (`apiGet`, `apiPost`,
+  `apiGetPage`), which goes through `/api/proxy`. Do not call `fetch` from
+  components, and do not write another request helper.
+- **Error messages:** throw/catch `ApiError` and turn it into text with
+  `errorMessage(error, fallback, FEATURE_MESSAGES)` from `lib/api/errors.ts`.
+- **Formatting:** use `lib/format.ts` (`formatRupiah`, `formatDateTime`, …)
+  instead of new `Intl` calls.
+- **Dialogs and loading:** `lib/useModalDialog.ts` for `<dialog>`,
+  `lib/useResource.ts` for data that loads when its inputs change.
 
 ## Password recovery
 

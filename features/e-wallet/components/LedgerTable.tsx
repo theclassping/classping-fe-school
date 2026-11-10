@@ -1,7 +1,8 @@
 import { Eye } from "lucide-react";
-import { formatDateTime, formatRupiah, formatSignedRupiah } from "@/lib/format";
+import { formatDateTime, formatRupiah } from "@/lib/format";
 import type { LedgerRow } from "../types";
 import LedgerBadge from "./LedgerBadge";
+import SignedAmount from "./SignedAmount";
 import styles from "./EWallet.module.css";
 
 type Props = {
@@ -34,7 +35,7 @@ export default function LedgerTable({ rows, onSelect }: Props) {
                 </div>
               </td>
               <td className={styles.numeric}>
-                <strong className={row.amount < 0 ? styles.amountDebit : styles.amountCredit}>{formatSignedRupiah(row.amount)}</strong>
+                <SignedAmount amount={row.amount} />
               </td>
               <td className={styles.numeric}><strong>{formatRupiah(row.balanceAfter)}</strong></td>
               <td><LedgerBadge badge={row.badge} /></td>

@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ApiError, errorMessage } from "@/lib/api/errors";
 import { createWithdrawal, previewWithdrawal, resendWithdrawalOtp } from "../api";
-import { WALLET_ERROR_MESSAGES } from "../rules";
+import { walletErrorMessage } from "../rules";
 import type { Withdrawal, WithdrawalForm, WithdrawalPreview } from "../types";
 
 /**
@@ -19,13 +18,6 @@ export type WithdrawalStep =
 const PROCESS_FAILED = "Penarikan belum dapat diproses. Silakan coba lagi.";
 const RESEND_FAILED = "Kode OTP belum dapat dikirim ulang. Silakan coba lagi.";
 
-/** Wallet error message, plus the attempts left after a wrong OTP. */
-function withdrawalErrorMessage(error: unknown, fallback: string): string {
-  const message = errorMessage(error, fallback, WALLET_ERROR_MESSAGES);
-  const remaining = error instanceof ApiError ? error.body.remaining_attempts : undefined;
-  return typeof remaining === "number" ? `${message} Sisa percobaan: ${remaining}.` : message;
-}
-
 export function useWithdrawal() {
   const [step, setStep] = useState<WithdrawalStep>({ name: "form" });
   const [busy, setBusy] = useState(false);
@@ -37,7 +29,7 @@ export function useWithdrawal() {
     try {
       onSuccess(await action());
     } catch (actionError) {
-      setError(withdrawalErrorMessage(actionError, fallback));
+      setError(walletErrorMessage(actionError, fallback));
     } finally {
       setBusy(false);
     }

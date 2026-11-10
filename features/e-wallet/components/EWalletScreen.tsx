@@ -3,13 +3,13 @@
 import { ArrowUpFromLine, ShieldAlert } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import ListPagination from "@/app/dashboard/components/ListPagination";
-import { errorMessage, isForbidden } from "@/lib/api/errors";
+import { isForbidden } from "@/lib/api/errors";
 import { formatMonth } from "@/lib/format";
 import { useResource } from "@/lib/useResource";
 import { getWalletSummary } from "../api";
 import { useLedger } from "../hooks/useLedger";
 import { hasActiveFilters, recentMonths } from "../ledgerFilters";
-import { WALLET_ERROR_MESSAGES } from "../rules";
+import { WALLET_ERROR_MESSAGES, walletErrorMessage } from "../rules";
 import type { LedgerRow } from "../types";
 import BalanceCards from "./BalanceCards";
 import LedgerDetailDialog from "./LedgerDetailDialog";
@@ -17,8 +17,6 @@ import LedgerTable from "./LedgerTable";
 import LedgerToolbar from "./LedgerToolbar";
 import WithdrawDialog from "./WithdrawDialog";
 import styles from "./EWallet.module.css";
-
-const LOAD_FAILED = "Saldo e-wallet belum dapat dimuat.";
 
 /** /dashboard/e-wallet: branch balances, the ledger, and withdrawals. */
 export default function EWalletScreen() {
@@ -60,7 +58,7 @@ export default function EWalletScreen() {
         </button>
       </PageHeading>
 
-      {summary.error !== undefined && <p className={styles.fieldError} role="alert">{errorMessage(summary.error, LOAD_FAILED, WALLET_ERROR_MESSAGES)}</p>}
+      {summary.error !== undefined && <p className={styles.fieldError} role="alert">{walletErrorMessage(summary.error, "Saldo e-wallet belum dapat dimuat.")}</p>}
       <BalanceCards summary={summary.data} failed={summary.error !== undefined && !summary.data} />
 
       <section className="panel transactions" id="buku-kas">
@@ -76,7 +74,7 @@ export default function EWalletScreen() {
 
         {ledger.error !== undefined ? (
           <div className="empty-state">
-            <p>{errorMessage(ledger.error, "Buku kas belum dapat dimuat.", WALLET_ERROR_MESSAGES)}</p>
+            <p>{walletErrorMessage(ledger.error, "Buku kas belum dapat dimuat.")}</p>
             <button type="button" className="button-secondary" onClick={ledger.reload}>Coba lagi</button>
           </div>
         ) : !page ? (

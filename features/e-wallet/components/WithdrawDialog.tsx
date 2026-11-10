@@ -2,13 +2,12 @@
 
 import { ArrowUpFromLine, X } from "lucide-react";
 import { useState } from "react";
-import { errorMessage } from "@/lib/api/errors";
 import { formatRupiah } from "@/lib/format";
 import { useModalDialog } from "@/lib/useModalDialog";
 import { useResource } from "@/lib/useResource";
 import { getPayoutAccounts } from "../api";
 import { useWithdrawal } from "../hooks/useWithdrawal";
-import { WALLET_ERROR_MESSAGES } from "../rules";
+import { walletErrorMessage } from "../rules";
 import type { WalletSummary } from "../types";
 import WithdrawForm, { EMPTY_DRAFT, type WithdrawalDraft } from "./WithdrawForm";
 import WithdrawOtpStep from "./WithdrawOtpStep";
@@ -47,7 +46,7 @@ export default function WithdrawDialog({ summary, onClose }: Props) {
           </div>
 
           {accounts.error !== undefined && step.name === "form" && (
-            <p className={styles.fieldError} role="alert">{errorMessage(accounts.error, "Rekening tersimpan belum dapat dimuat; Anda tetap dapat mengisi rekening baru.", WALLET_ERROR_MESSAGES)}</p>
+            <p className={styles.fieldError} role="alert">{walletErrorMessage(accounts.error, "Rekening tersimpan belum dapat dimuat; Anda tetap dapat mengisi rekening baru.")}</p>
           )}
           {withdrawal.error && <p className={styles.fieldError} role="alert">{withdrawal.error}</p>}
 
