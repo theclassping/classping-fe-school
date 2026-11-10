@@ -51,6 +51,11 @@ export function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError";
 }
 
+/** True when the backend refused the signed-in user (HTTP 403). */
+export function isForbidden(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 403;
+}
+
 /** Indonesian messages keyed by backend error code. */
 export type ErrorMessages = Readonly<Record<string, string>>;
 

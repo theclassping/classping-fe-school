@@ -35,6 +35,11 @@ export function formatRupiah(value: number | string | null | undefined, fallback
   return Number.isFinite(amount) ? rupiahFormatter.format(amount) : fallback;
 }
 
+/** "+Rp 250.000" / "-Rp 2.500" for money moving in or out. */
+export function formatSignedRupiah(value: number): string {
+  return `${value < 0 ? "-" : "+"}${formatRupiah(Math.abs(value))}`;
+}
+
 /** "1.500.000" for amount inputs; empty for zero, negative, or invalid values. */
 export function formatThousands(value: number): string {
   return Number.isFinite(value) && value > 0 ? thousandsFormatter.format(value) : "";

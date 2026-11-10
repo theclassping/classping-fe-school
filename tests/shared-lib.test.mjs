@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { loadTs } from './helpers/loadTs.mjs';
 
 const format = loadTs('lib/format.ts');
-const { ApiError, errorMessage, describeErrorBody, isAbortError } = loadTs('lib/api/errors.ts');
+const { ApiError, errorMessage, describeErrorBody, isAbortError, isForbidden } = loadTs('lib/api/errors.ts');
 const client = loadTs('lib/api/client.ts');
 
 const plain = (text) => text.replace(/\s/g, ' ');
@@ -18,6 +18,8 @@ test('formatRupiah accepts numbers and backend decimal strings', () => {
 });
 
 test('formatThousands, formatDateTime and formatMonth', () => {
+  assert.equal(plain(format.formatSignedRupiah(250000)), '+Rp 250.000');
+  assert.equal(plain(format.formatSignedRupiah(-2500)), '-Rp 2.500');
   assert.equal(format.formatThousands(1500000), '1.500.000');
   assert.equal(format.formatThousands(0), '');
   assert.equal(format.formatDateTime(null), '-');
@@ -38,6 +40,8 @@ test('errorMessage prefers the feature code message, then the status, then the f
   assert.match(errorMessage(new ApiError('x', 403, null, {}), 'fallback'), /tidak memiliki akses/);
   assert.match(errorMessage(new ApiError('x', 502, null, {}), 'fallback'), /Server/);
   assert.equal(errorMessage(new Error('boom'), 'fallback'), 'fallback');
+  assert.equal(isForbidden(new ApiError('x', 403, 'WITHDRAWAL_ROLE_FORBIDDEN', {})), true);
+  assert.equal(isForbidden(coded), false);
   assert.equal(describeErrorBody({ amount: ['Too small.'], code: 'X' }), 'amount: Too small.');
   const abort = new Error('aborted');
   abort.name = 'AbortError';
