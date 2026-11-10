@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ACCESS_COOKIE, REFRESH_COOKIE, clearSessionCookies, refreshSession, SessionError, setSessionCookies, type Tokens } from "@/lib/session";
 
+// Response headers passed back to the browser. The X-* headers carry Django's
+// pagination totals for `?page=` list requests (see lib/api/client.ts).
+const FORWARDED_RESPONSE_HEADERS = ["Content-Type", "X-Total-Count", "X-Page", "X-Page-Size", "X-Total-Pages"];
+
 async function proxyRequest(request: NextRequest, path: string[]) {
   const apiUrl = process.env.DJANGO_API_URL;
   if (!apiUrl) return NextResponse.json({ detail: "DJANGO_API_URL is not configured" }, { status: 500 });
@@ -35,8 +39,10 @@ async function proxyRequest(request: NextRequest, path: string[]) {
     if (upstream.status === 401) throw new SessionError(401, "Your session has expired. Please sign in again.");
 
     const headers = new Headers({ "Cache-Control": "no-store" });
-    const contentType = upstream.headers.get("content-type");
-    if (contentType) headers.set("Content-Type", contentType);
+    for (const name of FORWARDED_RESPONSE_HEADERS) {
+      const value = upstream.headers.get(name);
+      if (value) headers.set(name, value);
+    }
     const response = new NextResponse(upstream.status === 204 ? null : await upstream.arrayBuffer(), { status: upstream.status, headers });
     if (renewed) setSessionCookies(response, renewed);
     return response;
