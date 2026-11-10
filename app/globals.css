@@ -1884,6 +1884,108 @@ dialog select:focus {
   padding: 22px 22px 8px;
 }
 
+.storage-monitor {
+  margin: 8px 22px 20px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.storage-monitor.is-warning { border-color: #E8B64E; background: #FFFBEE; }
+.storage-monitor.is-critical { border-color: #D9534F; background: #FFF3F1; }
+
+.storage-monitor__heading,
+.storage-monitor__labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.storage-monitor__heading h3 {
+  margin: 0;
+  font: 700 16px/1.25 var(--font-display);
+}
+
+.storage-monitor__heading p,
+.storage-monitor__state {
+  margin: 5px 0 0;
+  color: #8A7A6D;
+  font-size: 11px;
+}
+
+.storage-monitor__chart {
+  margin-top: 22px;
+}
+
+.storage-monitor__labels {
+  margin-bottom: 8px;
+  color: #6E5F53;
+  font-size: 11px;
+}
+
+.storage-monitor__labels strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.storage-monitor__track {
+  height: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #E5DED3;
+}
+
+.storage-monitor__fill {
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: var(--green);
+  transition: width 0.4s ease;
+}
+
+.storage-monitor__fill.is-warning { background: #DCA52E; }
+.storage-monitor__fill.is-critical { background: #D9534F; }
+
+.storage-monitor__warning,
+.storage-details-warning { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; font-size: 11px; font-weight: 700; line-height: 1.5; }
+.storage-monitor__warning.is-warning,
+.storage-details-warning.is-warning { border: 1px solid #E8B64E; background: #FFF3C7; color: #775400; }
+.storage-monitor__warning.is-critical,
+.storage-details-warning.is-critical { border: 1px solid #E69A93; background: #FCE3E0; color: #9E302A; }
+
+.storage-monitor__chart small {
+  color: #8A7A6D;
+  font-size: 10px;
+}
+
+.storage-monitor__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 7px;
+}
+
+.storage-monitor__footer a {
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.storage-monitor__footer a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .storage-monitor {
+    margin-right: 14px;
+    margin-left: 14px;
+  }
+}
+
 .settings-tabs {
   display: flex;
   flex-wrap: wrap;
