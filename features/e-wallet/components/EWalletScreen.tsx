@@ -15,6 +15,7 @@ import BalanceCards from "./BalanceCards";
 import LedgerDetailDialog from "./LedgerDetailDialog";
 import LedgerTable from "./LedgerTable";
 import LedgerToolbar from "./LedgerToolbar";
+import WithdrawDialog from "./WithdrawDialog";
 import styles from "./EWallet.module.css";
 
 const LOAD_FAILED = "Saldo e-wallet belum dapat dimuat.";
@@ -25,6 +26,7 @@ export default function EWalletScreen() {
   const ledger = useLedger();
   const [months] = useState(() => recentMonths(new Date()));
   const [selected, setSelected] = useState<LedgerRow | null>(null);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
 
   function refresh() {
     summary.reload();
@@ -46,12 +48,14 @@ export default function EWalletScreen() {
   }
 
   const page = ledger.data;
+  // The backend rejects amounts that do not exceed the fee.
+  const canWithdraw = summary.data !== undefined && summary.data.available > summary.data.withdrawalFee;
   const periodLabel = ledger.filters.month ? formatMonth(ledger.filters.month) : "Semua periode";
 
   return (
     <main id="main">
       <PageHeading>
-        <button type="button" className={`primary-button ${styles.withdrawButton}`} disabled>
+        <button type="button" className={`primary-button ${styles.withdrawButton}`} onClick={() => setWithdrawOpen(true)} disabled={!canWithdraw}>
           <ArrowUpFromLine aria-hidden="true" /> Tarik Dana
         </button>
       </PageHeading>
@@ -90,6 +94,9 @@ export default function EWalletScreen() {
       </section>
 
       <LedgerDetailDialog row={selected} onClose={() => setSelected(null)} />
+      {withdrawOpen && summary.data && (
+        <WithdrawDialog summary={summary.data} onClose={() => { setWithdrawOpen(false); refresh(); }} />
+      )}
     </main>
   );
 }

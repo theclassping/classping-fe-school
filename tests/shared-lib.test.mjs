@@ -26,6 +26,9 @@ test('formatThousands, formatDateTime and formatMonth', () => {
   assert.equal(format.formatDateTime('not a date'), 'not a date');
   assert.match(format.formatDateTime('2026-11-10T07:05:00Z', 'long'), /November 2026/);
   assert.equal(format.formatMonth('2026-10'), 'Oktober 2026');
+  assert.equal(format.formatCountdown(179_001), '3:00');
+  assert.equal(format.formatCountdown(65_000), '1:05');
+  assert.equal(format.formatCountdown(-1), '0:00');
 });
 
 test('proxyUrl trims slashes and drops empty query values', () => {

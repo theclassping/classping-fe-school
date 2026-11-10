@@ -52,6 +52,12 @@ export function formatDateTime(value: string | null | undefined, style: DateTime
   return Number.isNaN(date.getTime()) ? value : dateTimeFormatters[style].format(date);
 }
 
+/** Remaining time as "m:ss" (e.g. an OTP countdown); "0:00" once elapsed. */
+export function formatCountdown(milliseconds: number): string {
+  const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 /** "2026-10" → "Oktober 2026". */
 export function formatMonth(month: string): string {
   const [year, monthNumber] = month.split("-").map(Number);
