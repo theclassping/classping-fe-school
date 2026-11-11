@@ -6,11 +6,12 @@ import { createRequire } from "node:module";
 const requireFromNext = createRequire(import.meta.resolve("next/package.json"));
 const sharp = requireFromNext("sharp");
 
-test("the tab icon uses the existing ClassPing three-bar brand mark", async () => {
+test("the tab icon is the ClassPing Happy Bubble mark in brand green with a cream smile", async () => {
   const source = await readFile(new URL("../app/icon.svg", import.meta.url), "utf8");
-  assert.match(source, /viewBox="0 0 32 32"/);
-  assert.match(source, /stroke="#147d64"/);
-  assert.equal((source.match(/<rect /g) || []).length, 4);
+  assert.match(source, /viewBox="0 0 110 110"/);
+  assert.match(source, /fill="#1FA78A"/);
+  assert.match(source, /stroke="#FBF8F3"/);
+  assert.equal((source.match(/<path /g) || []).length, 2);
   assert(!source.includes("<script"));
   assert(!source.includes("<image"));
 });

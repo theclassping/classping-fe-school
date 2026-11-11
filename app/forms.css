@@ -6,7 +6,7 @@
 
 :is(.form-field, .field-group) { min-width: 0; gap: 8px; }
 :is(.form-field, .field-group) > label {
-  color: #40544a;
+  color: #3A2F27;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.5;
@@ -19,32 +19,32 @@
   min-height: 44px;
   margin: 0;
   padding: 11px 13px;
-  border: 1px solid #d7e2dc;
+  border: 1px solid #E5DED3;
   border-radius: 10px;
   background: #fff;
   color: var(--ink);
-  font: 400 14px/1.5 "DM Sans", sans-serif;
+  font: 400 14px/1.5 var(--font-body);
   transition: border-color 150ms, box-shadow 150ms;
 }
 
 :is(.form-field, .field-group) textarea { min-height: 88px; resize: vertical; }
-:is(.form-field, .field-group) :is(input, textarea)::placeholder { color: #91a098; }
-:is(.form-field, .field-group) :is(input, select, textarea):hover:not(:disabled):not(:focus) { border-color: #adc6b9; }
+:is(.form-field, .field-group) :is(input, textarea)::placeholder { color: #8A7A6D; }
+:is(.form-field, .field-group) :is(input, select, textarea):hover:not(:disabled):not(:focus) { border-color: #8A7A6D; }
 :is(.form-field, .field-group) :is(input, select, textarea):focus-visible {
   outline: 2px solid var(--green);
   outline-offset: 2px;
   border-color: var(--green);
-  box-shadow: 0 0 0 4px #147d640a;
+  box-shadow: 0 0 0 4px #00735F0a;
 }
 :is(.form-field, .field-group) :is(input, select, textarea):disabled,
 :is(.form-field, .field-group) input[readonly] {
   background: var(--canvas);
-  color: #718079;
+  color: #6E5F53;
   border-color: var(--line);
 }
 :is(.form-field, .field-group) :is(input, select, textarea):disabled { cursor: not-allowed; }
 :is(.form-field, .field-group) > :is(small, p) { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
-:is(.form-field, .field-group) > .form-error { color: #b42318; }
+:is(.form-field, .field-group) > .form-error { color: #A8322A; }
 input:is([type="checkbox"], [type="radio"]) { accent-color: var(--green); }
 .form-field.checkbox-field {
   align-self: end;
@@ -60,9 +60,9 @@ input:is([type="checkbox"], [type="radio"]) { accent-color: var(--green); }
 .app-form-modal.modal {
   width: min(760px, 100%);
   padding: 0;
-  border: 1px solid #e0e9e3;
+  border: 1px solid #E5DED3;
   border-radius: 20px;
-  box-shadow: 0 24px 80px #163c2e29;
+  box-shadow: 0 24px 80px #3A2F2729;
   overscroll-behavior: contain;
 }
 .app-form-modal > .modal-header {
@@ -71,7 +71,7 @@ input:is([type="checkbox"], [type="radio"]) { accent-color: var(--green); }
   margin: 0;
   padding: 24px 28px;
   border-bottom: 1px solid var(--line);
-  background: #f8fbf9;
+  background: #FBF8F3;
 }
 .app-form-modal .modal-header h2 { margin: 0; font-size: 21px; letter-spacing: -.4px; line-height: 1.4; }
 .app-form-modal .modal-header p { margin: 6px 0 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
@@ -104,7 +104,7 @@ input:is([type="checkbox"], [type="radio"]) { accent-color: var(--green); }
   padding: 18px 28px;
   border-top: 1px solid var(--line);
   background: #fff;
-  box-shadow: 0 -4px 14px #17231f04;
+  box-shadow: 0 -4px 14px #3A2F2704;
 }
 .guardian-form-section {
   min-width: 0;
@@ -112,7 +112,7 @@ input:is([type="checkbox"], [type="radio"]) { accent-color: var(--green); }
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: #f8fbf9;
+  background: #FBF8F3;
 }
 .guardian-form-section legend { padding: 0 7px; font-size: 13px; font-weight: 700; color: var(--green-dark); }
 .guardian-form-section > button { margin-top: 16px; }
@@ -123,7 +123,7 @@ input:is([type="checkbox"], [type="radio"]) { accent-color: var(--green); }
   padding: 22px;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: #fafcfb;
+  background: #FBF8F3;
 }
 .student-form-actions {
   align-items: center;
@@ -147,8 +147,8 @@ fieldset.form-grid { min-width: 0; margin: 0; padding: 0; border: 0; }
   justify-content: center;
 }
 form button:focus-visible, form a:focus-visible, .modal-close:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
-.form-error { border: 1px solid #f6d6d2; line-height: 1.6; overflow-wrap: anywhere; }
-.reset-card { border-radius: 22px; box-shadow: 0 20px 60px #163c2e0d; }
+.form-error { border: 1px solid #FCE6E0; line-height: 1.6; overflow-wrap: anywhere; }
+.reset-card { border-radius: 22px; box-shadow: 0 20px 60px #3A2F270d; }
 .reset-input:focus-within { outline: 2px solid var(--green); outline-offset: 2px; }
 .reset-submit { min-height: 46px; border-radius: 10px; }
 .login-form input:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }

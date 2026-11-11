@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { Mail } from "lucide-react";
+import BrandLogo from "../components/BrandLogo";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -38,8 +39,7 @@ export default function ForgotPasswordPage() {
     <main className="reset-page">
       <section className="reset-card">
         <Link className="reset-brand" href="/login" aria-label="ClassPing, kembali ke masuk">
-          <span className="reset-brand-mark" aria-hidden="true"><span /><span /><span /></span>
-          <span>class<span>ping</span></span>
+          <BrandLogo />
         </Link>
         <p className="reset-eyebrow">PEMULIHAN AKUN</p>
         <h1>Lupa kata sandi?</h1>

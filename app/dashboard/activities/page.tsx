@@ -2,20 +2,21 @@
 
 import Link from "next/link";
 import { Eye, Pencil, Trash2, UsersRound } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type SyntheticEvent } from "react";
+import { useImageRefresh } from "@/lib/useImageRefresh";
 import styles from "../components/TableActions.module.css";
 import ListPagination, { useListPagination } from "../components/ListPagination";
 import { loadActivities } from "./activityApi";
 import type { Activity } from "./activityData";
 import DeleteActivityDialog from "./DeleteActivityDialog";
 
-function ActivityCover({ activity }: { activity: Activity }) {
+function ActivityCover({ activity, onImageError }: { activity: Activity; onImageError: (event: SyntheticEvent<HTMLImageElement>) => void }) {
   const [index, setIndex] = useState(0);
   const images = activity.imageUrls?.length ? activity.imageUrls : activity.imageUrl ? [activity.imageUrl] : [];
   const image = images[index] ?? images[0];
   return (
     <div className={`activity-cover art-${activity.slug === "melukis-dengan-jari" ? "paint" : activity.slug === "menanam-kacang-hijau" ? "garden" : "music"}`}>
-      {image ? <img className="activity-cover-image" src={image} alt={activity.title} /> : <span>{activity.avatar}</span>}
+      {image ? <img className="activity-cover-image" src={image} alt={activity.title} onError={onImageError} /> : <span>{activity.avatar}</span>}
       {images.length > 1 && (
         <>
           <button type="button" className="activity-cover-arrow previous" aria-label="Foto sebelumnya" onClick={() => setIndex((index - 1 + images.length) % images.length)}>‹</button>
@@ -51,6 +52,7 @@ export default function ActivitiesPage() {
 
     void fetchActivities();
   }, []);
+  const onImageError = useImageRefresh(useCallback(async () => { setActivities(await loadActivities()); }, []));
 
   const classOptions = useMemo(
     () => Array.from(new Set(activities.map((activity) => activity.className))),
@@ -132,7 +134,7 @@ export default function ActivitiesPage() {
           ) : (
             pagination.items.map((activity) => (
               <article className="activity-card panel" key={activity.slug}>
-                <ActivityCover activity={activity} />
+                <ActivityCover activity={activity} onImageError={onImageError} />
                 <div className="activity-body">
                   <div className="activity-meta">
                     <span>{activity.time}</span>
