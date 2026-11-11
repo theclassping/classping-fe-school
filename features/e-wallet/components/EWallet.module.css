@@ -75,14 +75,6 @@
   font-size: 11px;
 }
 
-.availableAt {
-  display: block;
-  margin-top: 2px;
-  color: var(--ink-muted);
-  font-size: 11px;
-  white-space: nowrap;
-}
-
 .refresh {
   margin-left: auto;
 }
@@ -122,6 +114,13 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+/* globals.css has no disabled state for .primary-button; scoped here so other pages are unaffected. */
+.withdrawButton:disabled,
+.withdrawDialog :global(.primary-button):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .withdrawButton svg {
@@ -360,10 +359,6 @@
   height: 14px;
 }
 
-.ledgerAmount {
-  white-space: nowrap;
-}
-
 .srOnly {
   position: absolute;
   width: 1px;
@@ -371,4 +366,52 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* Withdrawal: saved vs new account */
+.targetToggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.targetToggle label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.targetToggle label:has(input:checked) {
+  border-color: var(--green);
+}
+
+.targetToggle label:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Withdrawal: OTP step */
+.otpInput {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.5em;
+  text-align: center;
+}
+
+.checkboxRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.checkboxRow input {
+  margin-top: 2px;
 }
