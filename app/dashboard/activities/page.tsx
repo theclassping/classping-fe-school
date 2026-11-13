@@ -5,6 +5,7 @@ import { Eye, Pencil, Trash2, UsersRound } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type SyntheticEvent } from "react";
 import { useImageRefresh } from "@/lib/useImageRefresh";
 import styles from "../components/TableActions.module.css";
+import "./album/classAlbum.css";
 import ListPagination, { useListPagination } from "../components/ListPagination";
 import { loadActivities } from "./activityApi";
 import type { Activity } from "./activityData";
@@ -82,9 +83,14 @@ export default function ActivitiesPage() {
               terkait.
             </p>
           </div>
-          <Link className="primary-button" href="/dashboard/activities/add">
-            + Tambah Aktivitas
-          </Link>
+          <div className="class-album-actions">
+            <Link className="secondary-button" href="/dashboard/activities/album">
+              Album Kelas
+            </Link>
+            <Link className="primary-button" href="/dashboard/activities/add">
+              + Tambah Aktivitas
+            </Link>
+          </div>
         </div>
         <div className="activity-toolbar panel">
           <label className="date-chip">

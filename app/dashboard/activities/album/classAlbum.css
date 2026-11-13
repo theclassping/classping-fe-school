@@ -1,0 +1,6 @@
+/* Album Kelas: page chrome around the shared album pages (album.css). */
+.class-album-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.class-album .al-toolbar { margin-bottom: 26px; }
+.class-album .al-toolbar label + label { margin-left: 0; }
+.class-album .al-status { margin: 0 0 18px; color: var(--muted); font-size: 12px; }
+.class-album .al-status.error { color: #b3261e; }
