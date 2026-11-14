@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import AlbumPreview from "classping-album/components/AlbumPreview";
-import { buildAlbum, downloadPeriodsFor } from "classping-album/model";
+import { buildAlbum, downloadPartsFor } from "classping-album/model";
 import { currentMonth, monthLabel, parsePeriodParam, periodLabel, periodParam, type AcademicYearOption, type Period } from "classping-album/period";
 import type { AlbumDocument, AlbumSchool } from "classping-album/types";
 import { loadList } from "@/lib/loadList";
@@ -123,7 +123,7 @@ export default function ClassAlbum() {
   }
 
   // A year with more photos than one PDF can hold downloads as consecutive parts.
-  const downloadParts = album ? downloadPeriodsFor(album).map((part) => ({ value: periodParam(part), label: periodLabel(part) })) : [{ value: periodKey, label: period ? periodLabel(period) : "" }];
+  const downloadParts = album ? downloadPartsFor(album).map((part) => ({ value: periodParam(part.period), label: part.label })) : [{ value: periodKey, label: period ? periodLabel(period) : "" }];
   const hrefFor = (value: string) => (classId ? `/api/album?class=${classId}&period=${encodeURIComponent(value)}` : "#");
   return (
     <div className="class-album">
