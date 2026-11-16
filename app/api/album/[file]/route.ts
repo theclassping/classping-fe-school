@@ -43,8 +43,16 @@ export async function GET(request: NextRequest, context: { params: Promise<{ fil
     const album = buildAlbum(await classAlbumSource(classId, klass.name ?? klass.class_name ?? "", period, school, (path) => client.list(path)));
     if (album.photoUrls.length === 0) return errorPage("Belum ada foto pada periode ini.", 404);
     if (album.photoUrls.length > MAX_PHOTOS_PER_PDF) return errorPage(`Album ini memuat ${album.photoUrls.length} foto; buka per bagian dari tombol Album Kelas (maksimal ${MAX_PHOTOS_PER_PDF} foto per PDF).`, 413);
-    const images = await fetchAlbumImages(album.photoUrls);
-    const pdf = await renderAlbumPdf(album, images, { producer: "ClassPing School Portal" });
+    let pdf: Buffer;
+    try {
+      const images = await fetchAlbumImages(album.photoUrls);
+      pdf = await renderAlbumPdf(album, images, { producer: "ClassPing School Portal" });
+    } catch (error) {
+      // Vercel keeps the stack in its function logs; the tab gets the message so the failure is not a blank page.
+      console.error("[album] generation failed", error);
+      const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      return errorPage(`Album gagal dibuat. Coba lagi beberapa saat. (${detail})`, 500);
+    }
     return client.apply(new NextResponse(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",
