@@ -1,8 +1,8 @@
 // A class's album source: the published activities of one class in a period, with every photo the teacher uploaded.
-// Pure of transport: the page reads through /api/proxy, the PDF route straight from the backend, both via a ListReader.
-import { initialsOf } from "classping-album/format";
-import { monthsWithActivities, periodRange, type AcademicYearOption, type Period } from "classping-album/period";
-import type { AlbumActivity, AlbumPhoto, AlbumSchool, AlbumSource, AlbumSubject } from "classping-album/types";
+// Pure of transport: the PDF route reads straight from the backend via a ListReader.
+import { initialsOf } from "@/features/album/core/format";
+import { periodRange, type Period } from "@/features/album/core/period";
+import type { AlbumActivity, AlbumPhoto, AlbumSchool, AlbumSource, AlbumSubject } from "@/features/album/core/types";
 
 /** Reads every record of a backend list endpoint; `path` is relative to the API root, e.g. "activities/?class_id=3". */
 export type ListReader = <T>(path: string) => Promise<T[]>;
@@ -20,8 +20,6 @@ export type ApiActivity = {
 };
 
 export type ApiClassTeacher = { id?: number | string; teacher_name?: string | null };
-
-type ApiAcademicYear = { id?: number | string; name?: string | null; start_date?: string | null; end_date?: string | null };
 
 export function publishedActivitiesPath(classId: number, range?: { from: string; to: string }) {
   const filters = new URLSearchParams({ class_id: String(classId), is_publish: "true" });
@@ -46,13 +44,14 @@ export function albumPhotos(activityId: string, images: ApiActivityImage[] | nul
     .map(({ image, index }) => ({ id: String(image.id ?? `${activityId}-${index}`), url: image.image_url as string, caption: image.caption?.trim() || undefined }));
 }
 
-/** Backend activities → album activities; drafts and records without a date are left out. */
-export function albumActivitiesFrom(items: ApiActivity[], teachers: Map<string, string>): AlbumActivity[] {
+/** Backend activities → album activities; drafts, records without a date and (older backends ignore `date_from`/`date_to`) days outside the range are left out. */
+export function albumActivitiesFrom(items: ApiActivity[], teachers: Map<string, string>, range?: { from: string; to: string }): AlbumActivity[] {
   const activities: AlbumActivity[] = [];
   for (const item of items) {
     const id = item.id ?? item.name;
     const date = item.activity_date?.slice(0, 10);
     if (id == null || !date || item.is_publish === false) continue;
+    if (range && (date < range.from || date > range.to)) continue;
     activities.push({
       id: String(id),
       title: item.name?.trim() || "Aktivitas kelas",
@@ -71,31 +70,16 @@ export function classSubject(classId: number, className: string): AlbumSubject {
 }
 
 export async function classAlbumSource(classId: number, className: string, period: Period, school: AlbumSchool, list: ListReader): Promise<AlbumSource> {
+  const range = periodRange(period);
   const [items, teachers] = await Promise.all([
-    list<ApiActivity>(publishedActivitiesPath(classId, periodRange(period))),
+    list<ApiActivity>(publishedActivitiesPath(classId, range)),
     list<ApiClassTeacher>(`class-teachers/?class_id=${classId}`),
   ]);
   return {
     subject: classSubject(classId, className),
     period,
     school,
-    activities: albumActivitiesFrom(items, teacherNames(teachers)),
+    activities: albumActivitiesFrom(items, teacherNames(teachers), range),
     generatedAt: new Date().toISOString(),
   };
-}
-
-/** Months the class has published activities in, newest first, for the period picker. */
-export async function classAlbumMonths(classId: number, list: ListReader) {
-  const items = await list<ApiActivity>(publishedActivitiesPath(classId));
-  return monthsWithActivities(items.filter((item) => item.is_publish !== false).map((item) => item.activity_date?.slice(0, 10) || ""));
-}
-
-/** Academic years of the branch, newest first; empty when the backend does not share them. */
-export async function academicYearOptions(branchId: number | null | undefined, list: ListReader): Promise<AcademicYearOption[]> {
-  if (!branchId) return [];
-  const years = await list<ApiAcademicYear>(`academic-years/?branch_id=${branchId}`);
-  return years
-    .filter((year) => year.id != null && year.start_date && year.end_date && year.name)
-    .map((year) => ({ id: String(year.id), label: year.name as string, start: (year.start_date as string).slice(0, 10), end: (year.end_date as string).slice(0, 10) }))
-    .sort((a, b) => b.start.localeCompare(a.start));
 }

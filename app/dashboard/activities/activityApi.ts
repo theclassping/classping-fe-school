@@ -148,6 +148,7 @@ export function normalizeActivities(data: unknown): Activity[] {
         imageUrls,
         className,
         classLabel: className,
+        classId: Number.isInteger(Number(record.class_id)) && Number(record.class_id) > 0 ? Number(record.class_id) : undefined,
         time: activityTime(record.created_at),
         date: record.activity_date ?? "",
       status: activityStatus(record.status, record.is_publish),
