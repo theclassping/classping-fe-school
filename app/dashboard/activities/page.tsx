@@ -89,6 +89,7 @@ export default function ActivitiesPage() {
             <AlbumButton
               dateFilter={dateFilter}
               classId={classFilter === "all" ? undefined : activities.find((activity) => activity.className === classFilter)?.classId}
+              className={classFilter}
               activities={classFilter === "all" ? [] : activities.filter((activity) => activity.className === classFilter)}
             />
             <Link className="primary-button" href="/dashboard/activities/add">

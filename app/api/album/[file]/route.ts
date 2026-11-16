@@ -23,7 +23,10 @@ function errorPage(message: string, status: number) {
 }
 
 /** GET /api/album?class=<id>&period=2026-10 | range:<from>:<to> → the class's album as an inline PDF. */
-export async function GET(request: NextRequest) {
+/** The last path segment is the file name (…/album-kelas-a-2026-11-04.pdf), which browsers and Safari's viewer use. */
+export async function GET(request: NextRequest, context: { params: Promise<{ file: string }> }) {
+  const { file } = await context.params;
+  if (!file.endsWith(".pdf")) return errorPage("Berkas album tidak dikenal.", 404);
   const classId = Number(request.nextUrl.searchParams.get("class"));
   if (!Number.isInteger(classId) || classId <= 0) return errorPage("Pilih kelas terlebih dahulu.", 400);
   const client = await backendClient();
@@ -46,7 +49,8 @@ export async function GET(request: NextRequest) {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="${album.fileName}"`,
-        "Cache-Control": "no-store",
+        // Safari's PDF viewer shows a blank page for a response it may not keep, so the PDF is cacheable for this user only.
+        "Cache-Control": "private, max-age=0",
       },
     }));
   } catch (error) {
