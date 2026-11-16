@@ -6,12 +6,11 @@ import vm from 'node:vm';
 import ts from 'typescript';
 
 const root = path.resolve(import.meta.dirname, '..');
-// Loads a TypeScript module and its relative, "@/" and "classping-album/" imports (the shared package copied into node_modules).
+// Loads a TypeScript module and its relative and "@/" imports.
 function environment() {
   const modules = new Map();
   function resolveFile(id, from) {
     if (id.startsWith('@/')) return path.join(root, id.slice(2));
-    if (id.startsWith('classping-album/')) return path.join(root, 'node_modules', id);
     if (id.startsWith('.')) return path.join(path.dirname(from), id);
     throw new Error(`Unexpected import ${id}`);
   }
@@ -62,16 +61,13 @@ test('the source asks the backend for the class, published only, within the peri
   assert.match(album.generatedAt, /^\d{4}-\d{2}-\d{2}T/);
 });
 
-test('months and academic years come back newest first', async () => {
+test('activities outside the range are left out even when the backend ignores the dates', () => {
   const source = environment();
-  const months = await source.classAlbumMonths(3, async () => [
-    { activity_date: '2026-08-03' }, { activity_date: '2026-10-09' }, { activity_date: '2026-10-21' }, { activity_date: '2026-11-01', is_publish: false }, { activity_date: null },
-  ]);
-  assert.deepEqual(months, [{ year: 2026, month: 10 }, { year: 2026, month: 8 }]);
-  const years = await source.academicYearOptions(2, async (p) => { assert.equal(p, 'academic-years/?branch_id=2'); return [
-    { id: 1, name: '2025/2026', start_date: '2025-07-01', end_date: '2026-06-30' }, { id: 2, name: '2026/2027', start_date: '2026-07-01T00:00:00', end_date: '2027-06-30' }, { id: 3, name: 'incomplete' },
-  ]; });
-  assert.deepEqual(years.map((year) => year.id), ['2', '1']);
-  assert.equal(years[0].start, '2026-07-01');
-  assert.deepEqual(await source.academicYearOptions(null, async () => { throw new Error('not called'); }), []);
+  const items = [
+    { id: 1, name: 'Juli', activity_date: '2026-07-10', activity_images: [image('a')] },
+    { id: 2, name: 'Oktober', activity_date: '2026-10-10', activity_images: [image('b')] },
+    { id: 3, name: 'Maret', activity_date: '2027-03-10', activity_images: [image('c')] },
+  ];
+  assert.deepEqual(source.albumActivitiesFrom(items, new Map(), { from: '2026-07-01', to: '2026-12-31' }).map((a) => a.id), ['1', '2']);
+  assert.deepEqual(source.albumActivitiesFrom(items, new Map()).map((a) => a.id), ['1', '2', '3']);
 });

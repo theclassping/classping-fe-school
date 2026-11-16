@@ -6088,3 +6088,18 @@ html body select:not([multiple]):not([size]) {
 .notification-menu > a time { margin-top: 5px; color: #8A7A6D; font-size: 11px; }
 .notification-menu > a > i { width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--orange); }
 .notification-empty { margin: 0; padding: 28px 16px; color: var(--muted); font-size: 13px; text-align: center; }
+
+/* Album Kelas button on the activity report, with the semester chooser for the "Semua" view */
+.class-album-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.album-button { white-space: nowrap; display: inline-flex; flex-wrap: wrap; justify-content: center; row-gap: 0; }
+.album-button small { flex-basis: 100%; font-size: 11px; font-weight: 500; color: var(--muted); }
+.album-button:disabled { opacity: .55; cursor: not-allowed; }
+.album-chooser { position: relative; }
+.album-chooser-hint { margin: 6px 0 0; font-size: 12px; color: #8A5300; }
+.album-chooser-panel { position: absolute; left: 0; top: calc(100% + 8px); z-index: 20; display: grid; gap: 12px; width: min(320px, calc(100vw - 32px)); }
+.album-chooser-panel label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; }
+.album-chooser-panel select { min-height: 40px; padding: 0 10px; border: 1px solid #8A7A6D; border-radius: 9px; font: inherit; background: #fff; }
+.album-chooser-panel fieldset { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.album-chooser-panel legend { margin-bottom: 6px; font-size: 13px; font-weight: 600; }
+.album-chooser-panel fieldset label { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.album-chooser-note { margin: 0; font-size: 12px; color: var(--muted); }

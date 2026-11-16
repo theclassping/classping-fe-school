@@ -5,12 +5,12 @@ import { Eye, Pencil, Trash2, UsersRound } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type SyntheticEvent } from "react";
 import { useImageRefresh } from "@/lib/useImageRefresh";
 import styles from "../components/TableActions.module.css";
-import "./album/classAlbum.css";
 import ListPagination, { useListPagination } from "../components/ListPagination";
 import { loadActivities } from "./activityApi";
 import type { Activity } from "./activityData";
 import DeleteActivityDialog from "./DeleteActivityDialog";
 import ActivityDateFilter from "@/features/activities/components/ActivityDateFilter";
+import AlbumButton from "@/features/album/components/AlbumButton";
 import { formatSelection, matchesDateFilter, todayKey, type ActivityDateFilter as DateFilter } from "@/features/activities/dateFilter";
 
 function ActivityCover({ activity, onImageError }: { activity: Activity; onImageError: (event: SyntheticEvent<HTMLImageElement>) => void }) {
@@ -86,9 +86,11 @@ export default function ActivitiesPage() {
             </p>
           </div>
           <div className="class-album-actions">
-            <Link className="secondary-button" href="/dashboard/activities/album">
-              Album Kelas
-            </Link>
+            <AlbumButton
+              dateFilter={dateFilter}
+              classId={classFilter === "all" ? undefined : activities.find((activity) => activity.className === classFilter)?.classId}
+              activities={classFilter === "all" ? [] : activities.filter((activity) => activity.className === classFilter)}
+            />
             <Link className="primary-button" href="/dashboard/activities/add">
               + Tambah Aktivitas
             </Link>

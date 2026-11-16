@@ -6,6 +6,8 @@ export type Activity = {
   imageUrls?: string[];
   className: string;
   classLabel: string;
+  /** Backend class id, for the class album. */
+  classId?: number;
   time: string;
   date: string;
   status: "Dipublikasi" | "Draf";
