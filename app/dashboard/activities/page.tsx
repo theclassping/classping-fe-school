@@ -10,6 +10,8 @@ import ListPagination, { useListPagination } from "../components/ListPagination"
 import { loadActivities } from "./activityApi";
 import type { Activity } from "./activityData";
 import DeleteActivityDialog from "./DeleteActivityDialog";
+import ActivityDateFilter from "@/features/activities/components/ActivityDateFilter";
+import { formatSelection, matchesDateFilter, todayKey, type ActivityDateFilter as DateFilter } from "@/features/activities/dateFilter";
 
 function ActivityCover({ activity, onImageError }: { activity: Activity; onImageError: (event: SyntheticEvent<HTMLImageElement>) => void }) {
   const [index, setIndex] = useState(0);
@@ -34,7 +36,7 @@ export default function ActivitiesPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [date, setDate] = useState("");
+  const [dateFilter, setDateFilter] = useState<DateFilter>(() => ({ mode: "all", date: todayKey() }));
   const [classFilter, setClassFilter] = useState("all");
   const [deletingActivity, setDeletingActivity] = useState<Activity | null>(null);
   useEffect(() => {
@@ -64,9 +66,9 @@ export default function ActivitiesPage() {
       activities.filter(
         (activity) =>
           (classFilter === "all" || activity.className === classFilter) &&
-          (!date || activity.date === date),
+          matchesDateFilter(activity.date, dateFilter),
       ),
-    [activities, classFilter, date],
+    [activities, classFilter, dateFilter],
   );
 
   const pagination = useListPagination(filtered);
@@ -93,16 +95,10 @@ export default function ActivitiesPage() {
           </div>
         </div>
         <div className="activity-toolbar panel">
-          <label className="date-chip">
-            <span>
-              <small>Tanggal kegiatan</small>
-              <input
-                type="date"
-                value={date}
-                onChange={(event) => { setDate(event.target.value); pagination.reset(); }}
-              />
-            </span>
-          </label>
+          <ActivityDateFilter
+            value={dateFilter}
+            onChange={(next) => { setDateFilter(next); pagination.reset(); }}
+          />
           <select
             aria-label="Filter kelas aktivitas"
             value={classFilter}
@@ -115,10 +111,11 @@ export default function ActivitiesPage() {
               </option>
             ))}
           </select>
-          <span className="activity-total">
+          <span className="activity-total" role="status">
+            {dateFilter.mode !== "all" && <strong>{formatSelection(dateFilter.mode, dateFilter.date)} · </strong>}
             {filtered.length} aktivitas ·{" "}
             {filtered.reduce((total, activity) => total + activity.photos, 0)}{" "}
-            foto hari ini
+            foto
           </span>
         </div>
         <div className="activity-grid">

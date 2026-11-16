@@ -2203,6 +2203,7 @@ dialog select:focus {
 
 .activity-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 14px;
   padding: 14px 18px;
