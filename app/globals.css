@@ -6090,8 +6090,11 @@ html body select:not([multiple]):not([size]) {
 .notification-empty { margin: 0; padding: 28px 16px; color: var(--muted); font-size: 13px; text-align: center; }
 
 /* Album Kelas button on the activity report, with the semester chooser for the "Semua" view */
-.class-album-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.album-button { white-space: nowrap; display: inline-flex; flex-wrap: wrap; justify-content: center; row-gap: 0; }
+.class-album-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; }
+.class-album-actions a { text-decoration: none; }
+.class-album-actions .primary-button { align-items: center; }
+.class-album-actions .album-button { min-height: 45px; height: 100%; white-space: nowrap; display: inline-flex; flex-wrap: wrap; align-content: center; justify-content: center; row-gap: 0; padding-top: 5px; padding-bottom: 5px; line-height: 1.25; }
+.class-album-actions .album-chooser { display: flex; flex-direction: column; }
 .album-button small { flex-basis: 100%; text-align: center; font-size: 11px; font-weight: 500; color: var(--muted); }
 .album-button:disabled { opacity: .55; cursor: not-allowed; }
 .album-chooser { position: relative; }
