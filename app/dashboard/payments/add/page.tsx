@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { resizeImageForUpload } from "@/lib/imageResize";
 import { notifySaved } from "@/lib/notifications";
+import { reportStorageBlock, StorageBlockedError, throwUploadError } from "@/lib/storageLimit";
 
 type SchoolClass = { id: number; name?: string; code?: string };
 type Student = {
@@ -155,7 +156,9 @@ export default function AddPaymentPage() {
         purpose: "payment",
       }),
     });
-    if (!response.ok) throw new Error("Gagal menyiapkan unggahan bukti pembayaran.");
+    if (!response.ok) {
+      throwUploadError(response.status, await response.json().catch(() => null), "Gagal menyiapkan unggahan bukti pembayaran.");
+    }
     const upload = (await response.json()) as {
       file_key?: string;
       presigned_url?: string;
@@ -168,7 +171,9 @@ export default function AddPaymentPage() {
       headers: { "Content-Type": file.type || "application/octet-stream" },
       body: file,
     });
-    if (!uploadResponse.ok) throw new Error("Gagal mengunggah bukti pembayaran.");
+    if (!uploadResponse.ok) {
+      throwUploadError(uploadResponse.status, await uploadResponse.json().catch(() => null), "Gagal mengunggah bukti pembayaran.");
+    }
     return upload.file_key;
   }
 
@@ -216,6 +221,7 @@ export default function AddPaymentPage() {
       router.refresh();
     } catch (submitError) {
       console.error(submitError);
+      if (submitError instanceof StorageBlockedError) reportStorageBlock(submitError.block);
       setError(
         submitError instanceof Error ? submitError.message : "Gagal menyimpan pembayaran.",
       );

@@ -15,6 +15,7 @@ import { notifySaved } from "@/lib/notifications";
 import { useImageRefresh } from "@/lib/useImageRefresh";
 import { randomId } from "@/lib/uuid";
 import "./activityEditor.css";
+import { STORAGE_RESTORED_EVENT } from "@/lib/storageLimit";
 
 function PhotoPreview({ photo, close, onImageError }: { photo: ReportPhoto; close: () => void; onImageError: (event: SyntheticEvent<HTMLImageElement>) => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -130,6 +131,7 @@ export default function ActivityReportEditor({ editing = false }: { editing?: bo
     const hidden = () => { if (document.visibilityState === "hidden") save(); };
     const online = () => { c.uploadPhotos(); save(); render(); };
     const offline = () => render();
+    const storageRestored = () => c.retryBlockedUploads();
     const intercept = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const anchor = (event.target as Element | null)?.closest?.("a[href]");
@@ -139,9 +141,9 @@ export default function ActivityReportEditor({ editing = false }: { editing?: bo
       event.preventDefault(); event.stopPropagation();
       void c.flushLocal().then(() => { router.push(target.pathname + target.search); }).catch(error => setActionError(error.message));
     };
-    window.addEventListener("beforeunload", beforeUnload); window.addEventListener("online", online); window.addEventListener("offline", offline);
+    window.addEventListener("beforeunload", beforeUnload); window.addEventListener("online", online); window.addEventListener("offline", offline); window.addEventListener(STORAGE_RESTORED_EVENT, storageRestored);
     document.addEventListener("visibilitychange", hidden); document.addEventListener("click", intercept, true);
-    return () => { window.removeEventListener("beforeunload", beforeUnload); window.removeEventListener("online", online); window.removeEventListener("offline", offline); document.removeEventListener("visibilitychange", hidden); document.removeEventListener("click", intercept, true); };
+    return () => { window.removeEventListener("beforeunload", beforeUnload); window.removeEventListener("online", online); window.removeEventListener("offline", offline); window.removeEventListener(STORAGE_RESTORED_EVENT, storageRestored); document.removeEventListener("visibilitychange", hidden); document.removeEventListener("click", intercept, true); };
   }, [ready, c, router]);
 
   const onImageError = useImageRefresh(useCallback(async () => {
@@ -246,7 +248,7 @@ export default function ActivityReportEditor({ editing = false }: { editing?: bo
         onStudentChange={selectStudent}
         onRemarkChange={(studentId, value) => change(d => ({ ...d, remarks: { ...d.remarks, [studentId]: value } }))}
         onBlur={() => c.schedule(true)}
-        onRetry={key => change(d => ({ ...d, photos: d.photos.map(photo => photo.key === key ? { ...photo, upload: "pending", error: undefined } : photo) }), true)}
+        onRetry={key => { controller?.resumeUploads(); change(d => ({ ...d, photos: d.photos.map(photo => photo.key === key ? { ...photo, upload: "pending", error: undefined } : photo) }), true); }}
         onPreview={photo => setPreview(photo.key)} onRemove={removePhoto} onMove={reorder} onImageError={onImageError} />
       <details className="report-participants"><summary>Peserta kegiatan <span>{new Set([...draft.participants, ...tagged]).size} siswa</span></summary><p>Siswa yang ditandai otomatis menjadi peserta. Tambahkan peserta lain untuk menerima laporan dan foto bersama.</p><div>{students.map(s => <label key={s.id}><input type="checkbox" checked={draft.participants.includes(s.id) || tagged.includes(s.id)} disabled={tagged.includes(s.id)} onChange={e => change(d => ({ ...d, participants: e.target.checked ? [...d.participants, s.id] : d.participants.filter(id => id !== s.id) }), true)} /><span>{s.name}{tagged.includes(s.id) && <small>Ditandai di foto</small>}</span></label>)}</div></details>
     </>}

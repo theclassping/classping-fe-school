@@ -6,6 +6,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { resizeImageForUpload } from "@/lib/imageResize";
 import { notifySaved } from "@/lib/notifications";
 import { useImageRefresh } from "@/lib/useImageRefresh";
+import { reportStorageBlock, StorageBlockedError, throwUploadError } from "@/lib/storageLimit";
 
 type Proof = { id: number; image_data: unknown; image_url?: string };
 
@@ -199,7 +200,9 @@ export default function PaymentEditPage() {
         purpose: "payment",
       }),
     });
-    if (!response.ok) throw new Error("Gagal menyiapkan unggahan bukti pembayaran.");
+    if (!response.ok) {
+      throwUploadError(response.status, await response.json().catch(() => null), "Gagal menyiapkan unggahan bukti pembayaran.");
+    }
     const upload = (await response.json()) as {
       file_key?: string;
       presigned_url?: string;
@@ -212,7 +215,9 @@ export default function PaymentEditPage() {
       headers: { "Content-Type": file.type || "application/octet-stream" },
       body: file,
     });
-    if (!uploaded.ok) throw new Error("Gagal mengunggah bukti pembayaran.");
+    if (!uploaded.ok) {
+      throwUploadError(uploaded.status, await uploaded.json().catch(() => null), "Gagal mengunggah bukti pembayaran.");
+    }
     return upload.file_key;
   }
 
@@ -265,6 +270,7 @@ export default function PaymentEditPage() {
       router.refresh();
     } catch (submitError) {
       console.error(submitError);
+      if (submitError instanceof StorageBlockedError) reportStorageBlock(submitError.block);
       setError(
         submitError instanceof Error ? submitError.message : "Gagal menyimpan pembayaran.",
       );
