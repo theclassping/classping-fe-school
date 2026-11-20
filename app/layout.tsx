@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Baloo_2, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import "./prototype-latest.css";
@@ -18,6 +19,11 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
   variable: "--font-jakarta",
 });
+
+// Label under the icon when the portal is added to an iPhone home screen.
+export const metadata: Metadata = {
+  appleWebApp: { capable: false, title: "ClassPing" },
+};
 
 export default function RootLayout({
   children,
