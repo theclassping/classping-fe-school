@@ -1,0 +1,542 @@
+/* Status banner under the page heading */
+.notice {
+  display: grid;
+  gap: 3px;
+  margin: 0 0 19px;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.notice strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.notice.success {
+  border-color: #BFE3D8;
+  background: var(--mint);
+}
+
+.notice.warning {
+  border-color: #F1D9A6;
+  background: var(--warning-soft);
+}
+
+.notice.danger {
+  border-color: #F0C2B8;
+  background: var(--danger-soft);
+}
+
+/* Current plan and usage */
+.overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 17px;
+  margin-bottom: 19px;
+}
+
+.card {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  margin: 0;
+  padding: 20px 22px;
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cardTop p,
+.cardTop h3 {
+  margin: 0;
+}
+
+.cardTop p {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.planName {
+  font: 800 28px/1.15 var(--font-display);
+  color: var(--ink);
+}
+
+.cardNote {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.meterValue {
+  font: 800 24px/1.2 var(--font-display);
+  color: var(--ink);
+}
+
+.meterValue small {
+  font: 500 12px var(--font-body);
+  color: var(--muted);
+}
+
+.meter {
+  height: 8px;
+  margin-top: 4px;
+}
+
+.meterHigh i {
+  background: var(--sun);
+}
+
+.meterFull i {
+  background: var(--danger);
+}
+
+.pill {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pill.success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.pill.warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.pill.danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.pill.muted {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+/* Open invoices */
+/* Panels stack with the same gap as the cards above them. */
+.section {
+  margin-bottom: 19px;
+}
+
+.invoiceList {
+  list-style: none;
+  margin: 12px 0 -8px;
+  padding: 0;
+}
+
+.invoiceList li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.invoiceList li > div {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.invoiceList small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.invoiceTotal {
+  font: 800 18px var(--font-display);
+  white-space: nowrap;
+}
+
+/* Plans */
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 17px;
+  margin-top: 16px;
+}
+
+.plan {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.planHighlighted {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(0, 115, 95, 0.1);
+}
+
+.plan h3 {
+  font: 700 18px/1.3 var(--font-display);
+}
+
+.price {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.price strong {
+  font: 800 26px/1.1 var(--font-display);
+  color: var(--ink);
+}
+
+.features {
+  list-style: none;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+.features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.features svg {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  color: var(--green);
+}
+
+/* globals.css has no disabled state for these buttons; scoped here so other pages are unaffected. */
+.plan :global(.secondary-button):disabled,
+.dialog :global(.primary-button):disabled,
+.dialog :global(.secondary-button):disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.numeric {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* Dialogs */
+.dialog {
+  width: min(520px, calc(100% - 28px));
+}
+
+.dialog > :global(.dialog-heading) {
+  padding: 25px 25px 0;
+}
+
+.dialog > :global(.dialog-heading) > div {
+  min-width: 0;
+}
+
+.dialog :global(.close-button) {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+.dialog :global(.close-button) svg {
+  width: 18px;
+  height: 18px;
+}
+
+.dialogBody {
+  padding: 18px 25px 25px;
+}
+
+.dialogBody > :global(.empty-state) {
+  font-size: 13px;
+}
+
+.dialog :global(.dialog-actions) {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dialog :global(.dialog-actions) :global(.primary-button),
+.dialog :global(.dialog-actions) :global(.secondary-button) {
+  min-height: 42px;
+  height: 42px;
+  padding: 0 18px;
+  font-size: 13px;
+}
+
+/* The form is only a wrapper here; the dialog body carries the padding. */
+.channelForm {
+  padding: 0;
+}
+
+.channels {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+/* Many channels: the list scrolls so the total and the buttons stay in view. */
+.channelForm .channels {
+  max-height: min(296px, 38vh);
+  overflow-y: auto;
+  padding: 2px 4px 2px 2px;
+}
+
+.channels legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.channels:disabled {
+  opacity: 0.7;
+}
+
+.channel {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px !important;
+  margin-top: 0 !important;
+  min-height: 46px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13px !important;
+  cursor: pointer;
+}
+
+.channel:has(input:checked) {
+  border-color: var(--green);
+  background: var(--mint);
+}
+
+.channel input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  accent-color: var(--green);
+}
+
+.channel input:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.channel small {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: right;
+}
+
+.summary {
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--canvas);
+}
+
+.summary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: 13px;
+}
+
+.summary dt {
+  color: var(--muted);
+}
+
+.summary dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
+}
+
+.summary dd small {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.summary .summaryTotal {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.summary .summaryTotal dd {
+  color: var(--green);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.codeRow dd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.codeRow strong {
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+
+.copyButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--green);
+  font: 700 12px var(--font-body);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.copyButton svg {
+  width: 13px;
+  height: 13px;
+}
+
+.amountBox {
+  display: grid;
+  gap: 2px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--mint);
+  text-align: center;
+}
+
+.amountBox span,
+.amountBox small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.amountBox strong {
+  font: 800 28px/1.2 var(--font-display);
+  color: var(--green);
+}
+
+.payLink {
+  width: 100%;
+  margin-top: 16px;
+  text-decoration: none;
+}
+
+.error {
+  margin: 0 0 14px;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.help {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Not ".warning": that name is the tone of notices and pills. */
+.caution {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.result {
+  padding: 28px 25px 25px;
+  text-align: center;
+}
+
+.result > svg {
+  width: 48px;
+  height: 48px;
+  color: var(--green);
+}
+
+.result h2 {
+  margin: 10px 0 6px;
+  font: 700 18px/1.25 var(--font-display);
+}
+
+.result p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.reference {
+  margin-top: 8px !important;
+  font-weight: 700;
+}
+
+.result :global(.dialog-actions) {
+  justify-content: center;
+}
+
+@media (max-width: 1100px) {
+  .overview,
+  .planGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .invoiceList li {
+    flex-wrap: wrap;
+  }
+
+  .invoiceList li > div {
+    flex-basis: 100%;
+  }
+
+  .invoiceList :global(.primary-button) {
+    margin-left: auto;
+  }
+}

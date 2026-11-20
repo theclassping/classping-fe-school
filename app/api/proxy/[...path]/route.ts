@@ -3,6 +3,9 @@ import { ACCESS_COOKIE, REFRESH_COOKIE, clearSessionCookies, refreshSession, Ses
 
 // Response headers passed back to the browser. The X-* headers carry Django's
 // pagination totals for `?page=` list requests (see lib/api/client.ts).
+// Request headers passed on to Django besides the token and content type.
+const FORWARDED_REQUEST_HEADERS = ["Idempotency-Key"];
+
 const FORWARDED_RESPONSE_HEADERS = ["Content-Type", "X-Total-Count", "X-Page", "X-Page-Size", "X-Total-Pages"];
 
 async function proxyRequest(request: NextRequest, path: string[]) {
@@ -26,6 +29,10 @@ async function proxyRequest(request: NextRequest, path: string[]) {
       const headers = new Headers({ Authorization: `Bearer ${token}` });
       const contentType = request.headers.get("content-type");
       if (contentType) headers.set("Content-Type", contentType);
+      for (const name of FORWARDED_REQUEST_HEADERS) {
+        const value = request.headers.get(name);
+        if (value) headers.set(name, value);
+      }
       return fetch(url, { method: request.method, headers, body, cache: "no-store", redirect: "manual" });
     };
 

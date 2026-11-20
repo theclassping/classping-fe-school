@@ -33,9 +33,11 @@ export function proxy(request: NextRequest) {
     // the session before returning protected data.
     const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
     if (!accessToken && !refreshToken) {
-      return NextResponse.redirect(
-        new URL("/login", request.url)
-      );
+      // Remember where the visitor was going (e.g. the subscription page
+      // linked from the landing page) so login can return there.
+      const login = new URL("/login", request.url);
+      login.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+      return NextResponse.redirect(login);
     }
   }
 
