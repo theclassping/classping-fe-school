@@ -127,7 +127,7 @@ export default function FocusedActivityPhotos(props: Props) {
           <span className="focus-zoom"><Maximize2 size={15} /> Perbesar</span>
         </button>
         {photo.upload !== "complete" && <p className="report-upload-status" role="status">
-          {photo.upload === "uploading" ? "Mengunggah foto…" : photo.upload === "error" ? "Unggahan gagal" : "Menunggu unggahan"}
+          {photo.upload === "uploading" ? "Mengunggah foto…" : photo.upload === "error" ? (photo.error || "Unggahan gagal") : "Menunggu unggahan"}
           {photo.upload === "error" && <button type="button" onClick={() => onRetry(photo.key)}>Coba lagi</button>}
         </p>}
       </div>

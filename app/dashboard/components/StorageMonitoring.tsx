@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { loadCurrentBranch } from "../profile/branchApi";
+import { openStorageDialog } from "@/lib/storageLimit";
 
 export type StorageState = { capacity: number; usage: number };
 
@@ -89,9 +90,9 @@ export default function StorageMonitoring() {
   const percentage = storage ? Math.min(100, (storage.usage / storage.capacity) * 100) : 0;
   const severity = percentage >= 98 ? "critical" : percentage >= 80 ? "warning" : "normal";
   const warningMessage = severity === "critical"
-    ? "Penyimpanan hampir penuh. Segera hubungi ClassPing untuk menambah kapasitas."
+    ? "Penyimpanan hampir penuh. Kosongkan ruang atau tambah kapasitas."
     : severity === "warning"
-      ? "Kapasitas hampir penuh. Segera hubungi ClassPing."
+      ? "Kapasitas hampir penuh."
       : "";
   const barLabel = storage
     ? `${formatBytes(storage.usage)} terpakai dari ${formatBytes(storage.capacity)} (${Math.round((storage.usage / storage.capacity) * 100)}%)`
@@ -121,7 +122,12 @@ export default function StorageMonitoring() {
             <small aria-label={barLabel}>{Math.round((storage.usage / storage.capacity) * 100)}% digunakan</small>
             <Link href="/dashboard/storage">Lihat detail</Link>
           </div>
-          {warningMessage && <p className={`storage-monitor__warning is-${severity}`} role="status">{warningMessage}</p>}
+          {warningMessage && (
+            <div className={`storage-monitor__warning is-${severity}`} role="status">
+              <span>{warningMessage}</span>
+              <button type="button" onClick={openStorageDialog}>Kelola penyimpanan</button>
+            </div>
+          )}
         </div>
       ) : null}
     </section>

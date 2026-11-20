@@ -2,11 +2,17 @@ import { randomId } from "@/lib/uuid";
 import { canSync, reportIssues, reportPayload, type ReportDraft, type ReportRecord } from "./activityEditorState";
 import { writeDraft, removeDraft, type PendingSave } from "./activityDraftStore";
 import { resizeImageForUpload } from "@/lib/imageResize";
+import { reportStorageBlock, storageBlockFrom, StorageBlockedError } from "@/lib/storageLimit";
+/** Photo errors caused by the branch storage; cleared and retried once space is bought or freed. */
+export const STORAGE_UPLOAD_ERRORS = { storage_full: "Penyimpanan sekolah penuh.", subscription_locked: "Langganan sekolah sudah berakhir." } as const;
+const STORAGE_ERROR_TEXT: readonly string[] = Object.values(STORAGE_UPLOAD_ERRORS);
 export class ReportError extends Error { constructor(message: string, public status = 0) { super(message); } }
 export async function reportRequest<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { credentials: "include", cache: "no-store", ...init });
   const body = await response.json().catch(() => null);
   if (!response.ok) {
+    const block = storageBlockFrom(response.status, body);
+    if (block) throw new StorageBlockedError(block);
     const message = typeof body?.detail === "string" ? body.detail : body ? Object.values(body).flat().join(" ") : "Penyimpanan belum berhasil. Silakan coba lagi.";
     throw new ReportError(response.status === 401 ? "Sesi berakhir. Masuk kembali untuk menyinkronkan draft; perubahan di perangkat tetap tersimpan." : message, response.status);
   }
@@ -40,6 +46,8 @@ export class ActivityDraftController {
   private deadline?: ReturnType<typeof setTimeout>;
   private uploading = new Set<string>();
   private uploadAbort = new AbortController();
+  /** Set when the storage refused a photo: no new uploads start until retryBlockedUploads(). */
+  private storageBlocked = false;
   constructor(public key: string, draft: ReportDraft, private changed: () => void, pending?: PendingSave, private branchId?: number) { this.draft = draft; this.pending = pending; }
   private emit() { if (!this.disposed) this.changed(); }
   change(update: (draft: ReportDraft) => ReportDraft, urgent = false, content = true) {
@@ -136,7 +144,7 @@ export class ActivityDraftController {
     return task;
   }
   uploadPhotos() {
-    if (this.disposed || !navigator.onLine) return;
+    if (this.disposed || !navigator.onLine || this.storageBlocked) return;
     for (const photo of this.draft.photos) {
       if (this.uploading.size >= 2) break;
       if (!photo.file || photo.upload !== "pending" || this.uploading.has(photo.key) || !this.draft.classId || !Number.isInteger(Number(this.draft.classId)) || !Number.isInteger(this.branchId)) continue;
@@ -154,13 +162,31 @@ export class ActivityDraftController {
           await this.flushLocal();
         }
         const response = await fetch(uploadUrl!, { method: "PUT", headers: { "Content-Type": file.type || "application/octet-stream" }, body: file, signal: this.uploadAbort.signal });
-        if (!response.ok) throw new Error("Unggahan gagal. Ketuk Coba lagi.");
+        if (!response.ok) throw new Error(response.status === 507 ? "Server penyimpanan sedang penuh. Coba lagi nanti." : "Unggahan gagal. Ketuk Coba lagi.");
         patch({ upload: "complete", uploadKey: fileKey, uploadUrl: undefined, error: undefined }, true);
       })().catch(error => {
+        if (error instanceof StorageBlockedError) {
+          // Other photos wait (still "pending") instead of each being refused in turn.
+          this.storageBlocked = true;
+          patch({ upload: "error", error: STORAGE_UPLOAD_ERRORS[error.block.kind] });
+          reportStorageBlock(error.block, photo.file?.name);
+          return;
+        }
         patch({ upload: "error", error: error instanceof Error ? error.message : "Unggahan belum berhasil." });
       }).finally(() => { this.uploading.delete(key); this.uploadPhotos(); });
     }
   }
+  /** Space was bought or freed: retry the photos the storage refused, then the waiting ones. */
+  retryBlockedUploads() {
+    this.storageBlocked = false;
+    if (this.draft.photos.some(photo => photo.upload === "error" && photo.error && STORAGE_ERROR_TEXT.includes(photo.error))) {
+      this.change(d => ({ ...d, photos: d.photos.map(photo => photo.upload === "error" && photo.error && STORAGE_ERROR_TEXT.includes(photo.error) ? { ...photo, upload: "pending", error: undefined } : photo) }), true, false);
+    } else {
+      this.uploadPhotos();
+    }
+  }
+  /** "Coba lagi" on one photo also lifts the storage pause. */
+  resumeUploads() { this.storageBlocked = false; }
   async finish() { await this.localQueue; await removeDraft(this.key); }
   dispose() { this.disposed = true; this.clearTimers(); this.uploadAbort.abort(); }
 }

@@ -3,6 +3,7 @@
 import { ReactNode, useState } from "react";
 import DashboardSidebar from "../DashboardSidebar";
 import SchoolHeader from "./SchoolHeader";
+import StorageBlockHost from "./storage/StorageBlockHost";
 
 export default function DashboardChrome({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -15,6 +16,7 @@ export default function DashboardChrome({ children }: { children: ReactNode }) {
         <SchoolHeader onMenuClick={() => setSidebarOpen((open) => !open)} />
         {children}
       </div>
+      <StorageBlockHost />
     </div>
   );
 }

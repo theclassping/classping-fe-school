@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { loadCurrentBranch } from "../profile/branchApi";
+import { openStorageDialog } from "@/lib/storageLimit";
 
 type Dimension = "category" | "class";
 type Breakdown = { label: string; files: number; bytes: number };
@@ -193,9 +194,9 @@ export default function StorageDetails() {
   const usedPercentage = data?.capacityBytes && data.capacityBytes > 0 ? data.usedBytes / data.capacityBytes * 100 : null;
   const storageSeverity = usedPercentage === null ? "normal" : usedPercentage >= 98 ? "critical" : usedPercentage >= 80 ? "warning" : "normal";
   const storageWarning = storageSeverity === "critical"
-    ? "Penyimpanan hampir penuh. Segera hubungi ClassPing untuk menambah kapasitas."
+    ? "Penyimpanan hampir penuh. Kosongkan ruang atau tambah kapasitas."
     : storageSeverity === "warning"
-      ? "Kapasitas hampir penuh. Segera hubungi ClassPing."
+      ? "Kapasitas hampir penuh."
       : "";
 
   return (
@@ -219,7 +220,12 @@ export default function StorageDetails() {
               <div className="storage-details-total"><span>Kapasitas terpakai</span><strong>{formatBytes(data.usedBytes)}</strong></div>
               <div className="storage-details-total"><span>Kapasitas maksimum</span><strong>{data.capacityBytes === null ? "Belum tersedia" : formatBytes(data.capacityBytes)}</strong></div>
             </div>
-            {storageWarning && <p className={`storage-details-warning is-${storageSeverity}`} role="alert">{storageWarning}</p>}
+            {storageWarning && (
+              <div className={`storage-details-warning is-${storageSeverity}`} role="alert">
+                <span>{storageWarning}</span>
+                <button type="button" className="button-secondary" onClick={openStorageDialog}>Kelola penyimpanan</button>
+              </div>
+            )}
             <div className="storage-pie-grid">
               <PieChart title="Berdasarkan kategori" rows={data.categories} />
               <PieChart title="Berdasarkan kelas" rows={data.classes} />
