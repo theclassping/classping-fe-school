@@ -123,8 +123,10 @@ export default function WithdrawForm({ summary, accounts, accountsLoading, draft
         <label>
           Jumlah penarikan
           <div className={styles.amountField}>
-            <span aria-hidden="true">Rp</span>
-            <input inputMode="numeric" value={draft.amountText} onChange={(event) => change({ amountText: formatThousands(parseAmount(event.target.value)) }, "amount")} placeholder="0" aria-describedby="withdraw-amount-help" aria-invalid={Boolean(errors.amount)} />
+            <span className={styles.amountWrap}>
+              <span aria-hidden="true">Rp</span>
+              <input inputMode="numeric" value={draft.amountText} onChange={(event) => change({ amountText: formatThousands(parseAmount(event.target.value)) }, "amount")} placeholder="0" aria-describedby="withdraw-amount-help" aria-invalid={Boolean(errors.amount)} />
+            </span>
             <button type="button" className="secondary-button" onClick={() => change({ amountText: formatThousands(summary.available) }, "amount")}>Maks</button>
           </div>
           {errors.amount ? (

@@ -136,6 +136,62 @@
   gap: 14px;
 }
 
+/* The heading sits outside the padded <form>, so it carries the same inset itself. */
+.withdrawDialog > :global(.dialog-heading) {
+  padding: 25px 25px 0;
+  align-items: center;
+}
+
+.withdrawDialog > :global(.dialog-heading) > div {
+  min-width: 0;
+}
+
+.withdrawDialog :global(.close-button) {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+.withdrawDialog :global(.close-button) svg {
+  width: 18px;
+  height: 18px;
+}
+
+.withdrawDialog > .fieldError {
+  margin: 14px 25px 0;
+}
+
+/* Keyboard focus already shows as a green border + soft ring; skip the global outline so it isn't doubled. */
+.withdrawDialog input:focus-visible,
+.withdrawDialog select:focus-visible {
+  outline: none;
+}
+
+/* The global dialog input sizing is for text fields; radios and checkboxes keep their natural size. */
+.withdrawDialog input[type="radio"],
+.withdrawDialog input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  accent-color: var(--green);
+}
+
+/* Footer: the two global button styles differ in height, so pin both to one row. */
+.withdrawDialog :global(.dialog-actions) {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.withdrawDialog :global(.dialog-actions) :global(.primary-button),
+.withdrawDialog :global(.dialog-actions) :global(.secondary-button) {
+  min-height: 42px;
+  height: 42px;
+  padding: 0 18px;
+  font-size: 13px;
+}
+
 .withdrawDialog :global(.dialog-heading) p strong {
   color: var(--green);
 }
@@ -162,25 +218,41 @@
 
 .amountField {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
 }
 
-.amountField > span {
-  font-weight: 800;
-  color: var(--ink-muted);
-}
-
-.amountField input {
+.amountWrap {
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
+  display: flex;
+}
+
+.amountWrap > span {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--ink-muted);
+  pointer-events: none;
+}
+
+.amountWrap input {
+  width: 100%;
+  min-width: 0;
+  padding-left: 38px;
   font-size: 16px;
   font-weight: 800;
 }
 
 .amountField :global(.secondary-button) {
+  min-height: 42px;
   height: 42px;
   padding: 0 14px;
+  flex: 0 0 auto;
 }
 
 .fieldError {
@@ -370,8 +442,8 @@
 
 /* Withdrawal: saved vs new account */
 .targetToggle {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -379,8 +451,11 @@
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 8px 12px;
+  margin-top: 0;
+  min-height: 42px;
+  padding: 0 12px;
   border: 1px solid var(--line);
   border-radius: 10px;
   font-weight: 700;
@@ -407,11 +482,8 @@
 .checkboxRow {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   font-size: 12px;
-}
-
-.checkboxRow input {
-  margin-top: 2px;
+  cursor: pointer;
 }
