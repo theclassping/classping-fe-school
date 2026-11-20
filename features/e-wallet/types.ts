@@ -101,6 +101,16 @@ export type PayoutAccountResponse = {
   updated_at: string;
 };
 
+/** POST payout-accounts/inquiry/ */
+export type PayoutAccountInquiryRequest = { bank_code: string; account_number: string };
+
+export type PayoutAccountInquiryResponse = {
+  bank_code: string;
+  bank_name: string;
+  account_number: string;
+  account_holder_name: string;
+};
+
 /** POST withdrawals/preview/ and withdrawals/otp/resend/ */
 export type WithdrawalPreviewResponse = {
   otp_reference: string;
@@ -171,6 +181,14 @@ export type Destination = {
 };
 
 export type PayoutAccount = Destination & { id: number };
+
+/** Who the provider says owns a new destination account; the name is sent unchanged on the preview. */
+export type AccountInquiry = {
+  bankCode: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolderName: string;
+};
 
 export type Withdrawal = Destination & {
   id: number;

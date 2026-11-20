@@ -5,14 +5,16 @@
 
 import { apiGet, apiGetPage, apiPost, type Page } from "@/lib/api/client";
 import { LEDGER_PAGE_SIZE, ledgerQuery } from "./ledgerFilters";
-import { toLedgerDetail, toLedgerRow, toPayoutAccount, toPreviewRequest, toWalletSummary, toWithdrawal, toWithdrawalPreview } from "./mappers";
+import { toAccountInquiry, toInquiryRequest, toLedgerDetail, toLedgerRow, toPayoutAccount, toPreviewRequest, toWalletSummary, toWithdrawal, toWithdrawalPreview } from "./mappers";
 import type {
+  AccountInquiry,
   LedgerDetail,
   LedgerEntryDetailResponse,
   LedgerEntryResponse,
   LedgerFilters,
   LedgerRow,
   PayoutAccount,
+  PayoutAccountInquiryResponse,
   PayoutAccountResponse,
   WalletResponse,
   WalletSummary,
@@ -28,6 +30,7 @@ const PATHS = {
   wallet: "wallet",
   ledger: "wallet/ledger",
   payoutAccounts: "payout-accounts",
+  payoutAccountInquiry: "payout-accounts/inquiry",
   withdrawals: "withdrawals",
   withdrawalPreview: "withdrawals/preview",
   otpResend: "withdrawals/otp/resend",
@@ -49,6 +52,11 @@ export async function getLedgerEntry(id: number, signal?: AbortSignal): Promise<
 /** Bank accounts this branch has withdrawn to before, most recently used first. */
 export async function getPayoutAccounts(signal?: AbortSignal): Promise<PayoutAccount[]> {
   return (await apiGet<PayoutAccountResponse[]>(PATHS.payoutAccounts, undefined, signal)).map(toPayoutAccount);
+}
+
+/** Asks the provider who owns a new destination account (PAYOUT_INQUIRY_UNAVAILABLE when it cannot look names up). */
+export async function inquirePayoutAccount(bankCode: string, accountNumber: string): Promise<AccountInquiry> {
+  return toAccountInquiry(await apiPost<PayoutAccountInquiryResponse>(PATHS.payoutAccountInquiry, toInquiryRequest(bankCode, accountNumber)));
 }
 
 /** Validates the withdrawal on the server and emails an OTP to the branch. */

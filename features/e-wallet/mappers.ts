@@ -3,6 +3,7 @@
 
 import { toAmount } from "@/lib/format";
 import type {
+  AccountInquiry,
   BadgeTone,
   Destination,
   GatewayPaymentResponse,
@@ -13,6 +14,8 @@ import type {
   LedgerRow,
   PaymentDetail,
   PayoutAccount,
+  PayoutAccountInquiryRequest,
+  PayoutAccountInquiryResponse,
   PayoutAccountResponse,
   WalletResponse,
   WalletSummary,
@@ -95,6 +98,19 @@ function toDestination(account: Pick<PayoutAccountResponse, "bank_code" | "bank_
 
 export function toPayoutAccount(account: PayoutAccountResponse): PayoutAccount {
   return { id: account.id, ...toDestination(account) };
+}
+
+export function toInquiryRequest(bankCode: string, accountNumber: string): PayoutAccountInquiryRequest {
+  return { bank_code: bankCode, account_number: accountNumber };
+}
+
+export function toAccountInquiry(inquiry: PayoutAccountInquiryResponse): AccountInquiry {
+  return {
+    bankCode: inquiry.bank_code,
+    bankName: inquiry.bank_name || inquiry.bank_code,
+    accountNumber: inquiry.account_number,
+    accountHolderName: inquiry.account_holder_name.trim(),
+  };
 }
 
 const WITHDRAWAL_STATUS_LABELS: Record<WithdrawalStatus, string> = {

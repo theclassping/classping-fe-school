@@ -88,6 +88,22 @@ test('wallet error messages are Indonesian and show the OTP attempts left', () =
   assert.equal(rules.walletErrorMessage(new ApiError('x', 400, null, {}), 'fallback'), 'fallback');
 });
 
+test('a holder-name inquiry maps to a view model and knows when it can run', () => {
+  const { ApiError } = loadTs('lib/api/errors.ts');
+  assert.deepEqual(mappers.toInquiryRequest('BCA', '5271234567'), { bank_code: 'BCA', account_number: '5271234567' });
+  assert.deepEqual(
+    mappers.toAccountInquiry({ bank_code: 'BCA', bank_name: '', account_number: '5271234567', account_holder_name: ' YAYASAN PENDIDIKAN ' }),
+    { bankCode: 'BCA', bankName: 'BCA', accountNumber: '5271234567', accountHolderName: 'YAYASAN PENDIDIKAN' },
+  );
+  assert.equal(rules.canInquireAccount('BCA', '5271234567'), true);
+  assert.equal(rules.canInquireAccount('', '5271234567'), false);
+  assert.equal(rules.canInquireAccount('BCA', '1234'), false);
+  assert.equal(rules.isInquiryUnavailable(new ApiError('x', 503, 'PAYOUT_INQUIRY_UNAVAILABLE', {})), true);
+  assert.equal(rules.isInquiryUnavailable(new ApiError('x', 400, 'PAYOUT_ACCOUNT_INVALID', {})), false);
+  assert.match(rules.INQUIRY_ERROR_MESSAGES.PAYOUT_ACCOUNT_INVALID, /tidak ditemukan/);
+  assert.match(rules.WALLET_ERROR_MESSAGES.PAYOUT_INQUIRY_UNAVAILABLE, /buku rekening/);
+});
+
 test('input helpers parse amounts, account numbers and OTPs', () => {
   assert.equal(rules.parseAmount('Rp 1.500.000'), 1500000);
   assert.equal(Number.isNaN(rules.parseAmount('')), true);
@@ -125,6 +141,7 @@ test('api functions call the wallet endpoints and return view models', () => wit
   'POST /api/proxy/withdrawals/preview': { body: { otp_reference: 'ref-1', otp_sent_to: 'branch@school.id', otp_expires_at: '2026-11-10T03:03:00Z',
     amount: '100000.00', fee: '2500.00', transfer_amount: '97500.00', payout_account: { bank_code: 'BCA', bank_name: 'BCA', account_number_masked: '****4567', account_holder_name: 'YAYASAN' } } },
   'POST /api/proxy/withdrawals': { status: 201, body: withdrawalResponse },
+  'POST /api/proxy/payout-accounts/inquiry': { body: { bank_code: 'BCA', bank_name: 'BCA', account_number: '5271234567', account_holder_name: 'YAYASAN' } },
 }, async (calls) => {
   const page = await api.getLedgerPage({ search: '', month: '', status: 'available' }, 1);
   assert.equal(calls[0].url, '/api/proxy/wallet/ledger?settlement_status=settled&page=1&page_size=10');
@@ -139,4 +156,8 @@ test('api functions call the wallet endpoints and return view models', () => wit
   const withdrawal = await api.createWithdrawal(preview.otpReference, '123456', true);
   assert.deepEqual(calls[2].body, { otp_reference: 'ref-1', otp: '123456', fee_acknowledged: true });
   assert.equal(withdrawal.withdrawalNo, 'WDR-20261110-000004');
+
+  const inquiry = await api.inquirePayoutAccount('BCA', '5271234567');
+  assert.deepEqual(calls[3].body, { bank_code: 'BCA', account_number: '5271234567' });
+  assert.equal(inquiry.accountHolderName, 'YAYASAN');
 }));

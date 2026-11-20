@@ -1,9 +1,14 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { errorMessage } from "@/lib/api/errors";
 import { formatRupiah, formatThousands } from "@/lib/format";
+import { inquirePayoutAccount } from "../api";
 import {
   BANKS,
+  canInquireAccount,
+  INQUIRY_ERROR_MESSAGES,
+  isInquiryUnavailable,
   normalizeAccountNumber,
   parseAmount,
   validateWithdrawalForm,
@@ -22,10 +27,14 @@ export type WithdrawalDraft = {
   bankCode: string;
   accountNumber: string;
   accountHolderName: string;
+  /** Where the holder name came from: looked up at the provider, typed because the provider cannot look names up, or not yet known. */
+  holderNameSource: "none" | "lookup" | "manual";
   amountText: string;
 };
 
-export const EMPTY_DRAFT: WithdrawalDraft = { target: null, payoutAccountId: null, bankCode: "", accountNumber: "", accountHolderName: "", amountText: "" };
+export const EMPTY_DRAFT: WithdrawalDraft = { target: null, payoutAccountId: null, bankCode: "", accountNumber: "", accountHolderName: "", holderNameSource: "none", amountText: "" };
+
+const LOOKUP_FAILED = "Nama pemilik rekening belum dapat dicek. Silakan coba lagi.";
 
 /** The draft with defaults applied (first saved account, "new" when there is none). */
 function resolveDraft(draft: WithdrawalDraft, accounts: PayoutAccount[]): WithdrawalFormValues {
@@ -53,6 +62,7 @@ type Props = {
 
 export default function WithdrawForm({ summary, accounts, accountsLoading, draft, onDraftChange, busy, onCancel, onSubmit }: Props) {
   const [errors, setErrors] = useState<WithdrawalFormErrors>({});
+  const [lookupBusy, setLookupBusy] = useState(false);
   const form = resolveDraft(draft, accounts);
   const limits = { available: summary.available, fee: summary.withdrawalFee };
   const estimate = withdrawalBreakdown(form.amount, summary.withdrawalFee);
@@ -62,11 +72,47 @@ export default function WithdrawForm({ summary, accounts, accountsLoading, draft
     setErrors((current) => ({ ...current, [field]: undefined }));
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  /** A new bank or number invalidates a looked-up name; a typed one stays. */
+  function changeAccount(patch: Pick<WithdrawalDraft, "bankCode"> | Pick<WithdrawalDraft, "accountNumber">, field: keyof WithdrawalFormErrors) {
+    const manual = draft.holderNameSource === "manual";
+    change(manual ? patch : { ...patch, accountHolderName: "", holderNameSource: "none" }, field);
+    setErrors((current) => ({ ...current, accountNumber: undefined }));
+  }
+
+  const canLookup = canInquireAccount(draft.bankCode, draft.accountNumber);
+
+  /** Asks the provider for the holder name; returns it, or "" when the user has to fix or type something. */
+  async function lookupHolder(): Promise<string> {
+    if (!canLookup || lookupBusy) return "";
+    setLookupBusy(true);
+    try {
+      const inquiry = await inquirePayoutAccount(draft.bankCode, draft.accountNumber);
+      change({ accountHolderName: inquiry.accountHolderName, holderNameSource: "lookup" }, "accountHolderName");
+      return inquiry.accountHolderName;
+    } catch (lookupError) {
+      if (isInquiryUnavailable(lookupError)) {
+        change({ accountHolderName: "", holderNameSource: "manual" }, "accountHolderName");
+      } else {
+        setErrors((current) => ({ ...current, accountNumber: errorMessage(lookupError, LOOKUP_FAILED, INQUIRY_ERROR_MESSAGES) }));
+      }
+      return "";
+    } finally {
+      setLookupBusy(false);
+    }
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const validation = validateWithdrawalForm(form, limits);
+    let submitted = form;
+    if (form.target === "new" && draft.holderNameSource === "none" && canLookup) {
+      // "Lanjut" before "Cek rekening": look the name up first, then continue with it.
+      const name = await lookupHolder();
+      if (!name) return;
+      submitted = { ...form, accountHolderName: name };
+    }
+    const validation = validateWithdrawalForm(submitted, limits);
     setErrors(validation);
-    if (Object.keys(validation).length === 0) onSubmit(form);
+    if (Object.keys(validation).length === 0) onSubmit(submitted);
   }
 
   return (
@@ -96,15 +142,10 @@ export default function WithdrawForm({ summary, accounts, accountsLoading, draft
           </label>
         ) : (
           <>
-            <label>
-              Nama pemilik rekening
-              <input value={draft.accountHolderName} onChange={(event) => change({ accountHolderName: event.target.value }, "accountHolderName")} placeholder="Nama sesuai buku rekening" aria-invalid={Boolean(errors.accountHolderName)} />
-              {errors.accountHolderName && <span className={styles.fieldError} role="alert">{errors.accountHolderName}</span>}
-            </label>
             <div className="form-grid">
               <label>
                 Bank tujuan
-                <select value={draft.bankCode} onChange={(event) => change({ bankCode: event.target.value }, "bankCode")} aria-invalid={Boolean(errors.bankCode)}>
+                <select value={draft.bankCode} onChange={(event) => changeAccount({ bankCode: event.target.value }, "bankCode")} aria-invalid={Boolean(errors.bankCode)}>
                   <option value="">Pilih bank</option>
                   {BANKS.map((bank) => <option key={bank.code} value={bank.code}>{bank.name}</option>)}
                 </select>
@@ -112,10 +153,43 @@ export default function WithdrawForm({ summary, accounts, accountsLoading, draft
               </label>
               <label>
                 Nomor rekening
-                <input inputMode="numeric" value={draft.accountNumber} onChange={(event) => change({ accountNumber: normalizeAccountNumber(event.target.value) }, "accountNumber")} placeholder="Contoh: 5271234567" aria-invalid={Boolean(errors.accountNumber)} />
+                <input
+                  inputMode="numeric"
+                  value={draft.accountNumber}
+                  onChange={(event) => changeAccount({ accountNumber: normalizeAccountNumber(event.target.value) }, "accountNumber")}
+                  onBlur={() => { if (draft.holderNameSource === "none") void lookupHolder(); }}
+                  placeholder="Contoh: 5271234567"
+                  aria-invalid={Boolean(errors.accountNumber)}
+                />
                 {errors.accountNumber && <span className={styles.fieldError} role="alert">{errors.accountNumber}</span>}
               </label>
             </div>
+            {draft.holderNameSource === "manual" ? (
+              <label>
+                Nama pemilik rekening
+                <input value={draft.accountHolderName} onChange={(event) => change({ accountHolderName: event.target.value }, "accountHolderName")} placeholder="Nama sesuai buku rekening" aria-invalid={Boolean(errors.accountHolderName)} />
+                {errors.accountHolderName ? (
+                  <span className={styles.fieldError} role="alert">{errors.accountHolderName}</span>
+                ) : (
+                  <span className={styles.fieldHelp}>Nama tidak dapat dicek otomatis. Isi persis seperti di buku rekening.</span>
+                )}
+              </label>
+            ) : draft.holderNameSource === "lookup" ? (
+              <div className={styles.holderCard} role="status">
+                <span>Nama pemilik rekening</span>
+                <strong>{draft.accountHolderName}</strong>
+                <small>Pastikan nama pemilik rekening sudah sesuai sebelum melanjutkan.</small>
+              </div>
+            ) : (
+              <div className={styles.lookupRow}>
+                <button type="button" className="secondary-button" onClick={() => void lookupHolder()} disabled={!canLookup || lookupBusy}>
+                  {lookupBusy ? "Mengecek…" : "Cek rekening"}
+                </button>
+                <span className={styles.fieldHelp}>
+                  {errors.accountHolderName ?? "Nama pemilik rekening diambil otomatis dari bank."}
+                </span>
+              </div>
+            )}
             <p className={styles.fieldHelp}>Rekening baru otomatis tersimpan setelah penarikan berhasil diajukan.</p>
           </>
         )}
@@ -142,7 +216,7 @@ export default function WithdrawForm({ summary, accounts, accountsLoading, draft
 
       <div className="dialog-actions">
         <button className="secondary-button" type="button" onClick={onCancel} disabled={busy}>Batal</button>
-        <button className="primary-button" type="submit" disabled={busy}>{busy ? "Mengirim OTP…" : "Lanjut"}</button>
+        <button className="primary-button" type="submit" disabled={busy || lookupBusy}>{busy ? "Mengirim OTP…" : "Lanjut"}</button>
       </div>
     </form>
   );

@@ -46,6 +46,16 @@ export const BANKS: readonly { code: string; name: string }[] = [
 
 /** Same pattern as the backend's account_number field. */
 const ACCOUNT_NUMBER_PATTERN = /^\d{5,30}$/;
+
+/** Whether a bank + number pair is complete enough to look the holder name up. */
+export function canInquireAccount(bankCode: string, accountNumber: string): boolean {
+  return Boolean(bankCode) && ACCOUNT_NUMBER_PATTERN.test(accountNumber);
+}
+
+/** The provider has no name lookup: the user types the holder name instead. */
+export function isInquiryUnavailable(error: unknown): boolean {
+  return error instanceof ApiError && error.code === "PAYOUT_INQUIRY_UNAVAILABLE";
+}
 export const OTP_LENGTH = 6;
 
 /** Digits only; account numbers are submitted without separators. */
@@ -109,9 +119,16 @@ export const WALLET_ERROR_MESSAGES: ErrorMessages = {
   OTP_MAX_ATTEMPTS: "Terlalu banyak percobaan OTP yang salah. Kirim ulang kode baru.",
   OTP_NOT_SENT: "Email OTP gagal dikirim. Silakan coba lagi.",
   PAYOUT_ACCOUNT_INVALID: "Bank menolak rekening tujuan. Periksa kembali nomor rekening.",
+  PAYOUT_INQUIRY_UNAVAILABLE: "Nama pemilik rekening tidak dapat dicek otomatis. Isi nama sesuai buku rekening.",
   WITHDRAWAL_REJECTED: "Penarikan ditolak oleh penyedia pembayaran. Saldo telah dikembalikan.",
   PROVIDER_BALANCE_INSUFFICIENT: "Penarikan sementara tidak tersedia. Saldo telah dikembalikan.",
   PROVIDER_UNAVAILABLE: "Penyedia pembayaran sedang tidak dapat dihubungi. Silakan coba lagi.",
+};
+
+/** Messages for a failed holder-name lookup (the form shows them under the account number). */
+export const INQUIRY_ERROR_MESSAGES: ErrorMessages = {
+  ...WALLET_ERROR_MESSAGES,
+  PAYOUT_ACCOUNT_INVALID: "Rekening tidak ditemukan. Periksa kembali bank dan nomor rekening.",
 };
 
 /** User-facing message for any wallet API error, with the attempts left after a wrong OTP. */
