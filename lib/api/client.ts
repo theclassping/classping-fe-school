@@ -24,6 +24,8 @@ export type RequestOptions = {
   query?: Query;
   /** Sent as JSON. */
   body?: unknown;
+  /** Extra request headers; the proxy forwards only the ones it knows (Idempotency-Key). */
+  headers?: Readonly<Record<string, string>>;
   signal?: AbortSignal;
 };
 
@@ -46,14 +48,14 @@ export function proxyUrl(path: string, query: Query = {}): string {
 }
 
 /** Sends the request; resolves with the response when it is 2xx, otherwise throws ApiError. */
-async function send(path: string, { method = "GET", query, body, signal }: RequestOptions): Promise<Response> {
+async function send(path: string, { method = "GET", query, body, headers, signal }: RequestOptions): Promise<Response> {
   const hasBody = body !== undefined;
   const response = await fetch(proxyUrl(path, query), {
     method,
     signal,
     credentials: "include",
     cache: "no-store",
-    headers: hasBody ? { "Content-Type": "application/json" } : undefined,
+    headers: hasBody ? { "Content-Type": "application/json", ...headers } : headers,
     body: hasBody ? JSON.stringify(body) : undefined,
   });
   if (response.ok) return response;

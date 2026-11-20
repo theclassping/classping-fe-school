@@ -39,7 +39,9 @@ try {
     return;
   }
 
-  router.push("/dashboard");
+  // `next` is set by proxy.ts for a protected page opened while signed out; only dashboard paths are followed.
+  const next = new URLSearchParams(window.location.search).get("next");
+  router.push(next?.startsWith("/dashboard") ? next : "/dashboard");
   router.refresh();
 } catch {
   setError("Unable to connect to server");

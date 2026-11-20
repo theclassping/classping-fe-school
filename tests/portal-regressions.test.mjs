@@ -198,7 +198,8 @@ test('Guardian cookies alone cannot authorize School requests', async () => {
   const response = await api.GET(req('access_token=guardian; refresh_token=guardian'), ctx());
   assert.equal(response.status, 401);
   const page = gate.proxy(new NextRequest('https://school.test/dashboard', { headers: { cookie: 'access_token=guardian' } }));
-  assert.equal(page.headers.get('location'), 'https://school.test/login');
+  // The destination is kept so login can return to it.
+  assert.equal(page.headers.get('location'), 'https://school.test/login?next=%2Fdashboard');
 });
 
 test('logout clears School cookies without overwriting Guardian cookies', async () => {

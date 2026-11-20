@@ -12,6 +12,7 @@ import {
   ClipboardList,
   Settings,
   Mail,
+  Package,
   X,
 } from "lucide-react";
 import LogoutButton from "./LogoutButton";
@@ -175,6 +176,14 @@ export default function DashboardSidebar({ open = false, onNavigate }: Dashboard
         >
           <School aria-hidden="true" />
           <span>Profil Sekolah</span>
+        </Link>
+        <Link
+          href="/dashboard/subscription"
+          className={`nav-item ${pathname.startsWith("/dashboard/subscription") ? "active" : ""}`}
+          onClick={onNavigate}
+        >
+          <Package aria-hidden="true" />
+          <span>Langganan</span>
         </Link>
         {canManageSettings && <Link
           href="/dashboard/settings"

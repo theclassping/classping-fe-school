@@ -14,6 +14,8 @@ const DATE_TIME_OPTIONS = {
   long: { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" },
   /** 14.05 */
   time: { hour: "2-digit", minute: "2-digit" },
+  /** 10 November 2026 */
+  date: { day: "numeric", month: "long", year: "numeric" },
 } satisfies Record<string, Intl.DateTimeFormatOptions>;
 
 export type DateTimeStyle = keyof typeof DATE_TIME_OPTIONS;
