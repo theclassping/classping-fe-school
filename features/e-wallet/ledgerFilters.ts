@@ -1,17 +1,17 @@
-// Ledger filters → query parameters of GET wallet/ledger/. Filtering, search
-// and paging all happen on the server.
+// Ledger filters and sort → query parameters of GET wallet/ledger/. Filtering,
+// search, sorting and paging all happen on the server.
 
 import type { Query } from "@/lib/api/client";
-import type { LedgerFilters, LedgerStatusFilter } from "./types";
+import { formatDateTime } from "@/lib/format";
+import type { SortState } from "@/lib/sort";
+import type { LedgerFilters, LedgerSortKey, LedgerStatusFilter } from "./types";
 
 export const LEDGER_PAGE_SIZE = 10;
-/** How many months the month filter offers, counting back from today. */
-export const MONTH_OPTION_COUNT = 12;
 
-export const EMPTY_LEDGER_FILTERS: LedgerFilters = { search: "", month: "", status: "all" };
+export const EMPTY_LEDGER_FILTERS: LedgerFilters = { search: "", dateFrom: "", dateTo: "", status: "all" };
 
 export const LEDGER_STATUS_OPTIONS: readonly { value: LedgerStatusFilter; label: string }[] = [
-  { value: "all", label: "Semua Entri" },
+  { value: "all", label: "Semua Status" },
   { value: "pending", label: "Mengambang" },
   { value: "available", label: "Tersedia" },
   { value: "withdrawal", label: "Penarikan" },
@@ -24,31 +24,41 @@ const STATUS_QUERY: Record<LedgerStatusFilter, Query> = {
   withdrawal: { entry_type: "withdrawal,withdrawal_fee,withdrawal_reversal,withdrawal_fee_reversal" },
 };
 
-const pad = (value: number) => String(value).padStart(2, "0");
-
-/** "2026-02" → { date_from: "2026-02-01", date_to: "2026-02-28" } (inclusive, as the backend expects). */
-export function monthRange(month: string): { date_from: string; date_to: string } {
-  const [year, monthNumber] = month.split("-").map(Number);
-  const lastDay = new Date(year, monthNumber, 0).getDate();
-  return { date_from: `${month}-01`, date_to: `${month}-${pad(lastDay)}` };
-}
-
-/** "YYYY-MM" keys for the current month and the `count - 1` before it, newest first. */
-export function recentMonths(now: Date, count = MONTH_OPTION_COUNT): string[] {
-  return Array.from({ length: count }, (_, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - index, 1);
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
-  });
-}
-
+/** Both dates are inclusive "YYYY-MM-DD", as the backend expects; empty ones are left out. */
 export function ledgerQuery(filters: LedgerFilters): Query {
   return {
     search: filters.search.trim(),
-    ...(filters.month ? monthRange(filters.month) : {}),
+    ...(filters.dateFrom ? { date_from: filters.dateFrom } : {}),
+    ...(filters.dateTo ? { date_to: filters.dateTo } : {}),
     ...STATUS_QUERY[filters.status],
   };
 }
 
+/** Filters in the filter panel (search and the toolbar are not counted). */
+export function activePanelFilterCount(filters: LedgerFilters): number {
+  return Number(Boolean(filters.dateFrom || filters.dateTo)) + Number(filters.status !== "all");
+}
+
 export function hasActiveFilters(filters: LedgerFilters): boolean {
-  return Boolean(filters.search.trim() || filters.month || filters.status !== "all");
+  return Boolean(filters.search.trim()) || activePanelFilterCount(filters) > 0;
+}
+
+const formatDay = (day: string) => formatDateTime(`${day}T00:00:00`, "date");
+
+/** "1 November 2026 – 21 November 2026", "Sejak …", "Sampai …", or "Semua periode". */
+export function periodLabel(filters: Pick<LedgerFilters, "dateFrom" | "dateTo">): string {
+  const { dateFrom, dateTo } = filters;
+  if (dateFrom && dateTo) return dateFrom === dateTo ? formatDay(dateFrom) : `${formatDay(dateFrom)} – ${formatDay(dateTo)}`;
+  if (dateFrom) return `Sejak ${formatDay(dateFrom)}`;
+  if (dateTo) return `Sampai ${formatDay(dateTo)}`;
+  return "Semua periode";
+}
+
+/** The backend's own order: newest first. */
+export const DEFAULT_LEDGER_SORT: NonNullable<SortState<LedgerSortKey>> = { key: "created_at", direction: "desc" };
+
+/** { created_at, desc } → { ordering: "-created_at" }; null uses the default order. */
+export function ledgerOrdering(sort: SortState<LedgerSortKey>): Query {
+  const { key, direction } = sort ?? DEFAULT_LEDGER_SORT;
+  return { ordering: `${direction === "desc" ? "-" : ""}${key}` };
 }

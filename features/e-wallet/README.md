@@ -13,8 +13,8 @@ Branch balance, ledger, and withdrawals for `/dashboard/e-wallet`, backed by
 | `api.ts` | One function per endpoint; the only file that knows URLs |
 | `mappers.ts` | Responses → view models (numbers, labels, badges); form → request |
 | `rules.ts` | Withdrawal validation, bank list, error-code → message map |
-| `ledgerFilters.ts` | Ledger filters → query parameters, month options |
-| `hooks/useLedger.ts` | One server-side ledger page plus its filters |
+| `ledgerFilters.ts` | Ledger filters (date range, fund status) and sort → query parameters, period label |
+| `hooks/useLedger.ts` | One server-side ledger page plus its filters and sort |
 | `hooks/useWithdrawal.ts` | Withdrawal steps: form → OTP → done |
 | `components/EWalletScreen.tsx` | Page layout; `app/dashboard/e-wallet/page.tsx` renders it |
 | `components/*` | Display only: no `fetch`, no calculations |
@@ -24,7 +24,7 @@ Branch balance, ledger, and withdrawals for `/dashboard/e-wallet`, backed by
 | Call | Endpoint |
 |---|---|
 | `getWalletSummary` | `GET wallet/` |
-| `getLedgerPage` | `GET wallet/ledger/?page&page_size&search&date_from&date_to&entry_type&settlement_status` |
+| `getLedgerPage` | `GET wallet/ledger/?page&page_size&search&date_from&date_to&entry_type&settlement_status&ordering` (`ordering`: `created_at` or `amount`, `-` for descending) |
 | `getLedgerEntry` | `GET wallet/ledger/{id}/` |
 | `getPayoutAccounts` | `GET payout-accounts/` |
 | `previewWithdrawal` | `POST withdrawals/preview/` (emails the OTP; 3 minutes, 3 attempts) |

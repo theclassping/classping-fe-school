@@ -533,3 +533,114 @@
   font-size: 12px;
   cursor: pointer;
 }
+
+/* Ledger filter panel (same look as the Pembayaran filter panel). */
+.filterPanel {
+  padding: 20px 22px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: #FBF8F3;
+}
+
+.filterHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  margin-bottom: 16px;
+}
+
+.filterHeading strong {
+  color: #3A2F27;
+  font-size: 13px;
+}
+
+.filterHeading span {
+  color: #6E5F53;
+  font-size: 12px;
+}
+
+.filterFields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+  gap: 16px;
+}
+
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  color: #6E5F53;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filterField input,
+.filterField select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: #3A2F27;
+  font: inherit;
+  color-scheme: light;
+}
+
+.filterField input:focus-visible,
+.filterField select:focus-visible,
+.filterReset:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.filterReset {
+  height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--green);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filterReset:hover:not(:disabled) {
+  background: var(--mint);
+  border-color: var(--green);
+}
+
+.filterReset:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button.filterToggleActive {
+  border-color: var(--green);
+  background: var(--mint);
+  color: var(--green);
+}
+
+@media (max-width: 900px) {
+  .filterFields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 540px) {
+  .filterPanel {
+    padding: 16px;
+  }
+
+  .filterFields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+}

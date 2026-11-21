@@ -12,6 +12,9 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { loadList } from "@/lib/loadList";
+import { toAmount } from "@/lib/format";
+import { sortBy, type SortState, type SortValue } from "@/lib/sort";
+import SortableHeader from "../components/SortableHeader";
 import styles from "../components/TableActions.module.css";
 import filterStyles from "./Payments.module.css";
 import PaymentTransfer from "./PaymentTransfer";
@@ -70,6 +73,14 @@ function normalizePayment(invoice: StudentInvoice): Payment {
   };
 }
 
+type PaymentSortKey = "student_name" | "class_name" | "fee_type_name" | "payment_date" | "total_amount" | "status";
+
+function paymentSortValue(payment: Payment, key: PaymentSortKey): SortValue {
+  if (key === "total_amount") return toAmount(payment.total_amount);
+  const value = payment[key];
+  return value === "-" ? "" : value;
+}
+
 function paymentSlug(payment: Payment) {
   return payment.student_name
     .toLowerCase()
@@ -95,6 +106,7 @@ export default function PaymentsPage() {
   const [reminder, setReminder] = useState<Payment | null>(null);
   const [toast, setToast] = useState("");
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<SortState<PaymentSortKey>>(null);
 
   async function loadPayments() {
     try {
@@ -154,13 +166,20 @@ export default function PaymentsPage() {
     [classFilter, payments, search, statusFilter, feeTypeFilter, dateFrom, dateTo],
   );
 
+  const sortedPayments = useMemo(() => sortBy(filteredPayments, sort, paymentSortValue), [filteredPayments, sort]);
+
   const totalPages = Math.max(1, Math.ceil(filteredPayments.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const visiblePayments = filteredPayments.slice(startIndex, startIndex + PAGE_SIZE);
+  const visiblePayments = sortedPayments.slice(startIndex, startIndex + PAGE_SIZE);
 
   function updateSearch(value: string) {
     setSearch(value);
+    setPage(1);
+  }
+
+  function updateSort(next: SortState<PaymentSortKey>) {
+    setSort(next);
     setPage(1);
   }
 
@@ -228,7 +247,7 @@ export default function PaymentsPage() {
           >
             <Filter aria-hidden="true" /> Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
           </button>
-          <PaymentTransfer payments={payments} filteredPayments={filteredPayments} disabled={loading || !!error} onImported={loadPayments} />
+          <PaymentTransfer payments={payments} filteredPayments={sortedPayments} disabled={loading || !!error} onImported={loadPayments} />
         </div>
 
         {filtersOpen && (
@@ -330,12 +349,12 @@ export default function PaymentsPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Nama Siswa</th>
-                  <th>Kelas</th>
-                  <th>Jenis Pembayaran</th>
-                  <th>Tanggal Bayar</th>
-                  <th>Jumlah</th>
-                  <th>Status</th>
+                  <SortableHeader label="Nama Siswa" sortKey="student_name" sort={sort} onSort={updateSort} />
+                  <SortableHeader label="Kelas" sortKey="class_name" sort={sort} onSort={updateSort} />
+                  <SortableHeader label="Jenis Pembayaran" sortKey="fee_type_name" sort={sort} onSort={updateSort} />
+                  <SortableHeader label="Tanggal Bayar" sortKey="payment_date" sort={sort} onSort={updateSort} firstDirection="desc" />
+                  <SortableHeader label="Jumlah" sortKey="total_amount" sort={sort} onSort={updateSort} firstDirection="desc" />
+                  <SortableHeader label="Status" sortKey="status" sort={sort} onSort={updateSort} />
                   <th className={styles.actionHeading}>Aksi</th>
                 </tr>
               </thead>

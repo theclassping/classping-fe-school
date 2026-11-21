@@ -4,11 +4,10 @@ import { ArrowUpFromLine, ShieldAlert } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import ListPagination from "@/app/dashboard/components/ListPagination";
 import { isForbidden } from "@/lib/api/errors";
-import { formatMonth } from "@/lib/format";
 import { useResource } from "@/lib/useResource";
 import { getWalletSummary } from "../api";
 import { useLedger } from "../hooks/useLedger";
-import { hasActiveFilters, recentMonths } from "../ledgerFilters";
+import { hasActiveFilters, periodLabel } from "../ledgerFilters";
 import { WALLET_ERROR_MESSAGES, walletErrorMessage } from "../rules";
 import type { LedgerRow } from "../types";
 import BalanceCards from "./BalanceCards";
@@ -22,7 +21,6 @@ import styles from "./EWallet.module.css";
 export default function EWalletScreen() {
   const summary = useResource(getWalletSummary);
   const ledger = useLedger();
-  const [months] = useState(() => recentMonths(new Date()));
   const [selected, setSelected] = useState<LedgerRow | null>(null);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
 
@@ -48,7 +46,6 @@ export default function EWalletScreen() {
   const page = ledger.data;
   // The backend rejects amounts that do not exceed the fee.
   const canWithdraw = summary.data !== undefined && summary.data.available > summary.data.withdrawalFee;
-  const periodLabel = ledger.filters.month ? formatMonth(ledger.filters.month) : "Semua periode";
 
   return (
     <main id="main">
@@ -65,12 +62,12 @@ export default function EWalletScreen() {
         <div className="panel-heading transaction-heading">
           <div>
             <h2>Buku Kas E-Wallet</h2>
-            <p>Pembayaran masuk dan penarikan dana · {periodLabel}</p>
+            <p>Pembayaran masuk dan penarikan dana · {periodLabel(ledger.filters)}</p>
           </div>
           {page && <span className="text-button">{page.total} entri</span>}
         </div>
 
-        <LedgerToolbar filters={ledger.filters} months={months} onChange={ledger.updateFilters} onRefresh={refresh} refreshing={summary.loading || ledger.loading} />
+        <LedgerToolbar filters={ledger.filters} onChange={ledger.updateFilters} onReset={ledger.resetFilters} onRefresh={refresh} refreshing={summary.loading || ledger.loading} />
 
         {ledger.error !== undefined ? (
           <div className="empty-state">
@@ -85,7 +82,7 @@ export default function EWalletScreen() {
           </p>
         ) : (
           <>
-            <LedgerTable rows={page.items} onSelect={setSelected} />
+            <LedgerTable rows={page.items} onSelect={setSelected} sort={ledger.sort} onSort={ledger.setSort} />
             <ListPagination total={page.total} page={page.page} pageSize={page.pageSize} onPageChange={ledger.setPage} noun="entri" />
           </>
         )}

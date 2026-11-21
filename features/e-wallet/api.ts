@@ -4,7 +4,8 @@
 // gets 403 WITHDRAWAL_ROLE_FORBIDDEN.
 
 import { apiGet, apiGetPage, apiPost, type Page } from "@/lib/api/client";
-import { LEDGER_PAGE_SIZE, ledgerQuery } from "./ledgerFilters";
+import type { SortState } from "@/lib/sort";
+import { DEFAULT_LEDGER_SORT, LEDGER_PAGE_SIZE, ledgerOrdering, ledgerQuery } from "./ledgerFilters";
 import { toAccountInquiry, toInquiryRequest, toLedgerDetail, toLedgerRow, toPayoutAccount, toPreviewRequest, toWalletSummary, toWithdrawal, toWithdrawalPreview } from "./mappers";
 import type {
   AccountInquiry,
@@ -13,6 +14,7 @@ import type {
   LedgerEntryResponse,
   LedgerFilters,
   LedgerRow,
+  LedgerSortKey,
   PayoutAccount,
   PayoutAccountInquiryResponse,
   PayoutAccountResponse,
@@ -40,8 +42,14 @@ export async function getWalletSummary(signal?: AbortSignal): Promise<WalletSumm
   return toWalletSummary(await apiGet<WalletResponse>(PATHS.wallet, undefined, signal));
 }
 
-export async function getLedgerPage(filters: LedgerFilters, page: number, signal?: AbortSignal): Promise<Page<LedgerRow>> {
-  const result = await apiGetPage<LedgerEntryResponse>(PATHS.ledger, page, LEDGER_PAGE_SIZE, ledgerQuery(filters), signal);
+export async function getLedgerPage(
+  filters: LedgerFilters,
+  page: number,
+  sort: SortState<LedgerSortKey> = DEFAULT_LEDGER_SORT,
+  signal?: AbortSignal,
+): Promise<Page<LedgerRow>> {
+  const query = { ...ledgerQuery(filters), ...ledgerOrdering(sort) };
+  const result = await apiGetPage<LedgerEntryResponse>(PATHS.ledger, page, LEDGER_PAGE_SIZE, query, signal);
   return { ...result, items: result.items.map(toLedgerRow) };
 }
 

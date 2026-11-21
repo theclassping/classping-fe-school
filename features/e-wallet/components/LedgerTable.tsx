@@ -1,6 +1,8 @@
 import { Eye } from "lucide-react";
+import SortableHeader from "@/app/dashboard/components/SortableHeader";
 import { formatDateTime, formatRupiah } from "@/lib/format";
-import type { LedgerRow } from "../types";
+import type { SortState } from "@/lib/sort";
+import type { LedgerRow, LedgerSortKey } from "../types";
 import LedgerBadge from "./LedgerBadge";
 import SignedAmount from "./SignedAmount";
 import styles from "./EWallet.module.css";
@@ -8,17 +10,20 @@ import styles from "./EWallet.module.css";
 type Props = {
   rows: LedgerRow[];
   onSelect: (row: LedgerRow) => void;
+  /** Sorting happens on the server; only date and amount can be sorted. */
+  sort: SortState<LedgerSortKey>;
+  onSort: (sort: SortState<LedgerSortKey>) => void;
 };
 
-export default function LedgerTable({ rows, onSelect }: Props) {
+export default function LedgerTable({ rows, onSelect, sort, onSort }: Props) {
   return (
     <div className="table-scroll">
       <table>
         <thead>
           <tr>
-            <th>Tanggal</th>
+            <SortableHeader label="Tanggal" sortKey="created_at" sort={sort} onSort={onSort} firstDirection="desc" />
             <th>Keterangan</th>
-            <th className={styles.numeric}>Jumlah</th>
+            <SortableHeader label="Jumlah" sortKey="amount" sort={sort} onSort={onSort} firstDirection="desc" className={styles.numeric} />
             <th className={styles.numeric}>Saldo</th>
             <th>Status</th>
             <th><span className={styles.srOnly}>Aksi</span></th>
