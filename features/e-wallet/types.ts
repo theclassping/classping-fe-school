@@ -243,9 +243,13 @@ export type WithdrawalForm = {
 /** Ledger list filters; empty strings mean "no filter". */
 export type LedgerFilters = {
   search: string;
-  /** "YYYY-MM" or "". */
-  month: string;
+  /** Inclusive "YYYY-MM-DD" bounds, or "". */
+  dateFrom: string;
+  dateTo: string;
   status: LedgerStatusFilter;
 };
 
 export type LedgerStatusFilter = "all" | "pending" | "available" | "withdrawal";
+
+/** Columns GET wallet/ledger/ can order by (`ordering_fields` on the backend view). */
+export type LedgerSortKey = "created_at" | "amount";

@@ -116,10 +116,15 @@ test('input helpers parse amounts, account numbers and OTPs', () => {
 });
 
 test('ledger filters become backend query parameters', () => {
-  assert.deepEqual(filters.monthRange('2026-02'), { date_from: '2026-02-01', date_to: '2026-02-28' });
-  assert.deepEqual(filters.recentMonths(new Date(2026, 0, 15), 3), ['2026-01', '2025-12', '2025-11']);
-  assert.deepEqual(filters.ledgerQuery({ search: ' INV ', month: '2026-11', status: 'pending' }),
+  assert.deepEqual(filters.ledgerQuery({ search: ' INV ', dateFrom: '2026-11-01', dateTo: '2026-11-30', status: 'pending' }),
     { search: 'INV', date_from: '2026-11-01', date_to: '2026-11-30', settlement_status: 'pending_settlement' });
+  assert.deepEqual(filters.ledgerQuery({ ...filters.EMPTY_LEDGER_FILTERS, dateFrom: '2026-11-05' }), { search: '', date_from: '2026-11-05' });
+  assert.equal(filters.activePanelFilterCount({ ...filters.EMPTY_LEDGER_FILTERS, dateTo: '2026-11-30', status: 'available' }), 2);
+  assert.equal(filters.hasActiveFilters({ ...filters.EMPTY_LEDGER_FILTERS, search: 'x' }), true);
+  assert.equal(filters.periodLabel(filters.EMPTY_LEDGER_FILTERS), 'Semua periode');
+  assert.deepEqual(filters.ledgerOrdering({ key: 'amount', direction: 'desc' }), { ordering: '-amount' });
+  assert.deepEqual(filters.ledgerOrdering(null), { ordering: '-created_at' });
+  assert.equal(filters.periodLabel({ dateFrom: '2026-11-01', dateTo: '2026-11-21' }), '1 November 2026 – 21 November 2026');
   assert.equal(filters.ledgerQuery({ ...filters.EMPTY_LEDGER_FILTERS, status: 'withdrawal' }).entry_type, 'withdrawal,withdrawal_fee,withdrawal_reversal,withdrawal_fee_reversal');
   assert.equal(filters.hasActiveFilters(filters.EMPTY_LEDGER_FILTERS), false);
 });
@@ -143,8 +148,8 @@ test('api functions call the wallet endpoints and return view models', () => wit
   'POST /api/proxy/withdrawals': { status: 201, body: withdrawalResponse },
   'POST /api/proxy/payout-accounts/inquiry': { body: { bank_code: 'BCA', bank_name: 'BCA', account_number: '5271234567', account_holder_name: 'YAYASAN' } },
 }, async (calls) => {
-  const page = await api.getLedgerPage({ search: '', month: '', status: 'available' }, 1);
-  assert.equal(calls[0].url, '/api/proxy/wallet/ledger?settlement_status=settled&page=1&page_size=10');
+  const page = await api.getLedgerPage({ search: '', dateFrom: '', dateTo: '', status: 'available' }, 1);
+  assert.equal(calls[0].url, '/api/proxy/wallet/ledger?settlement_status=settled&ordering=-created_at&page=1&page_size=10');
   assert.equal(page.total, 1);
   assert.equal(page.items[0].badge.label, 'Mengambang');
 
@@ -160,4 +165,6 @@ test('api functions call the wallet endpoints and return view models', () => wit
   const inquiry = await api.inquirePayoutAccount('BCA', '5271234567');
   assert.deepEqual(calls[3].body, { bank_code: 'BCA', account_number: '5271234567' });
   assert.equal(inquiry.accountHolderName, 'YAYASAN');
+  await api.getLedgerPage(filters.EMPTY_LEDGER_FILTERS, 2, { key: 'amount', direction: 'asc' });
+  assert.equal(calls.at(-1).url, '/api/proxy/wallet/ledger?ordering=amount&page=2&page_size=10');
 }));
