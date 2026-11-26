@@ -33,7 +33,7 @@ test('turns submitted payments and published activities into staff notifications
     ],
   );
   assert.deepEqual(items.map((item) => item.kind), ['payment', 'activity']);
-  assert.equal(items[0].href, '/dashboard/payments/view?payment=7');
+  assert.equal(items[0].href, '/dashboard/payments/edit?payment=7');
   assert.match(items[0].copy, /Joshua Tesla/);
   assert.match(items[0].copy, /INV-7/);
   assert.match(items[0].copy, /50\.000/);

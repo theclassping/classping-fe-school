@@ -77,7 +77,8 @@ export function buildRemoteNotifications(payments: unknown, activities: unknown,
         kind: "payment",
         title: "Bukti pembayaran baru",
         copy: `${item.student_name || "Siswa"} mengirim bukti pembayaran${item.invoice_no ? ` untuk ${item.invoice_no}` : ""}${amount ? ` sebesar ${amount}` : ""}. Menunggu verifikasi.`,
-        href: `/dashboard/payments/view?payment=${encodeURIComponent(String(item.id))}`,
+        // Opens the page where staff set the status; the proof is shown there too.
+        href: `/dashboard/payments/edit?payment=${encodeURIComponent(String(item.id))}`,
         occurredAt,
       };
     });

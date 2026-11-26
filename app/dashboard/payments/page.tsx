@@ -141,14 +141,21 @@ export default function PaymentsPage() {
   }
 
   useEffect(() => {
-    const timer = window.setTimeout(() => void loadPayments(), 0);
+    const timer = window.setTimeout(() => {
+      // A link such as /dashboard/payments?status=submitted opens the list already filtered.
+      const linkedStatus = new URLSearchParams(window.location.search).get("status")?.trim().toLowerCase();
+      // The filter panel stays closed so the matching payments are the first thing on screen.
+      if (linkedStatus) setStatusFilter(linkedStatus);
+      void loadPayments();
+    }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
   const classes = Array.from(
     new Set(payments.map((payment) => payment.class_name).filter(Boolean)),
   );
-  const statuses = Array.from(new Set(payments.map((payment) => payment.status)));
+  // Includes a status picked through the link even when no payment currently has it.
+  const statuses = Array.from(new Set([...payments.map((payment) => payment.status.trim().toLowerCase()), ...(statusFilter === "ALL" ? [] : [statusFilter])]));
   const feeTypes = Array.from(new Set(payments.map((payment) => payment.fee_type_name)));
   const activeFilterCount = Number(statusFilter !== "ALL") + Number(feeTypeFilter !== "ALL") + Number(!!(dateFrom || dateTo));
 
@@ -158,7 +165,7 @@ export default function PaymentsPage() {
         (payment) =>
           payment.student_name.toLowerCase().includes(search.toLowerCase()) &&
           (classFilter === "ALL" || payment.class_name === classFilter) &&
-          (statusFilter === "ALL" || payment.status === statusFilter) &&
+          (statusFilter === "ALL" || payment.status.trim().toLowerCase() === statusFilter) &&
           (feeTypeFilter === "ALL" || payment.fee_type_name === feeTypeFilter) &&
           (!dateFrom || (!!payment.payment_date && payment.payment_date >= dateFrom)) &&
           (!dateTo || (!!payment.payment_date && payment.payment_date <= dateTo)),
