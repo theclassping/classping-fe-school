@@ -154,7 +154,7 @@ export default function DashboardHome() {
                 <span className="home-sticker"><BadgeCheck aria-hidden="true" /> Verifikasi pembayaran</span>
                 <h2>{loading ? "Memeriksa bukti pembayaran…" : payments.length ? `${payments.length} bukti pembayaran menunggu dicek` : "Semua bukti pembayaran sudah dicek"}</h2>
                 <p>{payments.length ? "Orang tua sudah mengunggah bukti transfer. Periksa dan konfirmasi agar tagihan mereka berubah menjadi lunas." : "Tidak ada yang antre hari ini. Bukti baru akan muncul di sini begitu orang tua mengirimnya."}</p>
-                <Link className="primary-button home-cta" href="/dashboard/payments">{payments.length ? "Verifikasi sekarang" : "Buka pembayaran"} <ArrowRight aria-hidden="true" /></Link>
+                <Link className="primary-button home-cta" href={payments.length ? "/dashboard/payments?status=submitted" : "/dashboard/payments"}>{payments.length ? "Verifikasi sekarang" : "Buka pembayaran"} <ArrowRight aria-hidden="true" /></Link>
               </div>
               <div className="home-hero-art" aria-hidden="true"><i className="blob a" /><i className="blob b" /><ReceiptText /></div>
             </article>
