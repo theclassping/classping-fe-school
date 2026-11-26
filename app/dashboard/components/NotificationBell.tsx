@@ -15,8 +15,12 @@ import {
   requestPushPermission,
   type SchoolNotification,
 } from "@/lib/notifications";
+import { pollWhileVisible } from "@/lib/pollWhileVisible";
 
-const POLL_INTERVAL_MS = 30_000;
+// Every poll runs a Vercel function, so the rates are kept low. A background tab
+// still polls, slowly, because desktop alerts for new items only fire there.
+const VISIBLE_POLL_MS = 120_000;
+const HIDDEN_POLL_MS = 600_000;
 
 export default function NotificationBell({ open, onToggle, onClose, role }: {
   open: boolean;
@@ -48,7 +52,7 @@ export default function NotificationBell({ open, onToggle, onClose, role }: {
     };
   }, []);
 
-  // Poll the backend; also refresh when the tab becomes visible again or a save completes.
+  // Poll the backend at a rate that follows tab visibility; also refresh when a save completes.
   useEffect(() => {
     if (role === null) return;
     const controller = new AbortController();
@@ -67,15 +71,12 @@ export default function NotificationBell({ open, onToggle, onClose, role }: {
       }
     };
     void refresh();
-    const interval = window.setInterval(() => void refresh(), POLL_INTERVAL_MS);
-    const onVisible = () => { if (document.visibilityState === "visible") void refresh(); };
+    const stopPolling = pollWhileVisible(() => void refresh(), { visibleMs: VISIBLE_POLL_MS, hiddenMs: HIDDEN_POLL_MS });
     const onSaved = () => void refresh();
-    document.addEventListener("visibilitychange", onVisible);
     window.addEventListener(notificationEvent, onSaved);
     return () => {
       controller.abort();
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisible);
+      stopPolling();
       window.removeEventListener(notificationEvent, onSaved);
     };
   }, [role]);
